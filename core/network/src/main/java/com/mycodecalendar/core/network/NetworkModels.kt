@@ -58,6 +58,46 @@ data class CodeforcesRatingPointDto(
     val newRating: Int = 0
 )
 
+@Serializable
+data class CodeforcesSubmissionDto(
+    val id: Long = 0L,
+    val contestId: Int? = null,
+    val creationTimeSeconds: Long = 0L,
+    val problem: CodeforcesProblemDto? = null,
+    val verdict: String? = null
+)
+
+@Serializable
+data class CodeforcesProblemDto(
+    val contestId: Int? = null,
+    val index: String = "",
+    val name: String = "",
+    val rating: Int? = null,
+    val tags: List<String> = emptyList()
+)
+
+// ── CODECHEF API DTOS ─────────────────────────────────────────────────────────
+
+@Serializable
+data class CodeChefApiResponseDto(
+    val success: Boolean = false,
+    val profile: String? = null,
+    val name: String? = null,
+    val currentRating: Int? = null,
+    val highestRating: Int? = null,
+    val stars: String? = null,
+    val globalRank: Int? = null,
+    val countryRank: Int? = null,
+    val countryName: String? = null,
+    val fullySolved: CodeChefSolvedCountDto? = null,
+    val partiallySolved: CodeChefSolvedCountDto? = null
+)
+
+@Serializable
+data class CodeChefSolvedCountDto(
+    val count: Int = 0
+)
+
 // ── GITHUB API DTOS ───────────────────────────────────────────────────────────
 
 @Serializable
@@ -72,8 +112,12 @@ data class GitHubUserDto(
 
 @Serializable
 data class GitHubRepoDto(
+    val name: String = "",
+    val description: String? = null,
+    val language: String? = null,
     @SerialName("stargazers_count") val stargazersCount: Int = 0,
-    val language: String? = null
+    @SerialName("forks_count") val forksCount: Int = 0,
+    @SerialName("html_url") val htmlUrl: String = ""
 )
 
 @Serializable
@@ -88,22 +132,94 @@ data class GitHubContributionsResponseDto(
     val contributions: List<GitHubContributionDayDto> = emptyList()
 )
 
-// ── LEETCODE STATS API DTO ───────────────────────────────────────────────────
+// ── LEETCODE GRAPHQL DTOS ────────────────────────────────────────────────────
+// Uses the official LeetCode GraphQL endpoint at https://leetcode.com/graphql
+// No API key required; standard browser headers are sufficient.
 
 @Serializable
-data class LeetCodeStatsDto(
-    val status: String? = null,
-    val message: String? = null,
-    val totalSolved: Int? = null,
-    val easySolved: Int? = null,
-    val mediumSolved: Int? = null,
-    val hardSolved: Int? = null,
-    val ranking: Int? = null,
-    val contributionPoints: Int? = null,
-    val reputation: Int? = null
+data class LeetCodeGraphQLRequest(
+    val query: String,
+    val variables: LeetCodeGraphQLVariables
 )
 
-// ── EXISTING DTOS (for backward compatibility) ───────────────────────────────
+@Serializable
+data class LeetCodeGraphQLVariables(
+    val username: String
+)
+
+@Serializable
+data class LeetCodeGraphQLResponse(
+    val data: LeetCodeGraphQLData? = null,
+    val errors: List<LeetCodeGraphQLError>? = null
+)
+
+@Serializable
+data class LeetCodeGraphQLData(
+    val matchedUser: LeetCodeMatchedUser? = null,
+    val userContestRanking: LeetCodeContestRanking? = null
+)
+
+@Serializable
+data class LeetCodeMatchedUser(
+    val username: String? = null,
+    val submitStats: LeetCodeSubmitStats? = null,
+    val profile: LeetCodeProfile? = null,
+    val badges: List<LeetCodeBadge>? = null
+)
+
+@Serializable
+data class LeetCodeSubmitStats(
+    val acSubmissionNum: List<LeetCodeSubmissionCount>? = null
+)
+
+@Serializable
+data class LeetCodeSubmissionCount(
+    val difficulty: String = "",   // "All", "Easy", "Medium", "Hard"
+    val count: Int = 0,
+    val submissions: Int = 0
+)
+
+@Serializable
+data class LeetCodeProfile(
+    val ranking: Int? = null,
+    val reputation: Int? = null,
+    val starRating: Double? = null,
+    val realName: String? = null,
+    val userAvatar: String? = null
+)
+
+@Serializable
+data class LeetCodeBadge(
+    val name: String? = null
+)
+
+@Serializable
+data class LeetCodeContestRanking(
+    val attendedContestsCount: Int? = null,
+    val rating: Double? = null,
+    val globalRanking: Int? = null,
+    val totalParticipants: Int? = null,
+    val topPercentage: Double? = null
+)
+
+@Serializable
+data class LeetCodeGraphQLError(
+    val message: String = ""
+)
+
+// Parsed summary model for convenience
+data class LeetCodeStatsSummary(
+    val totalSolved: Int,
+    val easySolved: Int,
+    val mediumSolved: Int,
+    val hardSolved: Int,
+    val ranking: Int,
+    val contestRating: Double?,
+    val contestsAttended: Int,
+    val contestGlobalRank: Int?
+)
+
+// ── EXISTING DTOS (for backward compatibility with ContestRepositoryImpl) ─────
 
 @Serializable
 data class ContestDto(

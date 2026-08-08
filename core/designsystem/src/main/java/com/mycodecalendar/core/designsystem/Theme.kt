@@ -1,79 +1,86 @@
 package com.mycodecalendar.core.designsystem
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DARK SCHEME  —  Deep navy/slate neutral with a single indigo accent
+// DARK SCHEME — Deep OLED Obsidian Navy with Electric Neon Accents
 // ─────────────────────────────────────────────────────────────────────────────
 private val DarkColorScheme = darkColorScheme(
-    primary              = Color(0xFF818CF8),   // indigo-400 — softer for dark bg
-    onPrimary            = Color(0xFF1E1B4B),
-    primaryContainer     = Color(0xFF312E81),   // indigo-900 — very dark container
-    onPrimaryContainer   = Color(0xFFC7D2FE),   // indigo-200
+    primary              = Color(0xFF818CF8),   // electric indigo-400
+    onPrimary            = Color(0xFF070A11),
+    primaryContainer     = Color(0xFF1E1B4B),
+    onPrimaryContainer   = Color(0xFFE0E7FF),
 
-    secondary            = Color(0xFF34D399),   // emerald-400
-    onSecondary          = Color(0xFF064E3B),
-    secondaryContainer   = Color(0xFF065F46),
+    secondary            = Color(0xFF34D399),   // neon emerald-400
+    onSecondary          = Color(0xFF022C22),
+    secondaryContainer   = Color(0xFF064E3B),
     onSecondaryContainer = Color(0xFFA7F3D0),
 
-    tertiary             = Color(0xFFFBBF24),   // amber-400 — streak only
-    onTertiary           = Color(0xFF78350F),
-    tertiaryContainer    = Color(0xFF92400E),
-    onTertiaryContainer  = Color(0xFFFDE68A),
+    tertiary             = Color(0xFF38BDF8),   // neon cyan-400
+    onTertiary           = Color(0xFF082F49),
+    tertiaryContainer    = Color(0xFF075985),
+    onTertiaryContainer  = Color(0xFFBAE6FD),
 
-    background    = Color(0xFF0D1117),   // GitHub dark — near-black with blue tint
-    onBackground  = Color(0xFFE6EDF3),   // very light text on dark
+    background    = Color(0xFF06090F),   // deep OLED obsidian black
+    onBackground  = Color(0xFFFFFFFF),   // pure snow white heading
 
-    surface       = Color(0xFF161B22),   // cards — slightly lighter than background
-    onSurface     = Color(0xFFE6EDF3),
+    surface       = Color(0xFF0E131F),   // midnight slate
+    onSurface     = Color(0xFFF8FAFC),   // crisp bright snow slate
 
-    surfaceVariant    = Color(0xFF21262D),   // elevated surfaces, chip backgrounds
-    onSurfaceVariant  = Color(0xFF8B949E),   // secondary text — medium gray
+    surfaceVariant    = Color(0xFF182234),   // slate card container
+    onSurfaceVariant  = Color(0xFFCBD5E1),   // luminous slate-300 body text
 
-    outline        = Color(0xFF30363D),   // borders — subtle
-    outlineVariant = Color(0xFF21262D),
+    outline        = Color(0xFF334155),
+    outlineVariant = Color(0xFF1E293B),
 
-    error   = Color(0xFFF87171),
-    onError = Color(0xFF7F1D1D)
+    error   = Color(0xFFFB7185),
+    onError = Color(0xFF4C0519)
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LIGHT SCHEME  —  Clean white with clear contrast, single indigo accent
+// LIGHT SCHEME — Minimal, crisp off-white with high-contrast slate text
 // ─────────────────────────────────────────────────────────────────────────────
 private val LightColorScheme = lightColorScheme(
-    primary              = Color(0xFF4F46E5),   // indigo-600 — strong on white
+    primary              = Color(0xFF4F46E5),   // indigo-600
     onPrimary            = Color(0xFFFFFFFF),
-    primaryContainer     = Color(0xFFE0E7FF),   // indigo-100
-    onPrimaryContainer   = Color(0xFF3730A3),   // indigo-700
+    primaryContainer     = Color(0xFFEEF2FF),
+    onPrimaryContainer   = Color(0xFF312E81),
 
     secondary            = Color(0xFF059669),   // emerald-600
     onSecondary          = Color(0xFFFFFFFF),
-    secondaryContainer   = Color(0xFFD1FAE5),
+    secondaryContainer   = Color(0xFFECFDF5),
     onSecondaryContainer = Color(0xFF064E3B),
 
-    tertiary             = Color(0xFFD97706),   // amber-600
+    tertiary             = Color(0xFF0284C7),   // sky-600
     onTertiary           = Color(0xFFFFFFFF),
-    tertiaryContainer    = Color(0xFFFEF3C7),
-    onTertiaryContainer  = Color(0xFF78350F),
+    tertiaryContainer    = Color(0xFFF0F9FF),
+    onTertiaryContainer  = Color(0xFF0C4A6E),
 
-    background    = Color(0xFFF6F8FA),   // GitHub light — off-white, not harsh
-    onBackground  = Color(0xFF0D1117),   // near-black — strong contrast
+    background    = Color(0xFFF8FAFC),   // clean off-white (#F8FAFC)
+    onBackground  = Color(0xFF0F172A),   // deep charcoal heading
 
-    surface       = Color(0xFFFFFFFF),   // cards — pure white
-    onSurface     = Color(0xFF0D1117),   // near-black on white
+    surface       = Color(0xFFFFFFFF),   // pure white card surface
+    onSurface     = Color(0xFF0F172A),   // charcoal slate
 
-    surfaceVariant    = Color(0xFFEAECEF),   // chip backgrounds — clear visible
-    onSurfaceVariant  = Color(0xFF434A54),   // secondary text — dark enough to read
+    surfaceVariant    = Color(0xFFF1F5F9),   // slate-100
+    onSurfaceVariant  = Color(0xFF334155),   // dark slate-700 body text
 
-    outline        = Color(0xFFD0D7DE),   // borders — clear but not harsh
-    outlineVariant = Color(0xFFE8ECF0),
+    outline        = Color(0xFFCBD5E1),   // slate-300
+    outlineVariant = Color(0xFFE2E8F0),
 
-    error   = Color(0xFFDC2626),
+    error   = Color(0xFFE11D48),
     onError = Color(0xFFFFFFFF)
 )
 
@@ -97,5 +104,74 @@ fun MyCodeCalendarTheme(
         colorScheme = if (dark) DarkColorScheme else LightColorScheme,
         typography  = Typography,
         content     = content
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GlassmorphismBackground — full-screen background wrapper
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * GlassmorphismBackground — full-screen background container with ambient mesh nodes.
+ *
+ * Dark Mode: Deep OLED obsidian base (#070A11) with radiant indigo, cyan, and emerald radial glows.
+ * Light Mode: Clean off-white (#F8FAFC) with soft pastel radial glows.
+ */
+@Composable
+fun GlassmorphismBackground(
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit
+) {
+    val isDark = isSystemInDarkTheme()
+
+    val node1 = if (isDark) Color(0x3D6366F1) else Color(0x126366F1)  // electric indigo
+    val node2 = if (isDark) Color(0x3006B6D4) else Color(0x1038BDF8)  // neon cyan
+    val node3 = if (isDark) Color(0x2410B981) else Color(0x0D10B981)  // neon emerald
+    val baseBg = if (isDark) Color(0xFF070A11) else Color(0xFFF8FAFC)
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .drawBehind {
+                val w = size.width
+                val h = size.height
+
+                // Base canvas fill
+                drawRect(color = baseBg)
+
+                // Node 1: Top-left radial glow (Indigo)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(node1, Color.Transparent),
+                        center = Offset(w * 0.12f, h * 0.04f),
+                        radius = h * 0.52f
+                    ),
+                    radius = h * 0.52f,
+                    center = Offset(w * 0.12f, h * 0.04f)
+                )
+
+                // Node 2: Top-right radial glow (Cyan)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(node2, Color.Transparent),
+                        center = Offset(w * 0.88f, h * 0.08f),
+                        radius = h * 0.44f
+                    ),
+                    radius = h * 0.44f,
+                    center = Offset(w * 0.88f, h * 0.08f)
+                )
+
+                // Node 3: Bottom-center emerald glow
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(node3, Color.Transparent),
+                        center = Offset(w * 0.5f, h * 0.92f),
+                        radius = h * 0.38f
+                    ),
+                    radius = h * 0.38f,
+                    center = Offset(w * 0.5f, h * 0.92f)
+                )
+            },
+        content = content
     )
 }
