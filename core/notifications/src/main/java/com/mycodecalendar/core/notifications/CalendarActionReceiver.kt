@@ -21,13 +21,18 @@ class CalendarActionReceiver : BroadcastReceiver() {
 
         val contest = Contest(
             id = contestId,
+            providerContestId = contestId,
             platform = platform,
             name = contestName,
             officialUrl = "https://${platform.name.lowercase()}.com",
+            registrationUrl = null,
             startTimeUtc = Instant.ofEpochMilli(startTimeMs),
             endTimeUtc = Instant.ofEpochMilli(startTimeMs + 7200000),
-            durationSeconds = 7200,
-            status = ContestStatus.UPCOMING
+            durationSeconds = 7200L,
+            contestType = null,
+            ratingType = null,
+            status = ContestStatus.UPCOMING,
+            lastFetchedAt = Instant.now()
         )
 
         val calendarManager = CalendarContractManager(context)

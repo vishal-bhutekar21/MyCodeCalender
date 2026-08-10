@@ -26,7 +26,7 @@ import com.mycodecalendar.core.database.entity.SyncStateEntity
         SyncStateEntity::class
     ],
     version = 1,
-    exportSchema = true
+    exportSchema = false
 )
 @TypeConverters(InstantConverter::class)
 abstract class MyCodeCalendarDatabase : RoomDatabase() {

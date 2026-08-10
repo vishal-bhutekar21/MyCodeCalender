@@ -34,7 +34,7 @@ class ContestRepositoryImpl(
                     registrationUrl = dto.registrationUrl,
                     startTimeUtc = Instant.parse(dto.startTimeUtc),
                     endTimeUtc = Instant.parse(dto.endTimeUtc),
-                    durationSeconds = dto.durationSeconds,
+                    durationSeconds = dto.durationSeconds.toLong(),
                     contestType = dto.contestType,
                     ratingType = dto.ratingType,
                     status = dto.status,
@@ -54,6 +54,7 @@ private fun ContestEntity.toDomainModel(): Contest {
     val statusEnum = try { ContestStatus.valueOf(status) } catch (e: Exception) { ContestStatus.UPCOMING }
     return Contest(
         id = id,
+        providerContestId = providerContestId,
         platform = platformEnum,
         name = name,
         officialUrl = officialUrl,
@@ -63,6 +64,7 @@ private fun ContestEntity.toDomainModel(): Contest {
         durationSeconds = durationSeconds,
         contestType = contestType,
         ratingType = ratingType,
-        status = statusEnum
+        status = statusEnum,
+        lastFetchedAt = lastFetchedAt
     )
 }

@@ -23,7 +23,8 @@ class FakeRepository {
                 username = "tourist",
                 displayName = "Gennady Korotkevich",
                 isEnabled = true,
-                lastSyncedAt = Instant.now().minusSeconds(600)
+                lastSyncedAt = Instant.now().minusSeconds(600),
+                syncStatus = "SYNCED"
             ),
             PlatformAccount(
                 id = "2",
@@ -31,7 +32,8 @@ class FakeRepository {
                 username = "neal_wu",
                 displayName = "Neal Wu",
                 isEnabled = true,
-                lastSyncedAt = Instant.now().minusSeconds(1200)
+                lastSyncedAt = Instant.now().minusSeconds(1200),
+                syncStatus = "SYNCED"
             ),
             PlatformAccount(
                 id = "3",
@@ -39,7 +41,8 @@ class FakeRepository {
                 username = "torvalds",
                 displayName = "Linus Torvalds",
                 isEnabled = true,
-                lastSyncedAt = Instant.now().minusSeconds(300)
+                lastSyncedAt = Instant.now().minusSeconds(300),
+                syncStatus = "SYNCED"
             )
         )
     )
@@ -121,55 +124,63 @@ class FakeRepository {
     private val fakeContests = listOf(
         Contest(
             id = "cf-1950",
+            providerContestId = "1950",
             platform = Platform.CODEFORCES,
             name = "Codeforces Round 950 (Div. 2)",
             officialUrl = "https://codeforces.com/contests/1950",
             registrationUrl = "https://codeforces.com/contestRegistration/1950",
             startTimeUtc = Instant.now().plusSeconds(3600 * 2 + 1800),
             endTimeUtc = Instant.now().plusSeconds(3600 * 4 + 1800),
-            durationSeconds = 7200,
+            durationSeconds = 7200L,
             contestType = "ICPC",
             ratingType = "Rated for Div. 2",
-            status = ContestStatus.UPCOMING
+            status = ContestStatus.UPCOMING,
+            lastFetchedAt = Instant.now()
         ),
         Contest(
             id = "lc-wc390",
+            providerContestId = "wc390",
             platform = Platform.LEETCODE,
             name = "Weekly Contest 390",
             officialUrl = "https://leetcode.com/contest/weekly-contest-390",
             registrationUrl = "https://leetcode.com/contest/weekly-contest-390",
             startTimeUtc = Instant.now().minusSeconds(1800),
             endTimeUtc = Instant.now().plusSeconds(3600),
-            durationSeconds = 5400,
+            durationSeconds = 5400L,
             contestType = "LeetCode Format",
             ratingType = "Rated",
-            status = ContestStatus.LIVE
+            status = ContestStatus.LIVE,
+            lastFetchedAt = Instant.now()
         ),
         Contest(
             id = "cc-starters125",
+            providerContestId = "START125",
             platform = Platform.CODECHEF,
             name = "Starters 125 (Rated till 6-Star)",
             officialUrl = "https://www.codechef.com/START125",
             registrationUrl = "https://www.codechef.com/START125",
             startTimeUtc = Instant.now().plusSeconds(3600 * 26),
             endTimeUtc = Instant.now().plusSeconds(3600 * 28),
-            durationSeconds = 7200,
+            durationSeconds = 7200L,
             contestType = "Short Contest",
             ratingType = "Rated",
-            status = ContestStatus.UPCOMING
+            status = ContestStatus.UPCOMING,
+            lastFetchedAt = Instant.now()
         ),
         Contest(
             id = "abc-345",
+            providerContestId = "abc345",
             platform = Platform.ATCODER,
             name = "AtCoder Beginner Contest 345",
             officialUrl = "https://atcoder.jp/contests/abc345",
             registrationUrl = "https://atcoder.jp/contests/abc345",
             startTimeUtc = Instant.now().plusSeconds(3600 * 48),
             endTimeUtc = Instant.now().plusSeconds(3600 * 50),
-            durationSeconds = 6000,
+            durationSeconds = 6000L,
             contestType = "ABC",
             ratingType = "Rated (<2000)",
-            status = ContestStatus.UPCOMING
+            status = ContestStatus.UPCOMING,
+            lastFetchedAt = Instant.now()
         )
     )
 
@@ -181,7 +192,7 @@ class FakeRepository {
             creator = "William Fiset",
             url = "https://youtube.com/watch?v=dp_patterns",
             category = "Dynamic Programming",
-            platform = "YouTube",
+            platform = Platform.LEETCODE,
             duration = "45 mins",
             priority = 1,
             thumbnailUrl = null,
@@ -194,7 +205,7 @@ class FakeRepository {
             creator = "Errichto",
             url = "https://youtube.com/watch?v=segment_trees",
             category = "Data Structures",
-            platform = "YouTube",
+            platform = Platform.CODEFORCES,
             duration = "30 mins",
             priority = 2,
             thumbnailUrl = null,
@@ -242,7 +253,8 @@ class FakeRepository {
             username = username,
             displayName = username,
             isEnabled = true,
-            lastSyncedAt = Instant.now()
+            lastSyncedAt = Instant.now(),
+            syncStatus = "SYNCED"
         )
         connectedPlatforms.value = connectedPlatforms.value + newAcc
         if (platform == Platform.GITHUB) {

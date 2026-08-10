@@ -97,16 +97,16 @@ fun ContestDetailScreen(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 DetailRow(label = "Start Time", value = formatter.format(contest.startTimeUtc))
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                 DetailRow(label = "End Time", value = formatter.format(contest.endTimeUtc))
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                 DetailRow(
                     label = "Duration",
                     value = "${contest.durationSeconds / 3600} hours ${(contest.durationSeconds % 3600) / 60} mins"
                 )
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                 DetailRow(label = "Format / Type", value = contest.contestType ?: "Standard")
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                 DetailRow(label = "Rating Impact", value = contest.ratingType ?: "Rated")
             }
         }

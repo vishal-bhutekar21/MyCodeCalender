@@ -6,18 +6,22 @@ plugins {
 
 android {
     namespace = "com.mycodecalendar.core.database"
-    compileSdk = 35
+    compileSdk = 34
     defaultConfig { minSdk = 26 }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        isCoreLibraryDesugaringEnabled = true
     }
-    kotlinOptions { jvmTarget = "17" }
+}
+
+kotlin {
+    jvmToolchain(21)
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools.desugar_jdk_libs:2.0.4")
     implementation(project(":domain:model"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.room.runtime)

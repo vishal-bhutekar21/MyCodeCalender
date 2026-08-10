@@ -124,7 +124,7 @@ fun ResourceCard(
                     )
                 }
                 Text(
-                    text = resource.duration,
+                    text = resource.duration ?: "",
                     style = Typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline
                 )
@@ -138,15 +138,16 @@ fun ResourceCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = resource.description,
-                style = Typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+            resource.description?.let { desc ->
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = desc,
+                    style = Typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -156,7 +157,7 @@ fun ResourceCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "By ${resource.creator}",
+                    text = "By ${resource.creator ?: "Community"}",
                     style = Typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.primary
                 )

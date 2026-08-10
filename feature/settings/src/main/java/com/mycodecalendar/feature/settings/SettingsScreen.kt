@@ -111,7 +111,7 @@ fun SettingsScreen(
                     onCheckedChange = { notificationsEnabled = it }
                 )
 
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
                 SettingSwitchRow(
                     title = "Android Calendar Sync",

@@ -2,16 +2,16 @@ package com.mycodecalendar.core.network
 
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.engine.cio.*
+import io.ktor.client.engine.android.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 
 class RemoteDataSource(
-    private val baseUrl: String = "http://10.0.2.2:8080/v1"
+    private val baseUrl: String = "https://api.mycodecalendar.com/v1"
 ) {
-    private val client = HttpClient(CIO) {
+    private val client = HttpClient(Android) {
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true

@@ -187,7 +187,7 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            LastUpdatedLabel(formattedText = "Updated ${uiState.lastUpdatedText}")
+            LastUpdatedLabel(timeAgo = uiState.lastUpdatedText)
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -522,7 +522,7 @@ fun FeaturedResourceCard(
                     )
                 }
                 Text(
-                    text = resource.duration,
+                    text = resource.duration ?: "",
                     style = Typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline
                 )
@@ -539,7 +539,7 @@ fun FeaturedResourceCard(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = resource.description,
+                text = resource.description ?: "",
                 style = Typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
@@ -549,7 +549,7 @@ fun FeaturedResourceCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "By ${resource.creator}",
+                text = "By ${resource.creator ?: "Community"}",
                 style = Typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.primary
             )

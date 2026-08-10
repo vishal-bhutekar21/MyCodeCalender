@@ -1,24 +1,22 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.compose.compiler)
 }
 
 android {
     namespace = "com.mycodecalendar.feature.platformdetail"
-    compileSdk = 35
+    compileSdk = 34
     defaultConfig { minSdk = 26 }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true }
-    composeOptions { kotlinCompilerExtensionVersion = libs.versions.composeCompiler.get() }
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools.desugar_jdk_libs:2.0.4")
     implementation(project(":core:designsystem"))
     implementation(project(":domain:model"))
     implementation(platform(libs.compose.bom))
