@@ -16,6 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.mycodecalendar.core.designsystem.AppTheme
 import com.mycodecalendar.core.designsystem.MyCodeCalendarTheme
 import com.mycodecalendar.core.designsystem.components.FloatingBottomNavigation
 import com.mycodecalendar.data.repository.FakeRepository
@@ -32,14 +33,17 @@ import com.mycodecalendar.feature.settings.SettingsScreen
 
 class MainActivity : ComponentActivity() {
 
-    private val repository = FakeRepository()
+    // Pass applicationContext so repository can access SharedPreferences
+    private val repository by lazy { FakeRepository(applicationContext) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         setContent {
-            MyCodeCalendarTheme {
+            var appTheme by remember { mutableStateOf(AppTheme.SYSTEM) }
+
+            MyCodeCalendarTheme(appTheme = appTheme) {
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route ?: "home"
@@ -47,22 +51,25 @@ class MainActivity : ComponentActivity() {
                 val homeViewModel = remember { HomeViewModel(repository) }
                 val homeUiState by homeViewModel.uiState.collectAsState()
                 val isRefreshing by homeViewModel.isRefreshing.collectAsState()
+
                 val contests by repository.getContests().collectAsState(initial = emptyList())
                 val connectedAccounts by repository.getConnectedAccounts().collectAsState(initial = emptyList())
                 val connectedStats by repository.getAllConnectedStats().collectAsState(initial = emptyList())
                 val resources by repository.getResources().collectAsState(initial = emptyList())
 
-                val bottomNavItems = listOf("home", "contests", "resources", "settings")
-                val showBottomBar = currentRoute in bottomNavItems
+                val bottomNavRoutes = setOf("home", "contests", "resources", "settings")
+                val showBottomBar = currentRoute in bottomNavRoutes
 
                 Scaffold(
                     bottomBar = {
                         if (showBottomBar) {
                             FloatingBottomNavigation(
                                 currentRoute = currentRoute,
-                                onTabSelected = { targetRoute ->
-                                    navController.navigate(targetRoute) {
-                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                onTabSelected = { route ->
+                                    navController.navigate(route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
                                         launchSingleTop = true
                                         restoreState = true
                                     }
@@ -78,7 +85,11 @@ class MainActivity : ComponentActivity() {
                     ) {
                         composable("onboarding") {
                             OnboardingScreen(
-                                onComplete = { navController.navigate("home") { popUpTo("onboarding") { inclusive = true } } }
+                                onComplete = {
+                                    navController.navigate("home") {
+                                        popUpTo("onboarding") { inclusive = true }
+                                    }
+                                }
                             )
                         }
 
@@ -86,8 +97,12 @@ class MainActivity : ComponentActivity() {
                             HomeScreen(
                                 uiState = homeUiState,
                                 onAddPlatformClick = { navController.navigate("add_platform") },
-                                onPlatformClick = { platform -> navController.navigate("platform_detail/${platform.name}") },
-                                onContestClick = { contestId -> navController.navigate("contest_detail/$contestId") },
+                                onPlatformClick = { platform ->
+                                    navController.navigate("platform_detail/${platform.name}")
+                                },
+                                onContestClick = { id ->
+                                    navController.navigate("contest_detail/$id")
+                                },
                                 onViewAllContestsClick = { navController.navigate("contests") },
                                 onResourceClick = { url -> openUrl(url) },
                                 isRefreshing = isRefreshing,
@@ -98,24 +113,25 @@ class MainActivity : ComponentActivity() {
                         composable("contests") {
                             ContestsScreen(
                                 contests = contests,
-                                onContestClick = { contestId -> navController.navigate("contest_detail/$contestId") }
+                                onContestClick = { id ->
+                                    navController.navigate("contest_detail/$id")
+                                }
                             )
                         }
 
-                        composable("contest_detail/{contestId}") { backStackEntry ->
-                            val contestId = backStackEntry.arguments?.getString("contestId") ?: ""
-                            val contest = contests.find { it.id == contestId } ?: contests.firstOrNull()
-
+                        composable("contest_detail/{contestId}") { back ->
+                            val id = back.arguments?.getString("contestId") ?: ""
+                            val contest = contests.find { it.id == id } ?: contests.firstOrNull()
                             if (contest != null) {
                                 ContestDetailScreen(
                                     contest = contest,
                                     onBackClick = { navController.popBackStack() },
                                     onJoinClick = { url -> openUrl(url) },
                                     onAddToCalendarClick = {
-                                        Toast.makeText(this@MainActivity, "Added to device calendar!", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(this@MainActivity, "Added to calendar", Toast.LENGTH_SHORT).show()
                                     },
                                     onSetReminderClick = {
-                                        Toast.makeText(this@MainActivity, "Reminder set for 15 minutes before contest!", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(this@MainActivity, "Reminder set — 15 min before", Toast.LENGTH_SHORT).show()
                                     }
                                 )
                             }
@@ -123,20 +139,31 @@ class MainActivity : ComponentActivity() {
 
                         composable("add_platform") {
                             AddPlatformScreen(
+                                connectedAccounts = connectedAccounts,
                                 onAddPlatform = { platform, handle ->
                                     repository.addPlatformAccount(platform, handle)
-                                    Toast.makeText(this@MainActivity, "Added @$handle on ${platform.name}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        "Connected @$handle",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                     navController.popBackStack()
+                                },
+                                onRemovePlatform = { platform ->
+                                    repository.removePlatformAccount(platform)
                                 },
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
 
-                        composable("platform_detail/{platformName}") { backStackEntry ->
-                            val name = backStackEntry.arguments?.getString("platformName") ?: "CODEFORCES"
-                            val platform = try { Platform.valueOf(name) } catch (e: Exception) { Platform.CODEFORCES }
-                            val stat = connectedStats.find { it.platform == platform } ?: connectedStats.firstOrNull()
-                            val history by repository.getRatingHistory(platform, stat?.username ?: "tourist").collectAsState(initial = emptyList())
+                        composable("platform_detail/{platformName}") { back ->
+                            val name = back.arguments?.getString("platformName") ?: "CODEFORCES"
+                            val platform = runCatching { Platform.valueOf(name) }.getOrDefault(Platform.CODEFORCES)
+                            val acc = connectedAccounts.firstOrNull { it.platform == platform }
+                            val stat = connectedStats.firstOrNull { it.platform == platform }
+                            val history by repository.getRatingHistory(
+                                platform, acc?.username ?: ""
+                            ).collectAsState(initial = emptyList())
 
                             PlatformDetailScreen(
                                 stats = stat,
@@ -155,8 +182,12 @@ class MainActivity : ComponentActivity() {
                         composable("settings") {
                             SettingsScreen(
                                 connectedAccounts = connectedAccounts,
+                                currentTheme = appTheme,
+                                onThemeChange = { appTheme = it },
                                 onAddPlatformClick = { navController.navigate("add_platform") },
-                                onManageAccountClick = { acc -> navController.navigate("platform_detail/${acc.platform.name}") }
+                                onManageAccountClick = { acc ->
+                                    navController.navigate("platform_detail/${acc.platform.name}")
+                                }
                             )
                         }
                     }
@@ -166,11 +197,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openUrl(url: String) {
-        try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-            startActivity(intent)
-        } catch (e: Exception) {
-            Toast.makeText(this, "Could not open link: $url", Toast.LENGTH_SHORT).show()
+        runCatching {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        }.onFailure {
+            Toast.makeText(this, "Could not open link", Toast.LENGTH_SHORT).show()
         }
     }
 }

@@ -2,13 +2,13 @@ package com.mycodecalendar.core.designsystem.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.EmojiEvents
@@ -29,7 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-enum class NavTab(val route: String, val title: String, val icon: ImageVector) {
+enum class NavTab(val route: String, val label: String, val icon: ImageVector) {
     HOME("home", "Home", Icons.Rounded.Home),
     CONTESTS("contests", "Contests", Icons.Rounded.EmojiEvents),
     RESOURCES("resources", "Resources", Icons.Rounded.MenuBook),
@@ -45,59 +45,65 @@ fun FloatingBottomNavigation(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .padding(horizontal = 20.dp, vertical = 20.dp),
         contentAlignment = Alignment.Center
     ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .shadow(
-                    elevation = 16.dp,
-                    shape = RoundedCornerShape(32.dp),
-                    spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
-                    ambientColor = Color.Black.copy(alpha = 0.3f)
+                    elevation = 24.dp,
+                    shape = RoundedCornerShape(28.dp),
+                    spotColor = Color.Black.copy(alpha = 0.2f),
+                    ambientColor = Color.Black.copy(alpha = 0.08f)
                 )
                 .border(
                     width = 1.dp,
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                    shape = RoundedCornerShape(32.dp)
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                    shape = RoundedCornerShape(28.dp)
                 ),
-            shape = RoundedCornerShape(32.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-            tonalElevation = 6.dp
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 2.dp
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 NavTab.values().forEach { tab ->
                     val isSelected = currentRoute == tab.route
 
-                    val contentColor by animateColorAsState(
-                        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        animationSpec = spring(stiffness = Spring.StiffnessLow),
-                        label = "contentColor"
+                    val itemColor by animateColorAsState(
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        label = "navColor"
                     )
 
-                    val containerColor by animateColorAsState(
-                        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else Color.Transparent,
-                        animationSpec = spring(stiffness = Spring.StiffnessLow),
-                        label = "containerColor"
+                    val bgColor by animateColorAsState(
+                        targetValue = if (isSelected)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                        else Color.Transparent,
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        label = "navBg"
                     )
 
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(containerColor)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(bgColor)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
                                 onClick = { onTabSelected(tab.route) }
                             )
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                            .padding(
+                                horizontal = if (isSelected) 18.dp else 14.dp,
+                                vertical = 10.dp
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(
@@ -106,17 +112,18 @@ fun FloatingBottomNavigation(
                         ) {
                             Icon(
                                 imageVector = tab.icon,
-                                contentDescription = tab.title,
-                                tint = contentColor,
+                                contentDescription = tab.label,
+                                tint = itemColor,
                                 modifier = Modifier.size(22.dp)
                             )
                             if (isSelected) {
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.width(7.dp))
                                 Text(
-                                    text = tab.title,
-                                    color = contentColor,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
+                                    text = tab.label,
+                                    color = itemColor,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 0.sp
                                 )
                             }
                         }

@@ -2,10 +2,10 @@ package com.mycodecalendar.core.designsystem.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,62 +16,62 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mycodecalendar.core.designsystem.SecondaryEmerald
 import com.mycodecalendar.domain.model.ContestStatus
+
+private val LiveGreen = Color(0xFF22C55E)
 
 @Composable
 fun StatusChip(
     status: ContestStatus,
     modifier: Modifier = Modifier
 ) {
-    val (bgColor, textColor, label) = when (status) {
-        ContestStatus.LIVE -> Triple(SecondaryEmerald.copy(alpha = 0.15f), SecondaryEmerald, "● LIVE")
-        ContestStatus.UPCOMING -> Triple(Color(0xFF3B82F6).copy(alpha = 0.15f), Color(0xFF3B82F6), "UPCOMING")
-        ContestStatus.ENDED -> Triple(Color(0xFF64748B).copy(alpha = 0.15f), Color(0xFF64748B), "ENDED")
-    }
-
     val isLive = status == ContestStatus.LIVE
 
-    val infiniteTransition = rememberInfiniteTransition(label = "pulsingLive")
-    val liveDotAlpha by infiniteTransition.animateFloat(
+    val dotAlpha by rememberInfiniteTransition(label = "livePulse").animateFloat(
         initialValue = 0.3f,
         targetValue = 1.0f,
         animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = LinearEasing),
+            animation = tween(900, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "alpha"
+        label = "dotAlpha"
     )
 
-    Box(
+    val dotColor = when (status) {
+        ContestStatus.LIVE     -> LiveGreen
+        ContestStatus.UPCOMING -> MaterialTheme.colorScheme.primary
+        ContestStatus.ENDED    -> MaterialTheme.colorScheme.outline
+    }
+    val label = when (status) {
+        ContestStatus.LIVE     -> "Live"
+        ContestStatus.UPCOMING -> "Upcoming"
+        ContestStatus.ENDED    -> "Ended"
+    }
+    val textColor = when (status) {
+        ContestStatus.LIVE     -> LiveGreen
+        ContestStatus.UPCOMING -> MaterialTheme.colorScheme.primary
+        ContestStatus.ENDED    -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+    }
+
+    Row(
         modifier = modifier
-            .background(bgColor, shape = RoundedCornerShape(8.dp))
-            .border(1.dp, textColor.copy(alpha = 0.3f), shape = RoundedCornerShape(8.dp))
-            .padding(horizontal = 10.dp, vertical = 4.dp)
+            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (isLive) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .alpha(liveDotAlpha)
-                        .background(SecondaryEmerald, shape = CircleShape)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "LIVE NOW",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = textColor
-                )
-            } else {
-                Text(
-                    text = label,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = textColor
-                )
-            }
-        }
+        Box(
+            modifier = Modifier
+                .size(5.dp)
+                .alpha(if (isLive) dotAlpha else 1f)
+                .background(dotColor, CircleShape)
+        )
+        Spacer(modifier = Modifier.width(5.dp))
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = textColor,
+            letterSpacing = 0.sp
+        )
     }
 }
