@@ -26,6 +26,7 @@ dependencies {
     api(libs.compose.material.icons.extended)
     api(libs.compose.animation)
     api(libs.compose.runtime)
+    api(project(":domain:model"))
     implementation(libs.androidx.core.ktx)
     debugImplementation(libs.compose.ui.tooling)
 }

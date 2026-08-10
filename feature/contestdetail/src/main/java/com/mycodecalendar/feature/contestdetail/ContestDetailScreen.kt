@@ -1,20 +1,27 @@
 package com.mycodecalendar.feature.contestdetail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.NotificationsNone
+import androidx.compose.material.icons.rounded.OpenInNew
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mycodecalendar.core.designsystem.Typography
+import com.mycodecalendar.core.designsystem.components.PlatformBadge
+import com.mycodecalendar.core.designsystem.components.StatusChip
 import com.mycodecalendar.domain.model.Contest
-import com.mycodecalendar.domain.model.ContestStatus
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -39,130 +46,205 @@ fun ContestDetailScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
-            .padding(16.dp)
     ) {
-        // Back Button
-        TextButton(onClick = onBackClick) {
-            Text("← Back", style = Typography.labelLarge)
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Platform & Status Badges
+        // Top navigation bar
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.primaryContainer
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        shape = CircleShape
+                    )
             ) {
-                Text(
-                    text = contest.platform.name,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                    style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = if (contest.status == ContestStatus.LIVE) Color(0xFF4CAF50) else MaterialTheme.colorScheme.secondaryContainer
-            ) {
-                Text(
-                    text = contest.status.name,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                    style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = if (contest.status == ContestStatus.LIVE) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
+                Icon(
+                    imageVector = Icons.Rounded.ArrowBack,
+                    contentDescription = "Back",
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Contest Title
-        Text(
-            text = contest.name,
-            style = Typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Key Details Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        // Header section
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 20.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                PlatformBadge(platform = contest.platform)
+                StatusChip(status = contest.status)
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Text(
+                text = contest.name,
+                style = Typography.headlineMedium.copy(fontWeight = FontWeight.Black),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+
+        // Key details card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                    shape = RoundedCornerShape(18.dp)
+                ),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 6.dp)) {
                 DetailRow(label = "Start Time", value = formatter.format(contest.startTimeUtc))
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 0.dp),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                )
                 DetailRow(label = "End Time", value = formatter.format(contest.endTimeUtc))
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                )
                 DetailRow(
                     label = "Duration",
-                    value = "${contest.durationSeconds / 3600} hours ${(contest.durationSeconds % 3600) / 60} mins"
+                    value = "${contest.durationSeconds / 3600}h ${(contest.durationSeconds % 3600) / 60}m"
                 )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                DetailRow(label = "Format / Type", value = contest.contestType ?: "Standard")
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                )
+                DetailRow(label = "Format", value = contest.contestType ?: "Standard")
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                )
                 DetailRow(label = "Rating Impact", value = contest.ratingType ?: "Rated")
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // Action Buttons
-        Button(
-            onClick = { onJoinClick(contest.officialUrl) },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+        // Action buttons
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text("🚀 Join / Official Contest Page", style = Typography.labelLarge)
+            // Primary CTA
+            Button(
+                onClick = { onJoinClick(contest.officialUrl) },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.OpenInNew,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Open Official Page",
+                    style = Typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                )
+            }
+
+            // Calendar button
+            OutlinedButton(
+                onClick = {
+                    calendarAdded = !calendarAdded
+                    onAddToCalendarClick(contest)
+                },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = if (calendarAdded) MaterialTheme.colorScheme.secondary
+                    else MaterialTheme.colorScheme.primary
+                ),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (calendarAdded) MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
+                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.CalendarMonth,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (calendarAdded) "Added to Calendar" else "Add to Calendar",
+                    style = Typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                )
+            }
+
+            // Reminder button
+            FilledTonalButton(
+                onClick = {
+                    reminderEnabled = !reminderEnabled
+                    onSetReminderClick(contest)
+                },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = if (reminderEnabled)
+                        MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.NotificationsNone,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = if (reminderEnabled) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (reminderEnabled) "Reminder Active · 15 min before" else "Set Reminder",
+                    style = Typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                    color = if (reminderEnabled) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedButton(
-            onClick = {
-                calendarAdded = !calendarAdded
-                onAddToCalendarClick(contest)
-            },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text(
-                if (calendarAdded) "✓ Added to Calendar" else "📅 Add to Android Calendar",
-                style = Typography.labelLarge
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        FilledTonalButton(
-            onClick = {
-                reminderEnabled = !reminderEnabled
-                onSetReminderClick(contest)
-            },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text(
-                if (reminderEnabled) "🔔 Reminder Set (15m before)" else "🔔 Set Notification Reminder",
-                style = Typography.labelLarge
-            )
-        }
+        Spacer(modifier = Modifier.height(80.dp))
     }
 }
 
 @Composable
 fun DetailRow(label: String, value: String) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, style = Typography.bodyMedium, color = MaterialTheme.colorScheme.outline)
-        Text(text = value, style = Typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            text = label,
+            style = Typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        )
+        Text(
+            text = value,
+            style = Typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }

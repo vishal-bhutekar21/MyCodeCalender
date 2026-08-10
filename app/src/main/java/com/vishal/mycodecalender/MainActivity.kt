@@ -17,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.mycodecalendar.core.designsystem.MyCodeCalendarTheme
+import com.mycodecalendar.core.designsystem.components.FloatingBottomNavigation
 import com.mycodecalendar.data.repository.FakeRepository
 import com.mycodecalendar.domain.model.Platform
 import com.mycodecalendar.feature.contestdetail.ContestDetailScreen
@@ -41,10 +42,11 @@ class MainActivity : ComponentActivity() {
             MyCodeCalendarTheme {
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = navBackStackEntry?.destination?.route
+                val currentRoute = navBackStackEntry?.destination?.route ?: "home"
 
                 val homeViewModel = remember { HomeViewModel(repository) }
                 val homeUiState by homeViewModel.uiState.collectAsState()
+                val isRefreshing by homeViewModel.isRefreshing.collectAsState()
                 val contests by repository.getContests().collectAsState(initial = emptyList())
                 val connectedAccounts by repository.getConnectedAccounts().collectAsState(initial = emptyList())
                 val connectedStats by repository.getAllConnectedStats().collectAsState(initial = emptyList())
@@ -56,56 +58,16 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     bottomBar = {
                         if (showBottomBar) {
-                            NavigationBar {
-                                NavigationBarItem(
-                                    selected = currentRoute == "home",
-                                    onClick = {
-                                        navController.navigate("home") {
-                                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    },
-                                    icon = { Text("🏠") },
-                                    label = { Text("Home") }
-                                )
-                                NavigationBarItem(
-                                    selected = currentRoute == "contests",
-                                    onClick = {
-                                        navController.navigate("contests") {
-                                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    },
-                                    icon = { Text("🏆") },
-                                    label = { Text("Contests") }
-                                )
-                                NavigationBarItem(
-                                    selected = currentRoute == "resources",
-                                    onClick = {
-                                        navController.navigate("resources") {
-                                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    },
-                                    icon = { Text("📚") },
-                                    label = { Text("Resources") }
-                                )
-                                NavigationBarItem(
-                                    selected = currentRoute == "settings",
-                                    onClick = {
-                                        navController.navigate("settings") {
-                                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    },
-                                    icon = { Text("⚙️") },
-                                    label = { Text("Settings") }
-                                )
-                            }
+                            FloatingBottomNavigation(
+                                currentRoute = currentRoute,
+                                onTabSelected = { targetRoute ->
+                                    navController.navigate(targetRoute) {
+                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            )
                         }
                     }
                 ) { innerPadding ->
@@ -127,7 +89,9 @@ class MainActivity : ComponentActivity() {
                                 onPlatformClick = { platform -> navController.navigate("platform_detail/${platform.name}") },
                                 onContestClick = { contestId -> navController.navigate("contest_detail/$contestId") },
                                 onViewAllContestsClick = { navController.navigate("contests") },
-                                onResourceClick = { url -> openUrl(url) }
+                                onResourceClick = { url -> openUrl(url) },
+                                isRefreshing = isRefreshing,
+                                onRefresh = { homeViewModel.refresh() }
                             )
                         }
 
