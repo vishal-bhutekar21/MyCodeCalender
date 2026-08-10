@@ -31,7 +31,7 @@ datastore = "1.0.0"
 # WorkManager
 workManager = "2.9.0"
 
-# Ktor
+# Ktor Client
 ktor = "2.3.8"
 
 # Serialization
@@ -113,9 +113,7 @@ compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-mani
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
-ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
