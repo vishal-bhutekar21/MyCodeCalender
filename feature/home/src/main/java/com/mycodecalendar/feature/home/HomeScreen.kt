@@ -21,9 +21,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mycodecalendar.core.designsystem.Typography
 import com.mycodecalendar.core.designsystem.components.*
 import com.mycodecalendar.domain.model.*
@@ -184,7 +186,7 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // ── GITHUB ACTIVITY ───────────────────────────────────────────────────
+        // ── GITHUB DAILY ACTIVITY (DAY-WISE FORMAT) ───────────────────────────
         uiState.gitHubStats?.let { gh ->
             SectionHeader(title = "GitHub Activity", modifier = Modifier.padding(horizontal = 20.dp))
             Spacer(modifier = Modifier.height(8.dp))
@@ -252,7 +254,7 @@ fun HomeScreen(
     }
 }
 
-// ── NEXT CONTEST CARD — clean surface card, no gradient ──────────────────────
+// ── NEXT CONTEST CARD ───────────────────────────────────────────────────────
 
 @Composable
 fun NextContestCard(contest: Contest, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -299,7 +301,7 @@ fun NextContestCard(contest: Contest, onClick: () -> Unit, modifier: Modifier = 
     }
 }
 
-// ── GITHUB ACTIVITY CARD ─────────────────────────────────────────────────────
+// ── GITHUB DAY-WISE DAILY ACTIVITY CARD ──────────────────────────────────────
 
 @Composable
 fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -312,7 +314,12 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            // User Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     PlatformBadge(platform = Platform.GITHUB)
                     Spacer(Modifier.width(10.dp))
@@ -330,21 +337,93 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                     )
                 }
             }
-            Spacer(Modifier.height(16.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                GHStat("Contributions", stats.totalContributionsThisYear.toString())
-                GHStat("Stars", stats.totalStars.toString())
-                GHStat("Repos", stats.publicRepos.toString())
+
+            Spacer(Modifier.height(14.dp))
+
+            // Day-Wise Activity Section Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Daily Activity (Day-by-Day)",
+                    style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "${stats.totalContributionsThisYear} contribs",
+                    style = Typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Day-Wise Horizontal Scrollable Activity Cards
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                contentPadding = PaddingValues(vertical = 4.dp)
+            ) {
+                items(stats.dailyContributions) { contrib ->
+                    DailyActivityItem(contrib = contrib)
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            // Summary Footer
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Stars: ${stats.totalStars}", style = Typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Repos: ${stats.publicRepos}", style = Typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Top: ${stats.topLanguages.take(3).joinToString(", ")}",
+                    style = Typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
 }
 
 @Composable
-private fun GHStat(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = Typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface)
-        Text(label, style = Typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+fun DailyActivityItem(contrib: DailyContribution) {
+    val heatColor = when (contrib.level) {
+        4 -> Color(0xFF15803D)
+        3 -> Color(0xFF22C55E)
+        2 -> Color(0xFF4ADE80)
+        1 -> Color(0xFF86EFAC)
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+            .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+            .padding(horizontal = 7.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = contrib.date.takeLast(5).replace("-", "/"),
+            style = Typography.labelSmall.copy(fontSize = 9.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(4.dp))
+        Box(
+            modifier = Modifier
+                .size(16.dp)
+                .background(heatColor, RoundedCornerShape(3.dp))
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = if (contrib.count > 0) "${contrib.count}" else "-",
+            style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
+            color = if (contrib.count > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+        )
     }
 }
 
@@ -352,7 +431,6 @@ private fun GHStat(label: String, value: String) {
 
 @Composable
 fun PlatformRatingCard(stat: PlatformStats, onClick: () -> Unit) {
-    val brandColor = stat.platform.getBrandColor()
     Card(
         modifier = Modifier
             .width(150.dp)
