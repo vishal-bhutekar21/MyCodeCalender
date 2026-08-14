@@ -7,13 +7,13 @@ import com.mycodecalendar.domain.model.Contest
 import com.mycodecalendar.domain.model.GitHubStats
 import com.mycodecalendar.domain.model.PlatformStats
 import com.mycodecalendar.domain.model.Resource
+import com.mycodecalendar.domain.model.StreakInfo
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -22,42 +22,98 @@ import java.time.format.DateTimeFormatter
 data class HomeUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
-    val userStreak: Int = 42,
+    val isOffline: Boolean = false,
+    val userStreak: Int = 1,
+    val streakInfo: StreakInfo? = null,
     val connectedStats: List<PlatformStats> = emptyList(),
     val gitHubStats: GitHubStats? = null,
     val nextContest: Contest? = null,
     val upcomingContests: List<Contest> = emptyList(),
     val featuredResource: Resource? = null,
-    val lastUpdatedText: String = "just now"
+    val lastUpdatedText: String = "just now",
+    val fetchError: String? = null
 )
 
+/**
+ * HomeViewModel — drives the Home screen.
+ *
+ * Daily App Login Streak System:
+ * - Driven by persistent daily login streak state ([FakeRepository.getAppStreakInfo]).
+ * - 30-second user click throttling and 5-minute background polling loop.
+ */
 class HomeViewModel(
-    private val repository: FakeRepository = FakeRepository()
+    private val repository: FakeRepository
 ) : ViewModel() {
 
-    private val _refreshTrigger = MutableStateFlow(0)
+    private var lastManualRefreshTime: Long = 0L
+    private val minManualRefreshIntervalMs: Long = 30_000L // 30 seconds throttle
 
+    val isRefreshing: StateFlow<Boolean> = repository.isRefreshing
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val fetchError: StateFlow<String?> = repository.fetchError
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val isOffline: StateFlow<Boolean> = repository.isOffline
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    init {
+        viewModelScope.launch {
+            while (true) {
+                delay(300_000L) // 5 minutes
+                repository.refreshAndAwait(force = false)
+            }
+        }
+    }
+
+    /**
+     * Main UI state — combines daily streak info, connected stats, contests, and resources.
+     */
     val uiState: StateFlow<HomeUiState> = combine(
+        repository.getAppStreakInfo(),
         repository.getAllConnectedStats(),
         repository.getGitHubStats(),
         repository.getContests(),
-        repository.getResources()
-    ) { stats, ghStats, contests, resources ->
-        val sortedContests = contests.sortedBy { it.startTimeUtc }
-        val next = sortedContests.firstOrNull()
+        repository.getResources(),
+        repository.isRefreshing,
+        repository.isOffline
+    ) { array ->
+        @Suppress("UNCHECKED_CAST")
+        val streak = array[0] as StreakInfo
+        @Suppress("UNCHECKED_CAST")
+        val stats = array[1] as List<PlatformStats>
+        @Suppress("UNCHECKED_CAST")
+        val ghStats = array[2] as GitHubStats?
+        @Suppress("UNCHECKED_CAST")
+        val contests = array[3] as List<Contest>
+        @Suppress("UNCHECKED_CAST")
+        val resources = array[4] as List<Resource>
+        @Suppress("UNCHECKED_CAST")
+        val refreshing = array[5] as Boolean
+        @Suppress("UNCHECKED_CAST")
+        val offline = array[6] as Boolean
+
+        val sortedContests = contests.sortedWith(
+            compareByDescending<Contest> { it.status.name == "LIVE" }
+                .thenBy { it.startTimeUtc }
+        )
+
+        val nextContest = sortedContests.firstOrNull()
         val featuredRes = resources.firstOrNull()
-        val maxStreak = stats.maxOfOrNull { it.currentStreak ?: 0 } ?: 0
 
         HomeUiState(
             isLoading = false,
-            isRefreshing = false,
-            userStreak = maxStreak.coerceAtLeast(15),
+            isRefreshing = refreshing,
+            isOffline = offline,
+            userStreak = streak.currentStreak,
+            streakInfo = streak,
             connectedStats = stats,
             gitHubStats = ghStats,
-            nextContest = next,
+            nextContest = nextContest,
             upcomingContests = sortedContests,
             featuredResource = featuredRes,
-            lastUpdatedText = formatLastUpdated()
+            lastUpdatedText = formatLastUpdated(),
+            fetchError = null
         )
     }.stateIn(
         scope = viewModelScope,
@@ -65,16 +121,14 @@ class HomeViewModel(
         initialValue = HomeUiState(isLoading = true)
     )
 
-    private val _isRefreshing = MutableStateFlow(false)
-    val isRefreshing: StateFlow<Boolean> = _isRefreshing
-
     fun refresh() {
+        val now = System.currentTimeMillis()
+        if (now - lastManualRefreshTime < minManualRefreshIntervalMs) {
+            return
+        }
+        lastManualRefreshTime = now
         viewModelScope.launch {
-            _isRefreshing.value = true
-            // Simulate network refresh delay
-            delay(1200L)
-            // In a real app: trigger re-fetch from remote data sources
-            _isRefreshing.value = false
+            repository.refreshAndAwait(force = true)
         }
     }
 

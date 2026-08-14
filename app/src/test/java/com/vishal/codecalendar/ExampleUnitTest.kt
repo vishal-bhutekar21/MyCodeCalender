@@ -1,4 +1,4 @@
-package com.vishal.mycodecalender
+package com.vishal.codecalendar
 
 import org.junit.Test
 

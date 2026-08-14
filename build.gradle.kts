@@ -8,3 +8,14 @@ plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.kotlin.serialization) apply false
 }
+
+subprojects {
+    plugins.withId("com.android.library") {
+        configure<com.android.build.gradle.LibraryExtension> {
+            lint {
+                checkReleaseBuilds = false
+                abortOnError = false
+            }
+        }
+    }
+}

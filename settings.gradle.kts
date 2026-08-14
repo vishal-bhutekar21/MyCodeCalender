@@ -22,7 +22,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MyCodeCalender"
+rootProject.name = "CodeCalendar"
 include(":app")
 include(":core:common", ":core:designsystem", ":core:model", ":core:network", ":core:database", ":core:datastore", ":core:notifications", ":core:calendar", ":core:analytics", ":core:navigation")
 include(":data:local", ":data:remote", ":data:repository", ":data:mapper")

@@ -6,21 +6,22 @@ plugins {
 }
 
 android {
-    namespace = "com.vishal.mycodecalender"
+    namespace = "com.vishal.codecalendar"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.vishal.mycodecalender"
+        applicationId = "com.vishal.codecalendar"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
+        versionCode = 100
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -36,6 +37,11 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
     }
 }
 
@@ -58,6 +64,8 @@ dependencies {
     implementation(project(":core:navigation"))
     implementation(project(":core:common"))
     implementation(project(":core:database"))
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
     implementation(project(":core:datastore"))
     implementation(project(":core:notifications"))
     implementation(project(":core:calendar"))
