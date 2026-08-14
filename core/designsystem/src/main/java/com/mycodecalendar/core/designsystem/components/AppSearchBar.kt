@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.mycodecalendar.core.designsystem.BrandPrimaryOrange
 import com.mycodecalendar.core.designsystem.Typography
+import com.mycodecalendar.core.designsystem.isAppInDarkTheme
 
 /**
  * AppSearchBar — Minimalist, modern search input field.
@@ -41,7 +42,7 @@ fun AppSearchBar(
     modifier: Modifier = Modifier,
     onSearchAction: () -> Unit = {}
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme
     var isFocused by remember { mutableStateOf(false) }
 
     val borderColor = if (isFocused) BrandPrimaryOrange.copy(alpha = 0.85f)

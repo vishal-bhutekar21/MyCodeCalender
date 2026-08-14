@@ -13,37 +13,38 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DARK SCHEME — Deep Obsidian Midnight with Electric Orange & Purple Accents
+// DARK SCHEME — Deep Obsidian Midnight with Electric Orange & Indigo Accents
 // ─────────────────────────────────────────────────────────────────────────────
 private val DarkColorScheme = darkColorScheme(
     primary              = Color(0xFFFF6B00),   // signature electric orange (#FF6B00)
     onPrimary            = Color(0xFFFFFFFF),
-    primaryContainer     = Color(0x33FF6B00),   // glowing translucent orange
+    primaryContainer     = Color(0x28FF6B00),   // glowing translucent orange
     onPrimaryContainer   = Color(0xFFFFD8BF),
 
-    secondary            = Color(0xFF6C5CE7),   // slate lavender / purple (#6C5CE7)
+    secondary            = Color(0xFF818CF8),   // modern slate indigo (#818CF8)
     onSecondary          = Color(0xFFFFFFFF),
-    secondaryContainer   = Color(0xFF2E236C),
-    onSecondaryContainer = Color(0xFFDCD6FD),
+    secondaryContainer   = Color(0xFF1E1B4B),
+    onSecondaryContainer = Color(0xFFE0E7FF),
 
     tertiary             = Color(0xFF38BDF8),   // sky cyan
     onTertiary           = Color(0xFF082F49),
     tertiaryContainer    = Color(0xFF075985),
     onTertiaryContainer  = Color(0xFFBAE6FD),
 
-    background    = Color(0xFF090C15),   // deep obsidian dark
+    background    = Color(0xFF080A0F),   // pure deep obsidian black
     onBackground  = Color(0xFFFFFFFF),   // pure snow white heading
 
-    surface       = Color(0xFF121624),   // elevated midnight slate
+    surface       = Color(0xFF0F131C),   // elevated dark slate
     onSurface     = Color(0xFFF8FAFC),   // crisp bright snow slate
 
-    surfaceVariant    = Color(0xFF1B2033),   // slate card container
-    onSurfaceVariant  = Color(0xFFCBD5E1),   // luminous slate-300 body text
+    surfaceVariant    = Color(0xFF151B28),   // slate card container
+    onSurfaceVariant  = Color(0xFF94A3B8),   // luminous modern slate-400 body text
 
-    outline        = Color(0xFF2A314A),
-    outlineVariant = Color(0xFF1E2438),
+    outline        = Color(0xFF1E2536),   // fine 1px border
+    outlineVariant = Color(0xFF161C2A),
 
     error   = Color(0xFFFB7185),
     onError = Color(0xFF4C0519)
@@ -89,6 +90,14 @@ private val LightColorScheme = lightColorScheme(
 // ─────────────────────────────────────────────────────────────────────────────
 enum class AppTheme { LIGHT, DARK, SYSTEM }
 
+/**
+ * Returns whether the active theme context is dark mode, respecting manual user selection
+ * (LIGHT, DARK, or dynamic SYSTEM).
+ */
+val isAppInDarkTheme: Boolean
+    @Composable
+    get() = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
 @Composable
 fun MyCodeCalendarTheme(
     appTheme: AppTheme = AppTheme.SYSTEM,
@@ -114,7 +123,7 @@ fun MyCodeCalendarTheme(
 /**
  * GlassmorphismBackground — full-screen background container with ambient mesh nodes.
  *
- * Dark Mode: Deep obsidian base (#090C15) with vibrant orange (#FF6B00) and lavender (#6C5CE7) ambient radial glows.
+ * Dark Mode: Deep obsidian base (#080A0F) with soft ambient electric orange and indigo glows.
  * Light Mode: Clean off-white (#F9FAFB) with soft warm ambient glows.
  */
 @Composable
@@ -122,13 +131,12 @@ fun GlassmorphismBackground(
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit
 ) {
-    val isDark = MaterialTheme.colorScheme.background == DarkColorScheme.background || 
-                 MaterialTheme.colorScheme.surface == DarkColorScheme.surface
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
-    val node1 = if (isDark) Color(0x30FF6B00) else Color(0x14FF6B00)  // vibrant orange glow
-    val node2 = if (isDark) Color(0x2E6C5CE7) else Color(0x126C5CE7)  // slate purple glow
-    val node3 = if (isDark) Color(0x2038BDF8) else Color(0x0C38BDF8)  // cyan glow
-    val baseBg = if (isDark) Color(0xFF090C15) else Color(0xFFF9FAFB)
+    val node1 = if (isDark) Color(0x22FF6B00) else Color(0x14FF6B00)  // soft electric orange glow
+    val node2 = if (isDark) Color(0x1C818CF8) else Color(0x126C5CE7)  // soft indigo glow
+    val node3 = if (isDark) Color(0x1438BDF8) else Color(0x0C38BDF8)  // soft cyan glow
+    val baseBg = if (isDark) Color(0xFF080A0F) else Color(0xFFF9FAFB)
 
     Box(
         modifier = modifier

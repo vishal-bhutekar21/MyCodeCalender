@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mycodecalendar.core.designsystem.isAppInDarkTheme
 import com.mycodecalendar.domain.model.ContestStatus
 
 // ── Premium Status Color Tokens ───────────────────────────────────────────────
@@ -52,93 +53,106 @@ fun StatusChip(
     status: ContestStatus,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme
     val isLive = status == ContestStatus.LIVE
 
-    // Animate LIVE dot
-    val dotScale by rememberInfiniteTransition(label = "livePulse").animateFloat(
-        initialValue = 0.6f,
-        targetValue  = 1.4f,
+    // Animate LIVE pulsing glow
+    val infiniteTransition = rememberInfiniteTransition(label = "livePulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 0.8f,
+        targetValue  = 1.5f,
         animationSpec = infiniteRepeatable(
-            tween(700, easing = FastOutSlowInEasing),
+            tween(1000, easing = FastOutSlowInEasing),
             RepeatMode.Reverse
         ),
-        label = "dotScale"
+        label = "pulseScale"
+    )
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.6f,
+        targetValue  = 0.15f,
+        animationSpec = infiniteRepeatable(
+            tween(1000, easing = FastOutSlowInEasing),
+            RepeatMode.Reverse
+        ),
+        label = "pulseAlpha"
     )
 
-    // ── Per-status chip config ─────────────────────────────────────────────────
-    val chipShape = when (status) {
-        ContestStatus.LIVE     -> RoundedCornerShape(10.dp)
-        ContestStatus.UPCOMING -> CircleShape
-        ContestStatus.ENDED    -> CircleShape
-    }
+    if (isLive) {
+        // Minimal, ultra-clean premium glowing green dot indicator
+        Row(
+            modifier = modifier
+                .clip(CircleShape)
+                .background(Color(0xFF00F579).copy(alpha = if (isDark) 0.12f else 0.16f))
+                .border(1.dp, Color(0xFF00F579).copy(alpha = if (isDark) 0.35f else 0.45f), CircleShape)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Box(
+                modifier = Modifier.size(10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                // Outer glowing pulse ring
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .scale(pulseScale)
+                        .background(Color(0xFF00F579).copy(alpha = pulseAlpha), CircleShape)
+                )
+                // Center core neon green dot
+                Box(
+                    modifier = Modifier
+                        .size(6.5.dp)
+                        .background(Color(0xFF00F579), CircleShape)
+                )
+            }
+            Text(
+                text = "Live",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isDark) Color(0xFF00F579) else Color(0xFF009647)
+            )
+        }
+    } else {
+        // UPCOMING / ENDED status
+        val isUpcoming = status == ContestStatus.UPCOMING
+        val dotColor = if (isUpcoming) UpcomingPrimary else EndedColor.copy(alpha = 0.55f)
+        val textColor = if (isUpcoming) UpcomingViolet else EndedColor.copy(alpha = 0.80f)
+        val bgBrush = if (isUpcoming) {
+            Brush.linearGradient(
+                if (isDark) listOf(UpcomingDarkBg, Color(0xFF1B1057))
+                else listOf(UpcomingLightBg, Color(0xFFDDE3FF))
+            )
+        } else {
+            Brush.linearGradient(
+                if (isDark) listOf(EndedDarkBg, Color(0xFF1C2432))
+                else listOf(EndedLightBg, Color(0xFFE2E8F0))
+            )
+        }
+        val borderColor = if (isUpcoming) UpcomingPrimary.copy(alpha = if (isDark) 0.45f else 0.30f)
+                          else EndedColor.copy(alpha = if (isDark) 0.20f else 0.25f)
+        val label = if (isUpcoming) "Upcoming" else "Ended"
 
-    val dotColor = when (status) {
-        ContestStatus.LIVE     -> LiveGreen
-        ContestStatus.UPCOMING -> UpcomingPrimary
-        ContestStatus.ENDED    -> EndedColor.copy(alpha = 0.55f)
-    }
-
-    val textColor = when (status) {
-        ContestStatus.LIVE     -> LiveGreen
-        ContestStatus.UPCOMING -> UpcomingViolet
-        ContestStatus.ENDED    -> EndedColor.copy(alpha = 0.80f)
-    }
-
-    val bgBrush: Brush = when (status) {
-        ContestStatus.LIVE -> Brush.linearGradient(
-            if (isDark) listOf(LiveDarkBg, Color(0xFF003A1A))
-            else        listOf(LiveLightBg, Color(0xFFB6FFDA))
-        )
-        ContestStatus.UPCOMING -> Brush.linearGradient(
-            if (isDark) listOf(UpcomingDarkBg, Color(0xFF1B1057))
-            else        listOf(UpcomingLightBg, Color(0xFFDDE3FF))
-        )
-        ContestStatus.ENDED -> Brush.linearGradient(
-            if (isDark) listOf(EndedDarkBg, Color(0xFF1C2432))
-            else        listOf(EndedLightBg, Color(0xFFE2E8F0))
-        )
-    }
-
-    val borderColor = when (status) {
-        ContestStatus.LIVE     -> LiveGreen2.copy(alpha = if (isDark) 0.80f else 0.55f)
-        ContestStatus.UPCOMING -> UpcomingPrimary.copy(alpha = if (isDark) 0.55f else 0.35f)
-        ContestStatus.ENDED    -> EndedColor.copy(alpha = if (isDark) 0.22f else 0.28f)
-    }
-
-    val label = when (status) {
-        ContestStatus.LIVE     -> "● LIVE"
-        ContestStatus.UPCOMING -> "Upcoming"
-        ContestStatus.ENDED    -> "Ended"
-    }
-
-    val borderWidth = if (isLive) 1.5.dp else 1.dp
-
-    // ── Chip ──────────────────────────────────────────────────────────────────
-    Row(
-        modifier = modifier
-            .clip(chipShape)
-            .background(bgBrush)
-            .border(borderWidth, borderColor, chipShape)
-            .padding(horizontal = 10.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp)
-    ) {
-        if (!isLive) {
+        Row(
+            modifier = modifier
+                .clip(CircleShape)
+                .background(bgBrush)
+                .border(1.dp, borderColor, CircleShape)
+                .padding(horizontal = 9.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
             Box(
                 modifier = Modifier
                     .size(5.dp)
-                    .scale(if (status == ContestStatus.UPCOMING) dotScale else 1f)
                     .background(dotColor, CircleShape)
             )
+            Text(
+                text = label,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = textColor
+            )
         }
-
-        Text(
-            text = label,
-            fontSize = if (isLive) 10.sp else 11.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = textColor,
-            letterSpacing = if (isLive) 1.sp else 0.2.sp
-        )
     }
 }

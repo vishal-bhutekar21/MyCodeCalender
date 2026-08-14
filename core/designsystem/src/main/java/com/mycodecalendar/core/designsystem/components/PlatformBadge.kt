@@ -52,7 +52,7 @@ fun PlatformBadge(
     modifier: Modifier = Modifier,
     compact: Boolean = false
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme
     val brandColor = platform.getBrandColor()
 
     val bgFill = if (isDark) {
@@ -83,7 +83,7 @@ fun PlatformBadge(
         modifier = modifier
             .clip(CircleShape)
             .background(bgFill)
-            .border(1.dp, borderColor, CircleShape)
+            .border(0.3.dp, borderColor, CircleShape)
             .padding(horizontal = hPad, vertical = vPad),
         verticalAlignment = Alignment.CenterVertically
     ) {

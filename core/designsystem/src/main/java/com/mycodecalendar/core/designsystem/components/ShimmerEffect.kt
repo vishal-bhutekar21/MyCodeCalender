@@ -23,13 +23,15 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.ui.graphics.luminance
+
 /**
  * Creates a high-end diagonal 45° sweeping shimmer gradient brush with
  * micro-pulsing luminance tailored for dark OLED and crisp light themes.
  */
 @Composable
 fun rememberShimmerBrush(
-    isDarkTheme: Boolean = isSystemInDarkTheme()
+    isDarkTheme: Boolean = MaterialTheme.colorScheme.background.luminance() < 0.5f
 ): Brush {
     val transition = rememberInfiniteTransition(label = "shimmerTransition")
     val translateAnim by transition.animateFloat(
@@ -47,13 +49,13 @@ fun rememberShimmerBrush(
 
     val colors = if (isDarkTheme) {
         listOf(
-            Color(0xFF131823),
-            Color(0xFF1E293B),
-            Color(0xFF334155),
-            Color(0xFF475569),
-            Color(0xFF334155),
-            Color(0xFF1E293B),
-            Color(0xFF131823)
+            Color(0xFF0F131C),
+            Color(0xFF151B28),
+            Color(0xFF1E2536),
+            Color(0xFF2D3748),
+            Color(0xFF1E2536),
+            Color(0xFF151B28),
+            Color(0xFF0F131C)
         )
     } else {
         listOf(
@@ -381,4 +383,25 @@ fun ResourcesListSkeleton() {
         }
     }
 }
+
+/**
+ * SettingsScreenSkeleton — Full screen skeleton for settings and preferences.
+ */
+@Composable
+fun SettingsScreenSkeleton() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        ShimmerBox(modifier = Modifier.width(160.dp).height(28.dp), cornerRadius = 8.dp)
+        ShimmerBox(modifier = Modifier.fillMaxWidth().height(120.dp), cornerRadius = 20.dp)
+        ShimmerBox(modifier = Modifier.width(140.dp).height(20.dp), cornerRadius = 6.dp)
+        ShimmerBox(modifier = Modifier.fillMaxWidth().height(140.dp), cornerRadius = 18.dp)
+        ShimmerBox(modifier = Modifier.width(120.dp).height(20.dp), cornerRadius = 6.dp)
+        ShimmerBox(modifier = Modifier.fillMaxWidth().height(160.dp), cornerRadius = 18.dp)
+    }
+}
+
 
