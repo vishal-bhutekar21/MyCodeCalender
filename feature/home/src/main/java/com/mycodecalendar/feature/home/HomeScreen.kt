@@ -16,28 +16,25 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.ArrowOutward
-import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.EmojiEvents
-import androidx.compose.material.icons.rounded.LocalFireDepartment
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.mycodecalendar.core.designsystem.BrandGitHub
+import com.mycodecalendar.core.designsystem.BrandPrimaryOrange
 import com.mycodecalendar.core.designsystem.CountdownNormal
 import com.mycodecalendar.core.designsystem.CountdownUrgent
 import com.mycodecalendar.core.designsystem.GlassmorphismBackground
@@ -56,6 +53,8 @@ import java.time.LocalTime
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
+    userName: String? = null,
+    isLoggedIn: Boolean = false,
     onAddPlatformClick: () -> Unit,
     onPlatformClick: (Platform) -> Unit,
     onContestClick: (String) -> Unit,
@@ -65,14 +64,17 @@ fun HomeScreen(
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {}
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var showStreakModal by remember { mutableStateOf(false) }
-    // Session-scoped flag: once shown in this process, never auto-show again
-    var hasShownStreakModal by remember { mutableStateOf(false) }
 
-    // Auto-show streak modal ONLY on a genuine new-day increment, and only once per session
+    // Auto-show streak modal ONLY on a genuine new-day increment, and only once per calendar day
     LaunchedEffect(uiState.streakInfo?.isNewDayIncrement) {
-        if (uiState.streakInfo?.isNewDayIncrement == true && !hasShownStreakModal) {
-            hasShownStreakModal = true
+        val prefs = context.getSharedPreferences("app_streak_prefs", android.content.Context.MODE_PRIVATE)
+        val todayStr = java.time.LocalDate.now().toString()
+        val lastShownDate = prefs.getString("last_shown_streak_date", null)
+
+        if (uiState.streakInfo?.isNewDayIncrement == true && lastShownDate != todayStr) {
+            prefs.edit().putString("last_shown_streak_date", todayStr).apply()
             showStreakModal = true
         }
     }
@@ -82,6 +84,14 @@ fun HomeScreen(
         animationSpec = infiniteRepeatable(tween(800, easing = LinearEasing), RepeatMode.Restart),
         label = "rotate"
     )
+
+    val resolvedUserName = remember(userName, isLoggedIn) {
+        if (isLoggedIn) {
+            userName?.takeIf { it.isNotBlank() && it != "Guest Developer" && it != "Developer" && it != "Guest" }
+        } else {
+            null
+        }
+    }
 
     val greeting = remember {
         val hour = LocalTime.now().hour
@@ -108,29 +118,42 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f, fill = false)) {
                     Text(
                         text = greeting,
                         style = Typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (!resolvedUserName.isNullOrBlank()) {
                         Text(
-                            text = "MyCode",
+                            text = resolvedUserName,
                             style = Typography.headlineMedium.copy(
                                 fontWeight = FontWeight.Black,
                                 fontSize = 24.sp
                             ),
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = MaterialTheme.colorScheme.onBackground,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
-                        Text(
-                            text = "Calendar",
-                            style = Typography.headlineMedium.copy(
-                                fontWeight = FontWeight.Black,
-                                fontSize = 24.sp
-                            ),
-                            color = com.mycodecalendar.core.designsystem.BrandPrimaryOrange
-                        )
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "MyCode",
+                                style = Typography.headlineMedium.copy(
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 24.sp
+                                ),
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Text(
+                                text = "Calendar",
+                                style = Typography.headlineMedium.copy(
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 24.sp
+                                ),
+                                color = BrandPrimaryOrange
+                            )
+                        }
                     }
                 }
 
@@ -192,6 +215,117 @@ fun HomeScreen(
                                     .rotate(if (isRefreshing) refreshAngle else 0f),
                                 tint = if (isRefreshing) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ── DYNAMIC LIVE CLOUD BROADCAST (Web Admin CMS) ───────────────────
+            var cloudBroadcast by remember { mutableStateOf<Triple<String, String, String>?>(null) }
+            var isBroadcastDismissed by remember { mutableStateOf(false) }
+
+            LaunchedEffect(Unit) {
+                try {
+                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                        .collection("broadcasts")
+                        .whereEqualTo("isActive", true)
+                        .limit(1)
+                        .get()
+                        .addOnSuccessListener { snapshot ->
+                            val doc = snapshot.documents.firstOrNull()
+                            if (doc != null) {
+                                val title = doc.getString("title") ?: ""
+                                val subtitle = doc.getString("subtitle") ?: ""
+                                val actionUrl = doc.getString("actionUrl") ?: ""
+                                if (title.isNotBlank()) {
+                                    cloudBroadcast = Triple(title, subtitle, actionUrl)
+                                }
+                            }
+                        }
+                } catch (e: Exception) {
+                    // Non-blocking
+                }
+            }
+
+            if (cloudBroadcast != null && !isBroadcastDismissed) {
+                val (bTitle, bSubtitle, bUrl) = cloudBroadcast!!
+                GlassCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    cornerRadius = 16.dp,
+                    accentColor = BrandPrimaryOrange,
+                    onClick = {
+                        if (bUrl.isNotBlank()) onResourceClick(bUrl)
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(BrandPrimaryOrange.copy(alpha = 0.16f), CircleShape)
+                                .border(1.dp, BrandPrimaryOrange.copy(alpha = 0.40f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Rounded.Notifications,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = BrandPrimaryOrange
+                            )
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = BrandPrimaryOrange.copy(alpha = 0.20f)
+                                ) {
+                                    Text(
+                                        text = "NOTICE",
+                                        style = Typography.labelSmall.copy(fontSize = 8.5.sp, fontWeight = FontWeight.Black),
+                                        color = BrandPrimaryOrange,
+                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                    )
+                                }
+                                Text(
+                                    text = bTitle,
+                                    style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 13.5.sp),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            if (bSubtitle.isNotBlank()) {
+                                Text(
+                                    text = bSubtitle,
+                                    style = Typography.bodySmall.copy(fontSize = 11.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+
+                        IconButton(
+                            onClick = { isBroadcastDismissed = true },
+                            modifier = Modifier.size(22.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.Clear,
+                                contentDescription = "Dismiss",
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.50f)
                             )
                         }
                     }
@@ -482,11 +616,11 @@ fun NextContestHeroCard(
     GlassCard(
         modifier = modifier,
         accentColor = brandColor,
-        cornerRadius = 20.dp,
-        elevation = 6.dp,
+        cornerRadius = 18.dp,
+        elevation = 4.dp,
         onClick = onClick
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(modifier = Modifier.padding(18.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -496,55 +630,74 @@ fun NextContestHeroCard(
                 StatusChip(status = contest.status)
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(12.dp))
 
             Text(
                 text = contest.name,
-                style = Typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                style = Typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp),
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(14.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text(
-                        text = if (contest.status == ContestStatus.LIVE) "CONTEST IS LIVE" else "STARTS IN",
-                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = if (contest.status == ContestStatus.LIVE) "Live Now" else countdown,
-                        style = Typography.headlineLarge.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = 32.sp
-                        ),
-                        color = if (isUrgent) CountdownUrgent.copy(alpha = urgentAlpha)
-                        else if (contest.status == ContestStatus.LIVE) Color(0xFF22C55E)
-                        else CountdownNormal
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        if (contest.status == ContestStatus.LIVE) {
+                            Box(
+                                modifier = Modifier
+                                    .size(7.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF00F579))
+                            )
+                        }
+                        Text(
+                            text = if (contest.status == ContestStatus.LIVE) "ACTIVE ON PLATFORM" else "STARTS IN",
+                            style = Typography.labelSmall.copy(
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.8.sp,
+                                fontSize = if (contest.status == ContestStatus.LIVE) 11.5.sp else 10.sp
+                            ),
+                            color = if (contest.status == ContestStatus.LIVE) Color(0xFF00F579)
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+                        )
+                    }
+                    if (contest.status != ContestStatus.LIVE) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = countdown,
+                            style = Typography.titleLarge.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 20.sp
+                            ),
+                            color = if (isUrgent) CountdownUrgent.copy(alpha = urgentAlpha)
+                            else CountdownNormal
+                        )
+                    }
                 }
 
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = brandColor.copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, brandColor.copy(alpha = 0.40f))
+                    shape = RoundedCornerShape(10.dp),
+                    color = brandColor.copy(alpha = 0.14f),
+                    border = BorderStroke(0.3.dp, brandColor.copy(alpha = 0.35f))
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = "View Details",
-                            style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            text = "View Contest",
+                            style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
                             color = brandColor
                         )
                         Icon(
@@ -562,6 +715,8 @@ fun NextContestHeroCard(
 
 // ── OFFICIAL 2D GITHUB CONTRIBUTION HEATMAP GRID ─────────────────────────────
 
+// ── OFFICIAL 2D GITHUB CONTRIBUTION HEATMAP & REPOSITORIES GRID ──────────────
+
 @Composable
 fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val brandColor = BrandGitHub
@@ -577,6 +732,7 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
         onClick = onClick
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            // Header Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -600,20 +756,32 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                 }
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = brandColor.copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, brandColor.copy(alpha = 0.35f))
+                    color = Color(0xFFFF6B00).copy(alpha = 0.15f),
+                    border = BorderStroke(0.3.dp, Color(0xFFFF6B00).copy(alpha = 0.40f))
                 ) {
-                    Text(
-                        text = "${stats.currentContributionStreak}d streak",
+                    Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = brandColor
-                    )
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(
+                            Icons.Rounded.LocalFireDepartment,
+                            null,
+                            modifier = Modifier.size(13.dp),
+                            tint = Color(0xFFFF6B00)
+                        )
+                        Text(
+                            text = "${stats.currentContributionStreak}d streak",
+                            style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                            color = Color(0xFFFF6B00)
+                        )
+                    }
                 }
             }
 
             Spacer(Modifier.height(14.dp))
 
+            // Contribution Graph Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -625,17 +793,18 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "${stats.totalContributionsThisYear} contributions",
+                    text = "${stats.totalContributionsThisYear} commits this year",
                     style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = brandColor
+                    color = Color(0xFF10B981)
                 )
             }
 
             Spacer(Modifier.height(10.dp))
 
+            // Heatmap Matrix
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(3.dp),
-                contentPadding = PaddingValues(vertical = 4.dp)
+                contentPadding = PaddingValues(vertical = 2.dp)
             ) {
                 items(weeks) { week ->
                     Column(
@@ -660,26 +829,144 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                 }
             }
 
+            // Top Public Repositories Carousel (if available)
+            if (stats.repos.isNotEmpty()) {
+                Spacer(Modifier.height(14.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f))
+                Spacer(Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Top Repositories",
+                        style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "${stats.repos.size} Repos",
+                        style = Typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(vertical = 2.dp)
+                ) {
+                    items(stats.repos.take(6)) { repo ->
+                        Box(
+                            modifier = Modifier
+                                .width(200.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f))
+                                .border(0.8.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                                .padding(10.dp)
+                        ) {
+                            Column {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = repo.name,
+                                        style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.Star,
+                                            null,
+                                            modifier = Modifier.size(12.dp),
+                                            tint = Color(0xFFFFB800)
+                                        )
+                                        Text(
+                                            text = "${repo.stars}",
+                                            style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                repo.description?.let { desc ->
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        text = desc,
+                                        style = Typography.bodySmall.copy(fontSize = 10.5.sp),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        lineHeight = 14.sp
+                                    )
+                                }
+
+                                Spacer(Modifier.height(6.dp))
+
+                                repo.language?.let { lang ->
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(7.dp)
+                                                .background(
+                                                    when (lang.lowercase()) {
+                                                        "kotlin" -> Color(0xFFA97BFF)
+                                                        "c++" -> Color(0xFFF34B7D)
+                                                        "java" -> Color(0xFFB07219)
+                                                        "python" -> Color(0xFF3572A5)
+                                                        else -> BrandGitHub
+                                                    },
+                                                    CircleShape
+                                                )
+                                        )
+                                        Text(
+                                            text = lang,
+                                            style = Typography.labelSmall.copy(fontSize = 10.sp),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             Spacer(Modifier.height(12.dp))
 
+            // Footer Quick Stats
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Stars: ${stats.totalStars}", style = Typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
-                    Text("Repos: ${stats.publicRepos}", style = Typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                    Text("⭐ ${stats.totalStars} Stars", style = Typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                    Text("📁 ${stats.publicRepos} Repos", style = Typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                    Text("🔥 Max ${stats.longestContributionStreak}d", style = Typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
                 }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
-                    Text("Less", style = Typography.labelSmall.copy(fontSize = 9.sp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+                    Text("Less", style = Typography.labelSmall.copy(fontSize = 9.sp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f))
                     listOf(
                         Color(0xFF161B22),
                         Color(0xFF0E4429),
@@ -693,7 +980,7 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                                 .background(col, RoundedCornerShape(2.dp))
                         )
                     }
-                    Text("More", style = Typography.labelSmall.copy(fontSize = 9.sp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+                    Text("More", style = Typography.labelSmall.copy(fontSize = 9.sp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f))
                 }
             }
         }
@@ -755,40 +1042,72 @@ fun UpcomingContestRow(contest: Contest, onClick: () -> Unit) {
         else               -> "in ${timeUntil / 86400}d"
     }
 
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        accentColor = if (contest.status == ContestStatus.LIVE) Color(0xFF22C55E) else null,
-        cornerRadius = 14.dp,
-        onClick = onClick
+    val activeColor = if (contest.status == ContestStatus.LIVE) Color(0xFF22C55E) else brandColor
+    val durationHours = contest.durationSeconds / 3600
+    val durationMins = (contest.durationSeconds % 3600) / 60
+    val durationText = if (durationHours > 0) "${durationHours}h${if (durationMins > 0) " ${durationMins}m" else ""}" else "${durationMins}m"
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .border(0.5.dp, activeColor.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            accentColor = activeColor,
+            cornerRadius = 14.dp,
+            onClick = onClick
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                PlatformBadge(platform = contest.platform)
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    contest.name,
-                    style = Typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            Spacer(Modifier.width(10.dp))
-            Column(horizontalAlignment = Alignment.End) {
-                StatusChip(status = contest.status)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    timeLabel,
-                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = if (contest.status == ContestStatus.LIVE) Color(0xFF22C55E)
-                    else brandColor
-                )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        PlatformBadge(platform = contest.platform)
+                        if (contest.durationSeconds > 0) {
+                            Text(
+                                text = "· $durationText",
+                                style = Typography.labelSmall.copy(fontSize = 11.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(5.dp))
+                    Text(
+                        text = contest.name,
+                        style = Typography.titleSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.5.sp,
+                            lineHeight = 18.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Spacer(Modifier.width(12.dp))
+
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    StatusChip(status = contest.status)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = timeLabel,
+                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                        color = activeColor
+                    )
+                }
             }
         }
     }
@@ -870,18 +1189,24 @@ fun StreakCelebrationModal(
     onDismiss: () -> Unit
 ) {
     val fireScale by rememberInfiniteTransition(label = "streakFire").animateFloat(
-        initialValue = 0.95f,
-        targetValue = 1.22f,
-        animationSpec = infiniteRepeatable(tween(650, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        initialValue = 0.94f,
+        targetValue = 1.18f,
+        animationSpec = infiniteRepeatable(tween(700, easing = FastOutSlowInEasing), RepeatMode.Reverse),
         label = "fireScale"
     )
 
+    val coderRank = remember(streakDays) {
+        com.mycodecalendar.domain.model.BadgeHelper.getCoderRank(streakDays)
+    }
+
     Dialog(onDismissRequest = onDismiss) {
         GlassCard(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            accentColor = Color(0xFFF59E0B),
-            cornerRadius = 24.dp,
-            elevation = 16.dp
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            accentColor = BrandPrimaryOrange,
+            cornerRadius = 26.dp,
+            elevation = 20.dp
         ) {
             Column(
                 modifier = Modifier
@@ -889,53 +1214,99 @@ fun StreakCelebrationModal(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Animated Glowing Flame Icon
-                Surface(
-                    shape = CircleShape,
-                    color = Color(0xFFF59E0B).copy(alpha = 0.16f),
-                    border = BorderStroke(1.5.dp, Color(0xFFF59E0B).copy(alpha = 0.50f)),
-                    modifier = Modifier.size(72.dp)
+                // 3D Illuminated Sphere
+                Box(
+                    modifier = Modifier
+                        .size(84.dp)
+                        .drawBehind {
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    listOf(BrandPrimaryOrange.copy(alpha = 0.45f), Color.Transparent),
+                                    center = center,
+                                    radius = size.width * 0.8f
+                                )
+                            )
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .size(70.dp)
+                            .clip(CircleShape)
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(BrandPrimaryOrange, Color(0xFFFF8C00))
+                                )
+                            )
+                            .border(2.dp, Color.White.copy(alpha = 0.5f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(
                             imageVector = Icons.Rounded.LocalFireDepartment,
                             contentDescription = null,
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(42.dp)
                                 .scale(fireScale),
-                            tint = Color(0xFFF59E0B)
+                            tint = Color.White
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Coder Rank Pill
+                Surface(
+                    shape = CircleShape,
+                    color = BrandPrimaryOrange.copy(alpha = 0.15f),
+                    border = BorderStroke(0.3.dp, BrandPrimaryOrange.copy(alpha = 0.45f))
+                ) {
+                    Text(
+                        text = coderRank.uppercase(),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        style = Typography.labelSmall.copy(
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.sp,
+                            fontSize = 10.sp
+                        ),
+                        color = BrandPrimaryOrange
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
                     text = "Day $streakDays Streak!",
-                    style = Typography.headlineMedium.copy(fontWeight = FontWeight.Black, fontSize = 24.sp),
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = Typography.headlineSmall.copy(fontWeight = FontWeight.Black, fontSize = 22.sp),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "Daily login recorded for $dateText. Keep checking in every day to keep your coding streak alive!",
-                    style = Typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 4.dp)
+                    text = "Daily habit active. Keep the fire burning! 🔥",
+                    style = Typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.80f),
+                    textAlign = TextAlign.Center
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
 
                 Button(
                     onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B))
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BrandPrimaryOrange,
+                        contentColor = Color.White
+                    )
                 ) {
                     Text(
-                        text = "Keep It Going 🔥",
-                        style = Typography.labelLarge.copy(fontWeight = FontWeight.Bold, color = Color.Black)
+                        text = "Awesome 🔥",
+                        style = Typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White
                     )
                 }
             }
