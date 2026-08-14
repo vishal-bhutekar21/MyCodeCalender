@@ -104,20 +104,37 @@ data class CodeChefSolvedCountDto(
 data class GitHubUserDto(
     val login: String = "",
     val name: String? = null,
+    val bio: String? = null,
+    val company: String? = null,
+    val location: String? = null,
+    val blog: String? = null,
     @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("html_url") val htmlUrl: String = "",
     @SerialName("public_repos") val publicRepos: Int = 0,
+    @SerialName("public_gists") val publicGists: Int = 0,
     val followers: Int = 0,
-    val following: Int = 0
+    val following: Int = 0,
+    @SerialName("created_at") val createdAt: String? = null
 )
 
 @Serializable
 data class GitHubRepoDto(
     val name: String = "",
+    @SerialName("full_name") val fullName: String = "",
     val description: String? = null,
     val language: String? = null,
+    val fork: Boolean = false,
+    val private: Boolean = false,
+    val archived: Boolean = false,
     @SerialName("stargazers_count") val stargazersCount: Int = 0,
     @SerialName("forks_count") val forksCount: Int = 0,
-    @SerialName("html_url") val htmlUrl: String = ""
+    @SerialName("open_issues_count") val openIssuesCount: Int = 0,
+    @SerialName("watchers_count") val watchersCount: Int = 0,
+    @SerialName("html_url") val htmlUrl: String = "",
+    @SerialName("clone_url") val cloneUrl: String = "",
+    @SerialName("homepage") val homepage: String? = null,
+    val topics: List<String> = emptyList(),
+    @SerialName("updated_at") val updatedAt: String? = null
 )
 
 @Serializable
@@ -130,6 +147,75 @@ data class GitHubContributionDayDto(
 @Serializable
 data class GitHubContributionsResponseDto(
     val contributions: List<GitHubContributionDayDto> = emptyList()
+)
+
+// ── ATCODER API DTOS ──────────────────────────────────────────────────────────
+
+/**
+ * Single contest entry from the official AtCoder history JSON endpoint.
+ * Endpoint: GET https://atcoder.jp/users/{username}/history/json
+ */
+@Serializable
+data class AtCoderHistoryItemDto(
+    @SerialName("IsRated") val isRated: Boolean = false,
+    @SerialName("Place") val place: Int = 0,
+    @SerialName("OldRating") val oldRating: Int = 0,
+    @SerialName("NewRating") val newRating: Int = 0,
+    @SerialName("Performance") val performance: Int = 0,
+    @SerialName("ContestName") val contestName: String = "",
+    @SerialName("ContestNameEn") val contestNameEn: String = "",
+    @SerialName("EndTime") val endTime: String = ""
+)
+
+/**
+ * Response from Kenkoooo AtCoder Problems API for user AC rank/count.
+ * Endpoint: GET https://kenkoooo.com/atcoder/atcoder-api/v3/user/ac_rank?user={username}
+ */
+@Serializable
+data class AtCoderAcRankDto(
+    val count: Int = 0,
+    val rank: Int = 0
+)
+
+// ── GEEKSFORGEEKS API DTOS ────────────────────────────────────────────────────
+
+/**
+ * Response from the GeeksforGeeks community API.
+ * Primary endpoint: GET https://geeksforgeeks-api.vercel.app/api/{username}
+ * Fallback endpoint: GET https://gfg-stats.vercel.app/{username}
+ */
+@Serializable
+data class GfgApiResponseDto(
+    val info: GfgUserInfoDto? = null,
+    val solvedStats: GfgSolvedStatsDto? = null
+)
+
+@Serializable
+data class GfgUserInfoDto(
+    @SerialName("userName") val userName: String = "",
+    @SerialName("profilePicture") val profilePicture: String? = null,
+    @SerialName("institute") val institute: String? = null,
+    @SerialName("instituteRank") val instituteRank: String? = null,
+    @SerialName("currentStreak") val currentStreak: String? = null,
+    @SerialName("maxStreak") val maxStreak: String? = null,
+    @SerialName("codingScore") val codingScore: Int? = null,
+    @SerialName("totalProblemsSolved") val totalProblemsSolved: Int? = null,
+    @SerialName("monthlyScore") val monthlyScore: Int? = null
+)
+
+@Serializable
+data class GfgSolvedStatsDto(
+    val school: GfgDifficultyCountDto? = null,
+    val basic: GfgDifficultyCountDto? = null,
+    val easy: GfgDifficultyCountDto? = null,
+    val medium: GfgDifficultyCountDto? = null,
+    val hard: GfgDifficultyCountDto? = null
+)
+
+@Serializable
+data class GfgDifficultyCountDto(
+    val count: Int = 0,
+    val questions: List<String> = emptyList()
 )
 
 // ── LEETCODE GRAPHQL DTOS ────────────────────────────────────────────────────

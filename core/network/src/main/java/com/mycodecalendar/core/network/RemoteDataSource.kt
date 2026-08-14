@@ -190,6 +190,69 @@ class RemoteDataSource(
         }
     }
 
+    // ── ATCODER USER STATS ────────────────────────────────────────────────────
+
+    /**
+     * Fetches AtCoder contest rating history from the official AtCoder JSON endpoint.
+     * Returns a list of all rated contest entries with old/new rating, placement, and contest name.
+     * Endpoint: GET https://atcoder.jp/users/{username}/history/json
+     *
+     * Note: This is an unofficial but stable public endpoint used by all major AtCoder tools.
+     */
+    suspend fun fetchAtCoderUserHistory(username: String): Result<List<AtCoderHistoryItemDto>> {
+        return runCatching {
+            val response: List<AtCoderHistoryItemDto> =
+                client.get("https://atcoder.jp/users/$username/history/json") {
+                    header("User-Agent", "MyCodeCalendar-Android/1.0")
+                    header("Accept", "application/json")
+                }.body()
+            response
+        }
+    }
+
+    /**
+     * Fetches total number of AC (accepted) problems solved on AtCoder for a given user.
+     * Endpoint: GET https://kenkoooo.com/atcoder/atcoder-api/v3/user/ac_rank?user={username}
+     *
+     * Returns [AtCoderAcRankDto] containing total solved count and world rank.
+     */
+    suspend fun fetchAtCoderAcRank(username: String): Result<AtCoderAcRankDto> {
+        return runCatching {
+            val response: AtCoderAcRankDto =
+                client.get("https://kenkoooo.com/atcoder/atcoder-api/v3/user/ac_rank?user=$username") {
+                    header("User-Agent", "MyCodeCalendar-Android/1.0")
+                    header("Accept", "application/json")
+                }.body()
+            response
+        }
+    }
+
+    // ── GEEKSFORGEEKS USER STATS ──────────────────────────────────────────────
+
+    /**
+     * Fetches GeeksforGeeks user profile statistics via the community-maintained API.
+     * Primary endpoint: GET https://geeksforgeeks-api.vercel.app/api/{username}
+     *
+     * Returns total problems solved, coding score, difficulty breakdown, and institute rank.
+     * Falls back gracefully to the secondary endpoint if the primary fails.
+     */
+    suspend fun fetchGeeksForGeeksStats(username: String): Result<GfgApiResponseDto> {
+        return runCatching {
+            // Primary: well-maintained community Vercel endpoint
+            val response: GfgApiResponseDto =
+                client.get("https://geeksforgeeks-api.vercel.app/api/$username") {
+                    header("User-Agent", "MyCodeCalendar-Android/1.0")
+                    header("Accept", "application/json")
+                }.body()
+            response
+        }.recoverCatching {
+            // Fallback: secondary community endpoint
+            client.get("https://gfgapis.onrender.com/api/v1/users/$username") {
+                header("User-Agent", "MyCodeCalendar-Android/1.0")
+            }.body()
+        }
+    }
+
     // ── LEETCODE GRAPHQL ─────────────────────────────────────────────────────
 
     /**

@@ -79,32 +79,32 @@ fun SplashScreen(
         label = "whiteLightGlow"
     )
 
-    // Master 2-Second Sequence Controller
+    // Master 550ms Sequence Controller
     LaunchedEffect(Unit) {
-        // Fade in container smoothly (0-300ms)
+        // Fade in container smoothly (0-120ms)
         contentAlpha.animateTo(
             targetValue = 1f,
-            animationSpec = tween(300, easing = FastOutSlowInEasing)
+            animationSpec = tween(120, easing = FastOutSlowInEasing)
         )
     }
 
     LaunchedEffect(Unit) {
-        // Typing Effect: 13 characters over ~900ms (starts after 200ms delay)
-        delay(200)
+        // Snappy Typing Effect: 13 characters over ~280ms (starts after 50ms delay)
+        delay(50)
         for (i in 1..fullText.length) {
             displayedCharsCount = i
-            delay(65)
+            delay(20)
         }
     }
 
     LaunchedEffect(Unit) {
-        // Smooth progress bar from 0 -> 100% over 1750ms
+        // Smooth progress bar from 0 -> 100% over 480ms
         progressAnim.animateTo(
             targetValue = 1f,
-            animationSpec = tween(1750, easing = FastOutSlowInEasing)
+            animationSpec = tween(480, easing = FastOutSlowInEasing)
         )
-        // Hold for final 250ms to total exactly 2.0 seconds
-        delay(250)
+        // Hold for final 70ms to total exactly 550ms
+        delay(70)
         onSplashFinished()
     }
 

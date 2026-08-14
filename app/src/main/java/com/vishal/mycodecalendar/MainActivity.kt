@@ -138,6 +138,9 @@ class MainActivity : ComponentActivity() {
                 val connectedAccounts by repository.getConnectedAccounts()
                     .collectAsState(initial = emptyList())
 
+                val streakInfo by repository.getAppStreakInfo()
+                    .collectAsState(initial = null)
+
                 val contests by repository.getContests()
                     .collectAsState(initial = emptyList())
 
@@ -165,10 +168,11 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // ── AUTO-FETCH CLOUD CONNECTED ACCOUNTS ON LOGIN / STARTUP ──────────
+                // ── AUTO-FETCH CLOUD CONNECTED ACCOUNTS & STREAK ON LOGIN / STARTUP ──────────
                 LaunchedEffect(isLoggedIn, authEmail, authUsername) {
                     if (isLoggedIn && authMethod != "Guest") {
                         val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                        // Fetch connected accounts
                         CloudAdminSyncService.fetchConnectedAccountsFromCloud(
                             uid = uid,
                             onSuccess = { cloudAccounts: Map<String, String> ->
@@ -183,6 +187,30 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         )
+                        // Fetch and merge cloud streak
+                        CloudAdminSyncService.fetchUserStreakFromCloud(
+                            uid = uid,
+                            onSuccess = { cloudStreak, cloudDates ->
+                                if (cloudStreak > 0 || cloudDates.isNotEmpty()) {
+                                    repository.mergeCloudStreak(cloudStreak, cloudDates)
+                                }
+                            }
+                        )
+                    }
+                }
+
+                // ── SYNC STREAK TO CLOUD WHEN UPDATED ────────────────────────────────
+                LaunchedEffect(isLoggedIn, streakInfo?.currentStreak, streakInfo?.activeDates?.size) {
+                    if (isLoggedIn && authMethod != "Guest") {
+                        val current = streakInfo
+                        if (current != null) {
+                            val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                            CloudAdminSyncService.syncUserStreakToCloud(
+                                uid = uid,
+                                currentStreak = current.currentStreak,
+                                activeDates = current.activeDates
+                            )
+                        }
                     }
                 }
 

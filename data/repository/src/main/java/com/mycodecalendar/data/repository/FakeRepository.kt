@@ -3,6 +3,7 @@ package com.mycodecalendar.data.repository
 import android.content.Context
 import android.content.SharedPreferences
 import com.mycodecalendar.core.database.MyCodeCalendarDatabase
+import com.mycodecalendar.core.database.entity.GitHubStatsEntity
 import com.mycodecalendar.core.database.entity.SyncStateEntity
 import com.mycodecalendar.core.network.LeetCodeStatsSummary
 import com.mycodecalendar.core.network.RemoteDataSource
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -57,6 +59,13 @@ class FakeRepository(
 
     private val remoteDataSource = RemoteDataSource()
     private val scope = CoroutineScope(Dispatchers.IO)
+
+    /** Lenient JSON for parsing serialized GitHub entity fields */
+    private val jsonSerializer = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        coerceInputValues = true
+    }
 
     // ── STATE FLOWS ────────────────────────────────────────────────────────────
 
@@ -106,8 +115,6 @@ class FakeRepository(
         val database = db ?: return
 
         // Seed contests
-        val cachedContests = database.contestDao().getAllContests()
-        // Collect the first emission from the flow synchronously
         val contestList = try {
             var result: List<com.mycodecalendar.core.database.entity.ContestEntity> = emptyList()
             val job = scope.launch {
@@ -115,7 +122,6 @@ class FakeRepository(
                     result = it
                 }
             }
-            // Give it a tiny window to emit the cached value
             kotlinx.coroutines.delay(50)
             job.cancel()
             result
@@ -144,6 +150,14 @@ class FakeRepository(
                 ratingHistoryCache[key] = domainHistory
                 ratingHistoryMap.value = ratingHistoryMap.value
                     .toMutableMap().also { it[key] = domainHistory }
+            }
+
+            // Seed GitHub stats from Room cache for instant offline rendering
+            if (acc.platform == Platform.GITHUB) {
+                val cachedGh = database.gitHubStatsDao().getGitHubStats(acc.username)
+                if (cachedGh != null) {
+                    gitHubStatsFlow.value = cachedGh.toDomain(jsonSerializer)
+                }
             }
         }
     }
@@ -264,7 +278,8 @@ class FakeRepository(
                         Platform.CODEFORCES -> fetchLiveCodeforcesData(acc.username)
                         Platform.LEETCODE -> fetchLiveLeetCodeData(acc.username)
                         Platform.CODECHEF -> fetchLiveCodeChefData(acc.username)
-                        else -> fetchFallbackStats(acc.platform, acc.username)
+                        Platform.ATCODER -> fetchLiveAtCoderData(acc.username)
+                        Platform.GEEKSFORGEEKS -> fetchLiveGeeksForGeeksData(acc.username)
                     }
                 }
                 lastRefreshTimestamp = System.currentTimeMillis()
@@ -524,7 +539,8 @@ class FakeRepository(
             val repos = reposRes.getOrDefault(emptyList())
             val rawContribs = contribRes.getOrDefault(emptyList())
 
-            val totalStars = repos.sumOf { it.stargazersCount }
+            // Only count stars from non-forked repos (true own repos)
+            val totalStars = repos.filter { !it.fork }.sumOf { it.stargazersCount }
             val topLangs = repos.mapNotNull { it.language }
                 .groupingBy { it }.eachCount()
                 .entries.sortedByDescending { it.value }
@@ -550,14 +566,18 @@ class FakeRepository(
                     language = r.language,
                     stars = r.stargazersCount,
                     forks = r.forksCount,
-                    url = r.htmlUrl.ifBlank { "https://github.com/$username/${r.name}" }
+                    url = r.htmlUrl.ifBlank { "https://github.com/$username/${r.name}" },
+                    openIssues = r.openIssuesCount,
+                    homepage = r.homepage,
+                    topics = r.topics
                 )
             }.sortedByDescending { it.stars }.take(30)
 
             val totalContribs = if (rawContribs.isNotEmpty()) rawContribs.sumOf { it.count } else 0
             val streak = computeStreak(dailyContribList)
+            val longestStreak = computeLongestStreak(dailyContribList)
 
-            gitHubStatsFlow.value = GitHubStats(
+            val ghStats = GitHubStats(
                 username = user.login.ifBlank { username },
                 name = user.name ?: user.login,
                 avatarUrl = user.avatarUrl ?: "https://github.com/$username.png",
@@ -565,7 +585,7 @@ class FakeRepository(
                 totalStars = totalStars,
                 totalContributionsThisYear = totalContribs,
                 currentContributionStreak = streak,
-                longestContributionStreak = streak + 15,
+                longestContributionStreak = longestStreak,
                 topLanguages = topLangs.ifEmpty { listOf("Kotlin", "Java", "Python") },
                 followers = user.followers,
                 following = user.following,
@@ -573,27 +593,38 @@ class FakeRepository(
                 repos = domainRepos,
                 lastUpdated = Instant.now()
             )
+            gitHubStatsFlow.value = ghStats
+
+            // ── Persist GitHub stats to Room for offline-first access ──────────
+            val entity = ghStats.toEntity(jsonSerializer)
+            db?.gitHubStatsDao()?.insertGitHubStats(entity)
 
             updateStatsMap(
                 Platform.GITHUB, username, PlatformStats(
                     platform = Platform.GITHUB,
                     username = username,
-                    rating = totalContribs,
-                    highestRating = totalContribs + 50,
-                    rank = "GitHub Contributor",
-                    globalRank = 1,
-                    solved = totalContribs,
-                    easySolved = (totalContribs * 0.4).toInt(),
-                    mediumSolved = (totalContribs * 0.4).toInt(),
-                    hardSolved = (totalContribs * 0.2).toInt(),
+                    rating = null,
+                    highestRating = null,
+                    rank = "GitHub Developer",
+                    globalRank = null,
+                    solved = null,
+                    easySolved = null,
+                    mediumSolved = null,
+                    hardSolved = null,
                     currentStreak = streak,
-                    longestStreak = streak + 15,
+                    longestStreak = longestStreak,
                     contestCount = 0,
                     lastUpdated = Instant.now()
                 )
             )
         } else {
-            fetchFallbackGitHubStats(username)
+            // Attempt to seed from Room cache before falling back to fake data
+            val cachedGh = db?.gitHubStatsDao()?.getGitHubStats(username)
+            if (cachedGh != null) {
+                gitHubStatsFlow.value = cachedGh.toDomain(jsonSerializer)
+            } else {
+                fetchFallbackGitHubStats(username)
+            }
         }
     }
 
@@ -677,6 +708,133 @@ class FakeRepository(
             )
         } else {
             fetchFallbackStats(Platform.CODEFORCES, username)
+        }
+    }
+
+    private suspend fun fetchLiveAtCoderData(username: String) {
+        val historyRes = remoteDataSource.fetchAtCoderUserHistory(username)
+        val acRankRes = remoteDataSource.fetchAtCoderAcRank(username)
+
+        if (historyRes.isSuccess) {
+            val history = historyRes.getOrDefault(emptyList())
+            val ratedHistory = history.filter { it.isRated }
+
+            // Build rating history from rated contests
+            val domainPoints = ratedHistory.mapIndexed { idx, item ->
+                val timestamp = runCatching {
+                    java.time.OffsetDateTime.parse(item.endTime).toInstant()
+                }.getOrElse { Instant.now().minusSeconds(86400L * (ratedHistory.size - idx)) }
+                RatingPoint(
+                    timestamp = timestamp,
+                    rating = item.newRating,
+                    contestId = "atcoder-${item.contestName.hashCode()}",
+                    contestName = item.contestNameEn.ifBlank { item.contestName }
+                )
+            }
+
+            val currentRating = ratedHistory.lastOrNull()?.newRating ?: 0
+            val maxRating = ratedHistory.maxOfOrNull { it.newRating } ?: currentRating
+            val contestCount = ratedHistory.size
+            val rankStr = atcoderRatingToRank(currentRating)
+
+            val acRank = acRankRes.getOrNull()
+            val totalSolved = acRank?.count ?: (currentRating / 4).coerceAtLeast(0)
+            val globalRank = acRank?.rank
+
+            // Persist rating history to Room
+            if (domainPoints.isNotEmpty()) {
+                val key = statsKey(Platform.ATCODER, username)
+                ratingHistoryCache[key] = domainPoints
+                ratingHistoryMap.value = ratingHistoryMap.value.toMutableMap().also { it[key] = domainPoints }
+                db?.ratingHistoryDao()?.let { dao ->
+                    dao.deleteHistory(Platform.ATCODER.name, username)
+                    dao.insertHistory(domainPoints.map { it.toEntity(Platform.ATCODER.name, username) })
+                }
+            }
+
+            updateStatsMap(
+                Platform.ATCODER, username, PlatformStats(
+                    platform = Platform.ATCODER,
+                    username = username,
+                    rating = currentRating,
+                    highestRating = maxRating,
+                    rank = rankStr,
+                    globalRank = globalRank,
+                    solved = totalSolved,
+                    easySolved = null,
+                    mediumSolved = null,
+                    hardSolved = null,
+                    currentStreak = null,
+                    longestStreak = null,
+                    contestCount = contestCount,
+                    lastUpdated = Instant.now()
+                )
+            )
+        } else {
+            // Seed from Room cache first, then fake fallback
+            val cachedHistory = db?.ratingHistoryDao()?.getHistory(Platform.ATCODER.name, username)
+            if (!cachedHistory.isNullOrEmpty()) {
+                val key = statsKey(Platform.ATCODER, username)
+                val domainHistory = cachedHistory.map { it.toDomain() }
+                ratingHistoryCache[key] = domainHistory
+                ratingHistoryMap.value = ratingHistoryMap.value.toMutableMap().also { it[key] = domainHistory }
+                val cached = db?.platformStatsDao()?.getStats(Platform.ATCODER.name, username)
+                if (cached != null) {
+                    updateStatsMap(Platform.ATCODER, username, cached.toDomain())
+                    return
+                }
+            }
+            fetchFallbackStats(Platform.ATCODER, username)
+        }
+    }
+
+    private suspend fun fetchLiveGeeksForGeeksData(username: String) {
+        val gfgRes = remoteDataSource.fetchGeeksForGeeksStats(username)
+        if (gfgRes.isSuccess) {
+            val gfg = gfgRes.getOrNull()!!
+            val info = gfg.info
+            val solved = gfg.solvedStats
+
+            val totalSolved = info?.totalProblemsSolved
+                ?: ((solved?.school?.count ?: 0) + (solved?.basic?.count ?: 0) +
+                    (solved?.easy?.count ?: 0) + (solved?.medium?.count ?: 0) + (solved?.hard?.count ?: 0))
+                    .takeIf { it > 0 }
+            val codingScore = info?.codingScore ?: 0
+            val instituteRank = info?.instituteRank?.toIntOrNull()
+            val currentStreak = info?.currentStreak?.toIntOrNull()
+            val maxStreak = info?.maxStreak?.toIntOrNull()
+
+            val easySolved = (solved?.school?.count ?: 0) + (solved?.basic?.count ?: 0) + (solved?.easy?.count ?: 0)
+            val mediumSolved = solved?.medium?.count ?: 0
+            val hardSolved = solved?.hard?.count ?: 0
+
+            updateStatsMap(
+                Platform.GEEKSFORGEEKS, username, PlatformStats(
+                    platform = Platform.GEEKSFORGEEKS,
+                    username = username,
+                    rating = codingScore,
+                    highestRating = codingScore,
+                    rank = if (instituteRank != null) "Institute Rank #$instituteRank" else "GFG Coder",
+                    globalRank = instituteRank,
+                    solved = totalSolved,
+                    easySolved = easySolved.takeIf { it > 0 },
+                    mediumSolved = mediumSolved.takeIf { it > 0 },
+                    hardSolved = hardSolved.takeIf { it > 0 },
+                    currentStreak = currentStreak,
+                    longestStreak = maxStreak,
+                    contestCount = null,
+                    badge = null,
+                    division = null,
+                    lastUpdated = Instant.now()
+                )
+            )
+        } else {
+            val cached = db?.platformStatsDao()?.getStats(Platform.GEEKSFORGEEKS.name, username)
+            if (cached != null) {
+                updateStatsMap(Platform.GEEKSFORGEEKS, username, cached.toDomain())
+            } else {
+                fetchFallbackStats(Platform.GEEKSFORGEEKS, username)
+            }
         }
     }
 
@@ -816,6 +974,20 @@ class FakeRepository(
         return streak.coerceAtLeast(0)
     }
 
+    private fun computeLongestStreak(contribs: List<DailyContribution>): Int {
+        var maxRun = 0
+        var run = 0
+        for (c in contribs) {
+            if (c.count > 0) {
+                run++
+                if (run > maxRun) maxRun = run
+            } else {
+                run = 0
+            }
+        }
+        return maxRun.coerceAtLeast(0)
+    }
+
     private fun getOrCreateStableRatingHistory(key: String): List<RatingPoint> {
         return ratingHistoryCache.getOrPut(key) {
             val seed = key.hashCode().toLong().let { if (it < 0) -it else it }
@@ -946,9 +1118,53 @@ class FakeRepository(
         else -> "Competitive Programmer"
     }
 
+    /** Maps AtCoder rating to official color rank titles. */
+    private fun atcoderRatingToRank(rating: Int): String = when {
+        rating >= 2800 -> "Red (2800+)"
+        rating >= 2400 -> "Orange (2400+)"
+        rating >= 2000 -> "Yellow (2000+)"
+        rating >= 1600 -> "Blue (1600+)"
+        rating >= 1200 -> "Cyan (1200+)"
+        rating >= 800  -> "Green (800+)"
+        rating >= 400  -> "Brown (400+)"
+        rating > 0     -> "Gray"
+        else           -> "Unrated"
+    }
+
     // ── PUBLIC API ─────────────────────────────────────────────────────────────
 
     fun getAppStreakInfo(): Flow<StreakInfo> = streakStateFlow
+
+    /**
+     * Merges streak and active dates fetched from Firestore with local state.
+     * Keeps the maximum streak and merges active dates.
+     */
+    fun mergeCloudStreak(cloudStreak: Int, cloudActiveDates: Set<String>) {
+        if (cloudStreak <= 0 && cloudActiveDates.isEmpty()) return
+        val sp = streakPrefs ?: return
+        val today = LocalDate.now()
+        val todayStr = today.toString()
+        val currentLocalStreak = sp.getInt("current_streak", 1)
+        val savedDates = sp.getString("active_dates", "") ?: ""
+        val activeDatesSet = if (savedDates.isBlank()) mutableSetOf()
+                             else savedDates.split(",").toMutableSet()
+        activeDatesSet.addAll(cloudActiveDates)
+        activeDatesSet.add(todayStr)
+        val trimmed = activeDatesSet.sortedDescending().take(365).toSet()
+
+        val finalStreak = maxOf(currentLocalStreak, cloudStreak)
+        sp.edit()
+            .putInt("current_streak", finalStreak)
+            .putString("active_dates", trimmed.joinToString(","))
+            .apply()
+
+        streakStateFlow.value = StreakInfo(
+            currentStreak = finalStreak,
+            isNewDayIncrement = false,
+            lastOpenDateText = today.format(DateTimeFormatter.ofPattern("EEE, dd MMM")),
+            activeDates = trimmed
+        )
+    }
 
     fun getConnectedAccounts(): Flow<List<PlatformAccount>> = connectedPlatforms
 

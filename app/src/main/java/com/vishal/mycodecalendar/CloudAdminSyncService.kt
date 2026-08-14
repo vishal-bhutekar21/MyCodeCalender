@@ -371,5 +371,75 @@ object CloudAdminSyncService {
                     }
             }
     }
+
+    /**
+     * Synchronizes the user's daily coding streak and active calendar dates to Firestore.
+     */
+    fun syncUserStreakToCloud(
+        uid: String?,
+        currentStreak: Int,
+        activeDates: Set<String>
+    ) {
+        val targetUid = uid?.ifBlank { null }
+            ?: FirebaseAuth.getInstance().currentUser?.uid
+            ?: FirebaseAuth.getInstance().currentUser?.email?.replace(".", "_")
+            ?: return
+        if (targetUid.isBlank()) return
+
+        val streakData = hashMapOf(
+            "currentStreak" to currentStreak,
+            "activeDates" to activeDates.toList(),
+            "lastStreakSyncAt" to FieldValue.serverTimestamp()
+        )
+
+        firestore.collection("users").document(targetUid)
+            .set(streakData, com.google.firebase.firestore.SetOptions.merge())
+            .addOnSuccessListener {
+                Log.d(TAG, "Successfully synced streak ($currentStreak days, ${activeDates.size} dates) to cloud for $targetUid")
+            }
+            .addOnFailureListener { e ->
+                Log.w(TAG, "Failed to sync streak to cloud: ${e.message}")
+            }
+    }
+
+    /**
+     * Fetches user streak and active dates from Firestore to restore on fresh install / multi-device login.
+     */
+    fun fetchUserStreakFromCloud(
+        uid: String?,
+        onSuccess: (currentStreak: Int, activeDates: Set<String>) -> Unit,
+        onError: (Exception) -> Unit = {}
+    ) {
+        val targetUid = uid?.ifBlank { null }
+            ?: FirebaseAuth.getInstance().currentUser?.uid
+            ?: FirebaseAuth.getInstance().currentUser?.email?.replace(".", "_")
+            ?: run {
+                onSuccess(0, emptySet())
+                return
+            }
+        if (targetUid.isBlank()) {
+            onSuccess(0, emptySet())
+            return
+        }
+
+        firestore.collection("users").document(targetUid)
+            .get()
+            .addOnSuccessListener { doc ->
+                if (doc.exists()) {
+                    val streak = doc.getLong("currentStreak")?.toInt() ?: 0
+                    @Suppress("UNCHECKED_CAST")
+                    val datesList = (doc.get("activeDates") as? List<String>) ?: emptyList()
+                    val datesSet = datesList.toSet()
+                    Log.d(TAG, "Fetched cloud streak: $streak days, ${datesSet.size} dates for $targetUid")
+                    onSuccess(streak, datesSet)
+                } else {
+                    onSuccess(0, emptySet())
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.w(TAG, "Failed to fetch streak from cloud: ${e.message}")
+                onError(e)
+            }
+    }
 }
 

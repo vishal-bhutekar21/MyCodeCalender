@@ -16,7 +16,10 @@ data class GitHubRepo(
     val language: String?,
     val stars: Int,
     val forks: Int,
-    val url: String
+    val url: String,
+    val openIssues: Int = 0,
+    val homepage: String? = null,
+    val topics: List<String> = emptyList()
 )
 
 data class GitHubStats(
