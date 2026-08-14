@@ -21,6 +21,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
@@ -511,6 +512,7 @@ fun ContestCard(
     onClick: () -> Unit
 ) {
     val brandColor = contest.platform.getBrandColor()
+    val activeColor = if (contest.status == ContestStatus.LIVE) Color(0xFF22C55E) else brandColor
     val timeUntilStart = remember(contest.startTimeUtc) {
         Duration.between(Instant.now(), contest.startTimeUtc).seconds.coerceAtLeast(0)
     }
@@ -522,65 +524,71 @@ fun ContestCard(
         else -> "in ${timeUntilStart / 86400}d"
     }
 
-    GlassCard(
-        modifier = Modifier.fillMaxWidth(),
-        accentColor = if (contest.status == ContestStatus.LIVE) Color(0xFF22C55E) else brandColor,
-        cornerRadius = 16.dp,
-        onClick = onClick
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .border(0.5.dp, activeColor.copy(alpha = 0.40f), RoundedCornerShape(16.dp))
     ) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .fillMaxHeight()
-                    .background(
-                        color = if (contest.status == ContestStatus.LIVE) Color(0xFF22C55E) else brandColor,
-                        shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)
-                    )
-            )
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(14.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    PlatformBadge(platform = contest.platform)
-                    StatusChip(status = contest.status)
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Text(
-                    text = contest.name,
-                    style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            accentColor = activeColor,
+            cornerRadius = 16.dp,
+            onClick = onClick
+        ) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .width(4.dp)
+                        .fillMaxHeight()
+                        .background(
+                            color = activeColor,
+                            shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)
+                        )
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(14.dp)
                 ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        PlatformBadge(platform = contest.platform)
+                        StatusChip(status = contest.status)
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
                     Text(
-                        text = "${contest.durationSeconds / 3600}h ${(contest.durationSeconds % 3600) / 60}m",
-                        style = Typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        text = contest.name,
+                        style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    Text(
-                        text = timeLabel,
-                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = if (contest.status == ContestStatus.LIVE) Color(0xFF22C55E)
-                        else brandColor
-                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "${contest.durationSeconds / 3600}h ${(contest.durationSeconds % 3600) / 60}m",
+                            style = Typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                        Text(
+                            text = timeLabel,
+                            style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = activeColor
+                        )
+                    }
                 }
             }
         }

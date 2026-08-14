@@ -34,8 +34,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * ShareAppContactCardModal — Interactive modal dialog for sharing Developer Profile & Streak Card,
- * generating App Download QR codes, and displaying Creator digital contact links.
+ * ShareAppContactCardModal — Clean, modern modal dialog for sharing Developer Profile & Streak Card,
+ * generating App Download QR codes, and displaying Creator portfolio and app links without emoji clutter.
  */
 @Composable
 fun ShareAppContactCardModal(
@@ -53,29 +53,25 @@ fun ShareAppContactCardModal(
 
     val appShareLink = "https://play.google.com/store/apps/dev?id=8656025420118431472"
     val portfolioLink = "https://vishalbhutekar.netlify.app/"
-    val linkedInLink = "https://www.linkedin.com/in/vishal-bhutekar21/"
     val instagramLink = "https://www.instagram.com/unexplored_vish_2.0/"
     val githubLink = "https://github.com/vishal-bhutekar21"
     val playStoreApp = "https://play.google.com/store/apps/details?id=com.justu.launcher"
-    val emailLink = "mailto:vishal.bhutekar1@gmail.com"
 
-    val brandIndigo = Color(0xFF818CF8)
-    val brandViolet = Color(0xFFA78BFA)
-    val brandCyan = Color(0xFF38BDF8)
-    val brandEmerald = Color(0xFF10F07B)
-    val brandAmber = Color(0xFFF59E0B)
+    val brandOrange = Color(0xFFFF6B00)
+    val brandOrangeGrad = listOf(Color(0xFFFF7A00), Color(0xFFFF5200))
+    val slateCardBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
 
     val profileShareText = """
-🔥 Coding Streak on Code Calendar: $currentStreak Days!
-👨‍💻 Developer: ${username ?: "Vishal Bhutekar"}
+Coding Streak on Code Calendar: $currentStreak Days
+Developer: ${username ?: "Vishal Bhutekar"}
 
-⚡ App Features:
-• 📅 Live Contest Radar (LeetCode, Codeforces, CodeChef, AtCoder)
-• 📈 Real-Time Rating Curves & Progression Charts
-• ⏰ Instant Calendar Sync & 15m Smart Alarms
-• 🐙 GitHub Contributions Heatmap
+Key Features:
+- Live Contest Radar (LeetCode, Codeforces, CodeChef, AtCoder)
+- Real-Time Rating Curves & Progression Charts
+- Instant Calendar Sync & 15m Smart Alarms
+- GitHub Contributions Activity Matrix
 
-📲 Download Code Calendar on Android:
+Download Code Calendar on Android:
 $appShareLink
     """.trimIndent()
 
@@ -94,8 +90,8 @@ $appShareLink
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight(),
-                cornerRadius = 28.dp,
-                accentColor = brandIndigo
+                cornerRadius = 24.dp,
+                accentColor = brandOrange
             ) {
                 Column(
                     modifier = Modifier
@@ -117,8 +113,8 @@ $appShareLink
                             Box(
                                 modifier = Modifier
                                     .size(36.dp)
-                                    .background(brandIndigo.copy(alpha = 0.18f), CircleShape)
-                                    .border(1.dp, brandIndigo.copy(alpha = 0.4f), CircleShape),
+                                    .background(brandOrange.copy(alpha = 0.15f), CircleShape)
+                                    .border(1.dp, brandOrange.copy(alpha = 0.4f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -129,7 +125,7 @@ $appShareLink
                                     },
                                     contentDescription = null,
                                     modifier = Modifier.size(20.dp),
-                                    tint = if (selectedTab == 0) brandAmber else brandIndigo
+                                    tint = brandOrange
                                 )
                             }
 
@@ -137,7 +133,7 @@ $appShareLink
                                 text = when (selectedTab) {
                                     0 -> "Profile & Streak Card"
                                     1 -> "App Download QR"
-                                    else -> "Creator Contact"
+                                    else -> "Creator Links"
                                 },
                                 style = Typography.titleMedium.copy(fontWeight = FontWeight.Black),
                                 color = MaterialTheme.colorScheme.onSurface
@@ -171,20 +167,19 @@ $appShareLink
                             .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
                             .padding(3.dp)
                     ) {
-                        TabPill("Streak Card", 0, selectedTab) { selectedTab = 0 }
-                        TabPill("App QR", 1, selectedTab) { selectedTab = 1 }
-                        TabPill("Creator", 2, selectedTab) { selectedTab = 2 }
+                        TabPill("Streak Card", 0, selectedTab, brandOrange) { selectedTab = 0 }
+                        TabPill("App QR", 1, selectedTab, brandOrange) { selectedTab = 1 }
+                        TabPill("Creator", 2, selectedTab, brandOrange) { selectedTab = 2 }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // ── TAB 0: PROFILE & STREAK SHARE CARD ──────────────────
                     if (selectedTab == 0) {
-                        // Visual Share Card Graphic Box
                         GlassCard(
                             modifier = Modifier.fillMaxWidth(),
                             cornerRadius = 20.dp,
-                            accentColor = brandAmber
+                            accentColor = brandOrange
                         ) {
                             Column(
                                 modifier = Modifier
@@ -203,20 +198,24 @@ $appShareLink
                                     ) {
                                         Box(
                                             modifier = Modifier
-                                                .size(46.dp)
+                                                .size(44.dp)
                                                 .background(
-                                                    Brush.radialGradient(listOf(brandIndigo, brandViolet)),
+                                                    Brush.radialGradient(listOf(brandOrange.copy(alpha = 0.25f), Color(0xFF1E2235))),
                                                     CircleShape
                                                 )
-                                                .border(1.5.dp, brandCyan.copy(alpha = 0.7f), CircleShape),
+                                                .border(1.5.dp, brandOrange.copy(alpha = 0.6f), CircleShape),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 Icons.Rounded.Terminal,
                                                 contentDescription = null,
-                                                modifier = Modifier.size(24.dp),
-                                                tint = Color.White
+                                                modifier = Modifier.size(22.dp),
+                                                tint = brandOrange
                                             )
+                                        }
+
+                                        val coderRank = remember(currentStreak) {
+                                            com.mycodecalendar.domain.model.BadgeHelper.getCoderRank(currentStreak)
                                         }
 
                                         Column {
@@ -226,27 +225,27 @@ $appShareLink
                                                 color = MaterialTheme.colorScheme.onSurface
                                             )
                                             Text(
-                                                text = "Code Calendar Pioneer",
-                                                style = Typography.labelSmall.copy(color = brandIndigo, fontWeight = FontWeight.Bold)
+                                                text = coderRank.split(":").getOrElse(1) { coderRank }.trim(),
+                                                style = Typography.labelSmall.copy(color = brandOrange, fontWeight = FontWeight.Bold)
                                             )
                                         }
                                     }
 
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
-                                        color = brandAmber.copy(alpha = 0.15f),
-                                        border = BorderStroke(1.dp, brandAmber.copy(alpha = 0.40f))
+                                        color = brandOrange.copy(alpha = 0.15f),
+                                        border = BorderStroke(1.dp, brandOrange.copy(alpha = 0.40f))
                                     ) {
                                         Row(
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
-                                            Icon(Icons.Rounded.LocalFireDepartment, null, modifier = Modifier.size(14.dp), tint = brandAmber)
+                                            Icon(Icons.Rounded.LocalFireDepartment, null, modifier = Modifier.size(14.dp), tint = brandOrange)
                                             Text(
                                                 text = "$currentStreak Days",
                                                 style = Typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Black),
-                                                color = brandAmber
+                                                color = brandOrange
                                             )
                                         }
                                     }
@@ -256,12 +255,32 @@ $appShareLink
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
                                 Spacer(modifier = Modifier.height(12.dp))
 
-                                // Feature Checklist Pills
-                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    FeatureHighlightRow("📅 Live Contest Radar", "LeetCode, Codeforces, CodeChef, AtCoder", brandCyan)
-                                    FeatureHighlightRow("📈 Rating Progression", "Unified rating curves & solved analytics", brandViolet)
-                                    FeatureHighlightRow("⏰ Smart Alarms", "15m notifications & Calendar Auto-Sync", brandEmerald)
-                                    FeatureHighlightRow("🐙 Activity Matrix", "GitHub contribution heatmap & sync", brandIndigo)
+                                // Feature Checklist Rows with Clean Icons (No Emojis)
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    FeatureHighlightRow(
+                                        title = "Live Contest Radar",
+                                        subtitle = "LeetCode, Codeforces, CodeChef, AtCoder",
+                                        icon = Icons.Rounded.Schedule,
+                                        tint = brandOrange
+                                    )
+                                    FeatureHighlightRow(
+                                        title = "Rating Progression",
+                                        subtitle = "Unified rating curves & analytics",
+                                        icon = Icons.Rounded.ShowChart,
+                                        tint = brandOrange
+                                    )
+                                    FeatureHighlightRow(
+                                        title = "Smart Alarms",
+                                        subtitle = "15m alerts & Calendar Auto-Sync",
+                                        icon = Icons.Rounded.NotificationsActive,
+                                        tint = brandOrange
+                                    )
+                                    FeatureHighlightRow(
+                                        title = "Activity Matrix",
+                                        subtitle = "GitHub contribution heatmap & streak sync",
+                                        icon = Icons.Rounded.Code,
+                                        tint = brandOrange
+                                    )
                                 }
 
                                 Spacer(modifier = Modifier.height(14.dp))
@@ -271,8 +290,8 @@ $appShareLink
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(14.dp))
-                                        .background(Color(0xFF0F172A).copy(alpha = 0.8f))
-                                        .border(1.dp, brandIndigo.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
+                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+                                        .border(1.dp, brandOrange.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
                                         .padding(10.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
@@ -280,22 +299,22 @@ $appShareLink
                                     QrCodeView(
                                         data = appShareLink,
                                         size = 64.dp,
-                                        primaryColor = brandCyan,
-                                        backgroundColor = Color(0xFF1E1B4B)
+                                        primaryColor = brandOrange,
+                                        backgroundColor = Color.Black
                                     )
 
-                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Spacer(modifier = Modifier.width(12.dp))
 
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = "Scan to Install App",
                                             style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                            color = Color.White
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
                                             text = "Available on Google Play",
                                             style = Typography.labelSmall,
-                                            color = brandEmerald
+                                            color = brandOrange
                                         )
                                     }
                                 }
@@ -321,7 +340,7 @@ $appShareLink
                                     .weight(1f)
                                     .height(48.dp),
                                 shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = brandIndigo)
+                                colors = ButtonDefaults.buttonColors(containerColor = brandOrange)
                             ) {
                                 Icon(Icons.Rounded.Share, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -347,13 +366,13 @@ $appShareLink
                                     if (isCopied) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp),
-                                    tint = if (isCopied) brandEmerald else MaterialTheme.colorScheme.onSurface
+                                    tint = if (isCopied) brandOrange else MaterialTheme.colorScheme.onSurface
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = if (isCopied) "Copied!" else "Copy Card",
                                     style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = if (isCopied) brandEmerald else MaterialTheme.colorScheme.onSurface
+                                    color = if (isCopied) brandOrange else MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -364,13 +383,13 @@ $appShareLink
                         QrCodeView(
                             data = appShareLink,
                             size = 190.dp,
-                            primaryColor = brandCyan,
+                            primaryColor = brandOrange,
                             centerIcon = {
                                 Icon(
-                                    Icons.Rounded.Terminal,
+                                    Icons.Rounded.Code,
                                     contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                    tint = brandCyan
+                                    modifier = Modifier.size(22.dp),
+                                    tint = brandOrange
                                 )
                             }
                         )
@@ -378,13 +397,13 @@ $appShareLink
                         Spacer(modifier = Modifier.height(14.dp))
 
                         Text(
-                            text = "Code Calendar for Android",
+                            text = "MyCodeCalendar for Android",
                             style = Typography.titleMedium.copy(fontWeight = FontWeight.Black),
                             color = MaterialTheme.colorScheme.onSurface
                         )
 
                         Text(
-                            text = "Scan QR to get live competitive programming contest alerts & rating charts.",
+                            text = "Scan QR to get live competitive programming contest alerts and rating charts.",
                             style = Typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             textAlign = TextAlign.Center,
@@ -403,7 +422,7 @@ $appShareLink
                                     .weight(1f)
                                     .height(48.dp),
                                 shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = brandIndigo)
+                                colors = ButtonDefaults.buttonColors(containerColor = brandOrange)
                             ) {
                                 Icon(Icons.Rounded.Share, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -429,13 +448,13 @@ $appShareLink
                                     if (isCopied) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp),
-                                    tint = if (isCopied) brandEmerald else MaterialTheme.colorScheme.onSurface
+                                    tint = if (isCopied) brandOrange else MaterialTheme.colorScheme.onSurface
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = if (isCopied) "Copied!" else "Copy Link",
                                     style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = if (isCopied) brandEmerald else MaterialTheme.colorScheme.onSurface
+                                    color = if (isCopied) brandOrange else MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -446,13 +465,13 @@ $appShareLink
                         QrCodeView(
                             data = portfolioLink,
                             size = 170.dp,
-                            primaryColor = brandViolet,
+                            primaryColor = brandOrange,
                             centerIcon = {
                                 Icon(
-                                    Icons.Rounded.Code,
+                                    Icons.Rounded.Language,
                                     contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                    tint = brandViolet
+                                    modifier = Modifier.size(22.dp),
+                                    tint = brandOrange
                                 )
                             }
                         )
@@ -467,12 +486,12 @@ $appShareLink
 
                         Text(
                             text = "Android & Full-Stack Developer",
-                            style = Typography.labelMedium.copy(color = brandIndigo, fontWeight = FontWeight.Bold)
+                            style = Typography.labelMedium.copy(color = brandOrange, fontWeight = FontWeight.Bold)
                         )
 
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                        // Social Links Grid
+                        // Creator Links: Clean Slate Buttons (Portfolio, JustU Launcher, GitHub, Instagram)
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -481,35 +500,23 @@ $appShareLink
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                SocialPillButton("Portfolio", Icons.Rounded.Language, Color(0xFF06B6D4), Modifier.weight(1f)) {
+                                SocialPillButton("Portfolio", Icons.Rounded.Language, brandOrange, Modifier.weight(1f)) {
                                     onOpenUrl(portfolioLink)
                                 }
-                                SocialPillButton("LinkedIn", Icons.Rounded.Work, Color(0xFF0A66C2), Modifier.weight(1f)) {
-                                    onOpenUrl(linkedInLink)
-                                }
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                SocialPillButton("Instagram", Icons.Rounded.CameraAlt, Color(0xFFE1306C), Modifier.weight(1f)) {
-                                    onOpenUrl(instagramLink)
-                                }
-                                SocialPillButton("GitHub", Icons.Rounded.Code, Color(0xFF10F07B), Modifier.weight(1f)) {
-                                    onOpenUrl(githubLink)
-                                }
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                SocialPillButton("Play Store Apps", Icons.Rounded.Shop, Color(0xFF00E676), Modifier.weight(1f)) {
+                                SocialPillButton("JustU Launcher", Icons.Rounded.Shop, brandOrange, Modifier.weight(1f)) {
                                     onOpenUrl(playStoreApp)
                                 }
-                                SocialPillButton("Email Me", Icons.Rounded.Email, Color(0xFFF59E0B), Modifier.weight(1f)) {
-                                    onOpenUrl(emailLink)
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                SocialPillButton("GitHub", Icons.Rounded.Code, brandOrange, Modifier.weight(1f)) {
+                                    onOpenUrl(githubLink)
+                                }
+                                SocialPillButton("Instagram", Icons.Rounded.CameraAlt, brandOrange, Modifier.weight(1f)) {
+                                    onOpenUrl(instagramLink)
                                 }
                             }
                         }
@@ -525,16 +532,16 @@ private fun RowScope.TabPill(
     title: String,
     tabIndex: Int,
     selectedTab: Int,
+    brandColor: Color,
     onClick: () -> Unit
 ) {
-    val brandIndigo = Color(0xFF818CF8)
     Box(
         modifier = Modifier
             .weight(1f)
             .fillMaxHeight()
             .clip(RoundedCornerShape(9.dp))
             .then(
-                if (selectedTab == tabIndex) Modifier.background(brandIndigo)
+                if (selectedTab == tabIndex) Modifier.background(brandColor)
                 else Modifier.clickable(onClick = onClick)
             ),
         contentAlignment = Alignment.Center
@@ -551,18 +558,28 @@ private fun RowScope.TabPill(
 private fun FeatureHighlightRow(
     title: String,
     subtitle: String,
-    dotColor: Color
+    icon: ImageVector,
+    tint: Color
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(6.dp)
-                .background(dotColor, CircleShape)
-        )
+                .size(32.dp)
+                .background(tint.copy(alpha = 0.12f), CircleShape)
+                .border(1.dp, tint.copy(alpha = 0.25f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = tint
+            )
+        }
         Column {
             Text(
                 text = title,
@@ -589,7 +606,7 @@ private fun SocialPillButton(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
-        color = color.copy(alpha = 0.12f),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
         border = BorderStroke(1.dp, color.copy(alpha = 0.35f)),
         modifier = modifier.height(42.dp)
     ) {
@@ -610,7 +627,7 @@ private fun SocialPillButton(
             Text(
                 text = title,
                 style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
-                color = color
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }

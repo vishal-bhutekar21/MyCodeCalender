@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.mycodecalendar.core.designsystem.GlassmorphismBackground
 import com.mycodecalendar.core.designsystem.Typography
+import com.mycodecalendar.core.designsystem.components.GlassBackButton
 import com.mycodecalendar.core.designsystem.components.GlassCard
 import com.mycodecalendar.core.designsystem.components.PlatformBadge
 import com.mycodecalendar.core.designsystem.components.StatusChip
@@ -69,31 +70,17 @@ fun ContestDetailScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
         ) {
             // Navigation Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                GlassCard(
-                    cornerRadius = 20.dp,
-                    onClick = onBackClick
-                ) {
-                    Box(
-                        modifier = Modifier.size(40.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Back",
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
+                GlassBackButton(onClick = onBackClick)
             }
 
             // Contest Header Section

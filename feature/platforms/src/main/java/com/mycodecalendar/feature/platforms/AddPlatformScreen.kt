@@ -1,4 +1,4 @@
-﻿package com.mycodecalendar.feature.platforms
+package com.mycodecalendar.feature.platforms
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mycodecalendar.core.designsystem.GlassmorphismBackground
 import com.mycodecalendar.core.designsystem.Typography
+import com.mycodecalendar.core.designsystem.components.GlassBackButton
 import com.mycodecalendar.core.designsystem.components.GlassCard
 import com.mycodecalendar.core.designsystem.components.getBrandColor
 import com.mycodecalendar.core.designsystem.components.getDisplayName
@@ -85,18 +86,10 @@ fun AddPlatformScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                GlassCard(cornerRadius = 20.dp, onClick = onBackClick) {
-                    Box(modifier = Modifier.size(40.dp), contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack, "Back",
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
+                GlassBackButton(onClick = onBackClick)
                 Spacer(Modifier.width(14.dp))
                 Column {
                     Text(
@@ -104,13 +97,16 @@ fun AddPlatformScreen(
                         style = Typography.headlineSmall.copy(fontWeight = FontWeight.Black),
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    Spacer(Modifier.height(4.dp))
                     Text(
                         "Link your handle to track ratings and contests",
                         style = Typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
                     )
                 }
             }
+
+            Spacer(Modifier.height(8.dp))
 
             // ── CONNECTED ACCOUNTS (minimal list) ─────────────────────────────
             if (connectedAccounts.isNotEmpty()) {
@@ -207,17 +203,17 @@ fun AddPlatformScreen(
                     "Select Platform",
                     style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
-                    modifier = Modifier.padding(bottom = 8.dp, start = 2.dp)
+                    modifier = Modifier.padding(bottom = 10.dp, start = 2.dp)
                 )
 
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Platform.values().forEach { platform ->
                         val isSelected = platform == selectedPlatform
                         val color = platform.getBrandColor()
                         val alreadyLinked = connectedAccounts.any { it.platform == platform }
 
                         val bgBrush = if (isSelected) Brush.horizontalGradient(
-                            listOf(color.copy(alpha = 0.18f), color.copy(alpha = 0.04f))
+                            listOf(color.copy(alpha = 0.22f), color.copy(alpha = 0.06f))
                         ) else null
 
                         Box(
@@ -226,12 +222,12 @@ fun AddPlatformScreen(
                                 .clip(RoundedCornerShape(14.dp))
                                 .then(
                                     if (bgBrush != null) Modifier.background(bgBrush)
-                                    else Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                                    else Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
                                 )
                                 .border(
-                                    width = if (isSelected) 1.5.dp else 0.8.dp,
-                                    color = if (isSelected) color.copy(alpha = 0.60f)
-                                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                                    width = if (isSelected) 1.5.dp else 0.6.dp,
+                                    color = if (isSelected) color.copy(alpha = 0.70f)
+                                            else color.copy(alpha = 0.25f),
                                     shape = RoundedCornerShape(14.dp)
                                 )
                                 .clickable {
@@ -324,7 +320,7 @@ fun AddPlatformScreen(
                         Text(
                             placeholderHint,
                             style = Typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f)
                         )
                     },
                     leadingIcon = {
@@ -351,12 +347,21 @@ fun AddPlatformScreen(
                     shape = RoundedCornerShape(14.dp),
                     singleLine = true,
                     textStyle = Typography.bodyMedium,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Text,
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Done
+                    ),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.45f),
                         focusedBorderColor = if (validationError != null) MaterialTheme.colorScheme.error else brandColor,
                         unfocusedBorderColor = if (validationError != null) MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
-                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                        cursorColor = brandColor
                     )
                 )
 

@@ -25,11 +25,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mycodecalendar.core.designsystem.GlassmorphismBackground
 import com.mycodecalendar.core.designsystem.Typography
+import com.mycodecalendar.core.designsystem.components.GlassBackButton
 import com.mycodecalendar.core.designsystem.components.GlassCard
 import com.mycodecalendar.core.designsystem.components.PlatformBadge
 import com.mycodecalendar.core.designsystem.components.PlatformDetailSkeleton
@@ -67,22 +69,7 @@ fun PlatformDetailScreen(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                GlassCard(
-                    cornerRadius = 20.dp,
-                    onClick = onBackClick
-                ) {
-                    Box(
-                        modifier = Modifier.size(40.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Back",
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
+                GlassBackButton(onClick = onBackClick)
                 Spacer(modifier = Modifier.width(14.dp))
                 Column {
                     Text(
