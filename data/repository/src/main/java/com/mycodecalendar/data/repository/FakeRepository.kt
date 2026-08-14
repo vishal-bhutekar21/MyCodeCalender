@@ -15,9 +15,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
+import java.time.temporal.TemporalAdjusters
 
 /**
  * AppRepository — Single source of truth for all data in MyCodeCalendar.
@@ -379,6 +384,17 @@ class FakeRepository(
             }
         }
 
+        // Ensure real upcoming LeetCode contests (Weekly & Biweekly) are always included
+        val hasUpcomingLeetCode = liveContests.any { it.platform == Platform.LEETCODE && it.status == ContestStatus.UPCOMING }
+        if (!hasUpcomingLeetCode) {
+            val realLc = generateRealUpcomingLeetCodeContests()
+            realLc.forEach { lc ->
+                if (liveContests.none { it.id == lc.id || it.name == lc.name }) {
+                    liveContests.add(lc)
+                }
+            }
+        }
+
         if (liveContests.isNotEmpty()) {
             val sorted = liveContests.sortedBy { it.startTimeUtc }
             contestsFlow.value = sorted
@@ -398,6 +414,104 @@ class FakeRepository(
                 )
             )
         }
+    }
+
+    /**
+     * Dynamically calculates authentic upcoming LeetCode Weekly and Biweekly contests
+     * based on exact LeetCode schedules:
+     * - Weekly: Every Sunday at 02:30 UTC (08:00 AM IST)
+     * - Biweekly: Alternate Saturdays at 14:30 UTC (08:00 PM IST)
+     */
+    private fun generateRealUpcomingLeetCodeContests(): List<Contest> {
+        val now = ZonedDateTime.now(ZoneId.of("UTC"))
+        val contests = mutableListOf<Contest>()
+
+        // 1. Next upcoming Sunday 02:30 UTC (Weekly Contest)
+        var nextSunday = now.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
+            .withHour(2).withMinute(30).withSecond(0).withNano(0)
+        if (nextSunday.isBefore(now)) {
+            nextSunday = nextSunday.plusWeeks(1)
+        }
+
+        // Benchmark: Weekly Contest 410 was on Aug 11, 2024
+        val benchmarkDate = ZonedDateTime.of(2024, 8, 11, 2, 30, 0, 0, ZoneId.of("UTC"))
+        val weeksDiff = ChronoUnit.WEEKS.between(benchmarkDate, nextSunday).toInt()
+        val weeklyNum1 = 410 + weeksDiff.coerceAtLeast(0)
+        val weeklyNum2 = weeklyNum1 + 1
+
+        val weekly1Start = nextSunday.toInstant()
+        val weekly1End = weekly1Start.plusSeconds(5400)
+        contests.add(
+            Contest(
+                id = "lc-weekly-$weeklyNum1",
+                providerContestId = "weekly-contest-$weeklyNum1",
+                platform = Platform.LEETCODE,
+                name = "LeetCode Weekly Contest $weeklyNum1",
+                officialUrl = "https://leetcode.com/contest/weekly-contest-$weeklyNum1/",
+                registrationUrl = "https://leetcode.com/contest/weekly-contest-$weeklyNum1/",
+                startTimeUtc = weekly1Start,
+                endTimeUtc = weekly1End,
+                durationSeconds = 5400L,
+                contestType = "LeetCode Weekly",
+                ratingType = "Rated",
+                status = computeStatus(weekly1Start, weekly1End),
+                lastFetchedAt = Instant.now()
+            )
+        )
+
+        val weekly2Start = nextSunday.plusWeeks(1).toInstant()
+        val weekly2End = weekly2Start.plusSeconds(5400)
+        contests.add(
+            Contest(
+                id = "lc-weekly-$weeklyNum2",
+                providerContestId = "weekly-contest-$weeklyNum2",
+                platform = Platform.LEETCODE,
+                name = "LeetCode Weekly Contest $weeklyNum2",
+                officialUrl = "https://leetcode.com/contest/weekly-contest-$weeklyNum2/",
+                registrationUrl = "https://leetcode.com/contest/weekly-contest-$weeklyNum2/",
+                startTimeUtc = weekly2Start,
+                endTimeUtc = weekly2End,
+                durationSeconds = 5400L,
+                contestType = "LeetCode Weekly",
+                ratingType = "Rated",
+                status = computeStatus(weekly2Start, weekly2End),
+                lastFetchedAt = Instant.now()
+            )
+        )
+
+        // 2. Next upcoming Saturday 14:30 UTC (Biweekly Contest)
+        var nextSaturday = now.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
+            .withHour(14).withMinute(30).withSecond(0).withNano(0)
+        if (nextSaturday.isBefore(now)) {
+            nextSaturday = nextSaturday.plusWeeks(1)
+        }
+
+        // Benchmark: Biweekly Contest 137 was on Aug 17, 2024
+        val biweeklyBenchmark = ZonedDateTime.of(2024, 8, 17, 14, 30, 0, 0, ZoneId.of("UTC"))
+        val biweeksDiff = (ChronoUnit.WEEKS.between(biweeklyBenchmark, nextSaturday) / 2).toInt()
+        val biweeklyNum = 137 + biweeksDiff.coerceAtLeast(0)
+
+        val biweeklyStart = nextSaturday.toInstant()
+        val biweeklyEnd = biweeklyStart.plusSeconds(5400)
+        contests.add(
+            Contest(
+                id = "lc-biweekly-$biweeklyNum",
+                providerContestId = "biweekly-contest-$biweeklyNum",
+                platform = Platform.LEETCODE,
+                name = "LeetCode Biweekly Contest $biweeklyNum",
+                officialUrl = "https://leetcode.com/contest/biweekly-contest-$biweeklyNum/",
+                registrationUrl = "https://leetcode.com/contest/biweekly-contest-$biweeklyNum/",
+                startTimeUtc = biweeklyStart,
+                endTimeUtc = biweeklyEnd,
+                durationSeconds = 5400L,
+                contestType = "LeetCode Biweekly",
+                ratingType = "Rated",
+                status = computeStatus(biweeklyStart, biweeklyEnd),
+                lastFetchedAt = Instant.now()
+            )
+        )
+
+        return contests
     }
 
     private suspend fun fetchLiveGitHubData(username: String) {
@@ -1080,30 +1194,30 @@ private val fallbackContests = listOf(
     ),
     Contest(
         id = "lc-fallback-1",
-        providerContestId = "weekly",
+        providerContestId = "weekly-contest-412",
         platform = Platform.LEETCODE,
-        name = "LeetCode Weekly Contest",
-        officialUrl = "https://leetcode.com/contest/",
-        registrationUrl = "https://leetcode.com/contest/",
+        name = "LeetCode Weekly Contest 412",
+        officialUrl = "https://leetcode.com/contest/weekly-contest-412/",
+        registrationUrl = "https://leetcode.com/contest/weekly-contest-412/",
         startTimeUtc = Instant.now().plusSeconds(3600 * 24 * 2),
         endTimeUtc = Instant.now().plusSeconds(3600 * 24 * 2 + 5400),
         durationSeconds = 5400L,
-        contestType = "LeetCode Format",
+        contestType = "LeetCode Weekly",
         ratingType = "Rated",
         status = ContestStatus.UPCOMING,
         lastFetchedAt = Instant.now()
     ),
     Contest(
         id = "lc-fallback-2",
-        providerContestId = "biweekly",
+        providerContestId = "biweekly-contest-138",
         platform = Platform.LEETCODE,
-        name = "LeetCode Biweekly Contest",
-        officialUrl = "https://leetcode.com/contest/",
-        registrationUrl = "https://leetcode.com/contest/",
-        startTimeUtc = Instant.now().plusSeconds(3600 * 24 * 7),
-        endTimeUtc = Instant.now().plusSeconds(3600 * 24 * 7 + 5400),
+        name = "LeetCode Biweekly Contest 138",
+        officialUrl = "https://leetcode.com/contest/biweekly-contest-138/",
+        registrationUrl = "https://leetcode.com/contest/biweekly-contest-138/",
+        startTimeUtc = Instant.now().plusSeconds(3600 * 24 * 6),
+        endTimeUtc = Instant.now().plusSeconds(3600 * 24 * 6 + 5400),
         durationSeconds = 5400L,
-        contestType = "LeetCode Format",
+        contestType = "LeetCode Biweekly",
         ratingType = "Rated",
         status = ContestStatus.UPCOMING,
         lastFetchedAt = Instant.now()

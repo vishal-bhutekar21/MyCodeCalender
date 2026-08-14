@@ -33,6 +33,7 @@ import com.mycodecalendar.core.common.NetworkMonitor
 import com.mycodecalendar.core.database.MyCodeCalendarDatabase
 import com.mycodecalendar.core.designsystem.AppTheme
 import com.mycodecalendar.core.designsystem.MyCodeCalendarTheme
+import com.mycodecalendar.core.designsystem.components.AuthRequiredModal
 import com.mycodecalendar.core.designsystem.components.FloatingBottomNavigation
 import com.mycodecalendar.core.designsystem.components.GlassCard
 import com.mycodecalendar.data.repository.FakeRepository
@@ -47,6 +48,7 @@ import com.mycodecalendar.feature.home.StreakScreen
 import com.mycodecalendar.feature.onboarding.AuthScreen
 import com.mycodecalendar.feature.onboarding.OnboardingScreen
 import com.mycodecalendar.feature.onboarding.SplashScreen
+import com.mycodecalendar.feature.onboarding.TermsAndConditionsScreen
 import com.mycodecalendar.feature.platformdetail.PlatformDetailScreen
 import com.mycodecalendar.feature.platforms.AddPlatformScreen
 import com.mycodecalendar.feature.resources.ResourcesScreen
@@ -82,34 +84,51 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val isDarkTheme = isSystemInDarkTheme()
-            var appTheme by remember { mutableStateOf(AppTheme.SYSTEM) }
+            val authPrefs = remember { getSharedPreferences("app_auth_prefs", Context.MODE_PRIVATE) }
+            val savedThemeName = remember { authPrefs.getString("app_theme", AppTheme.SYSTEM.name) ?: AppTheme.SYSTEM.name }
+            var appTheme by remember {
+                mutableStateOf(
+                    try { AppTheme.valueOf(savedThemeName) } catch (e: Exception) { AppTheme.SYSTEM }
+                )
+            }
 
-            DisposableEffect(isDarkTheme) {
+            val isEffectiveDark = when (appTheme) {
+                AppTheme.DARK   -> true
+                AppTheme.LIGHT  -> false
+                AppTheme.SYSTEM -> isDarkTheme
+            }
+
+            DisposableEffect(isEffectiveDark) {
                 enableEdgeToEdge(
                     statusBarStyle = SystemBarStyle.auto(
                         lightScrim = Color.Transparent.toArgb(),
                         darkScrim = Color.Transparent.toArgb(),
-                        detectDarkMode = { isDarkTheme }
+                        detectDarkMode = { isEffectiveDark }
                     ),
                     navigationBarStyle = SystemBarStyle.auto(
                         lightScrim = Color.Transparent.toArgb(),
                         darkScrim = Color.Transparent.toArgb(),
-                        detectDarkMode = { isDarkTheme }
+                        detectDarkMode = { isEffectiveDark }
                     )
                 )
                 onDispose {}
             }
 
             MyCodeCalendarTheme(appTheme = appTheme) {
-                val authPrefs = remember { getSharedPreferences("app_auth_prefs", Context.MODE_PRIVATE) }
                 var authUsername by remember { mutableStateOf(authPrefs.getString("auth_username", "Developer")) }
                 var authMethod by remember { mutableStateOf(authPrefs.getString("auth_method", "Guest")) }
+                var authEmail by remember { mutableStateOf(authPrefs.getString("auth_email", null)) }
+                var authAvatar by remember { mutableStateOf(authPrefs.getString("auth_avatar", null)) }
                 val onboardingCompleted = remember { authPrefs.getBoolean("onboarding_completed", false) }
+                val termsAccepted = remember { authPrefs.getBoolean("terms_accepted", false) }
                 val isLoggedIn = remember { authPrefs.getBoolean("is_logged_in", false) }
-                val startDest = remember {
-                    if (!onboardingCompleted) "onboarding"
-                    else if (!isLoggedIn) "auth"
-                    else "home"
+                var showAuthRequiredModal by remember { mutableStateOf(false) }
+
+                val currentFirebaseUser = remember { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser }
+                val activeUserName = remember(authUsername, currentFirebaseUser) {
+                    currentFirebaseUser?.displayName?.takeIf { it.isNotBlank() }
+                        ?: currentFirebaseUser?.email?.substringBefore('@')?.takeIf { it.isNotBlank() }
+                        ?: authUsername
                 }
 
                 val navController = rememberNavController()
@@ -139,10 +158,39 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(fetchError) {
                     val err = fetchError
                     if (!err.isNullOrEmpty()) {
-                        errorMessage = err ?: ""
+                        errorMessage = err
                         showErrorBanner = true
-                        delay(4000L)
+                        delay(4000)
                         showErrorBanner = false
+                    }
+                }
+
+                // ── AUTO-FETCH CLOUD CONNECTED ACCOUNTS ON LOGIN / STARTUP ──────────
+                LaunchedEffect(isLoggedIn, authEmail, authUsername) {
+                    if (isLoggedIn && authMethod != "Guest") {
+                        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                        CloudAdminSyncService.fetchConnectedAccountsFromCloud(
+                            uid = uid,
+                            onSuccess = { cloudAccounts: Map<String, String> ->
+                                for ((pName, handle) in cloudAccounts) {
+                                    val platform = runCatching { Platform.valueOf(pName.uppercase(java.util.Locale.ROOT)) }.getOrNull()
+                                    if (platform != null && handle.isNotBlank()) {
+                                        val existing = connectedAccounts.find { it.platform == platform }
+                                        if (existing == null || existing.username != handle) {
+                                            repository.addPlatformAccount(platform, handle)
+                                        }
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+
+                val onProtectedAddPlatform = {
+                    if (authMethod == "Guest" || authMethod == null) {
+                        showAuthRequiredModal = true
+                    } else {
+                        navController.navigate("add_platform")
                     }
                 }
 
@@ -173,6 +221,7 @@ class MainActivity : ComponentActivity() {
                                 SplashScreen(
                                     onSplashFinished = {
                                         val target = if (!onboardingCompleted) "onboarding"
+                                        else if (!termsAccepted) "terms_and_conditions"
                                         else if (!isLoggedIn) "auth"
                                         else "home"
                                         navController.navigate(target) {
@@ -185,24 +234,69 @@ class MainActivity : ComponentActivity() {
                             composable("onboarding") {
                                 OnboardingScreen(
                                     onComplete = {
-                                        navController.navigate("auth") {
+                                        authPrefs.edit().putBoolean("onboarding_completed", true).apply()
+                                        navController.navigate("terms_and_conditions") {
                                             popUpTo("onboarding") { inclusive = true }
                                         }
                                     }
                                 )
                             }
 
+                            composable("terms_and_conditions") {
+                                TermsAndConditionsScreen(
+                                    onAgreeClick = {
+                                        authPrefs.edit().putBoolean("terms_accepted", true).apply()
+                                        navController.navigate("auth") {
+                                            popUpTo("terms_and_conditions") { inclusive = true }
+                                        }
+                                    },
+                                    onOpenUrl = { url -> openUrl(url) }
+                                )
+                            }
+
                             composable("auth") {
                                 AuthScreen(
-                                    onAuthSuccess = { user, method ->
+                                    onAuthSuccess = { user, method, email, photoUrl ->
                                         authPrefs.edit()
                                             .putBoolean("onboarding_completed", true)
+                                            .putBoolean("terms_accepted", true)
                                             .putBoolean("is_logged_in", true)
                                             .putString("auth_username", user)
                                             .putString("auth_method", method)
+                                            .putString("auth_email", email)
+                                            .putString("auth_avatar", photoUrl)
                                             .apply()
                                         authUsername = user
                                         authMethod = method
+                                        authEmail = email
+                                        authAvatar = photoUrl
+
+                                        // Sync profile to Firestore for Web Admin Portal
+                                        try {
+                                            val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                                            CloudAdminSyncService.syncUserProfileToCloud(
+                                                uid = currentUid,
+                                                displayName = user,
+                                                method = method,
+                                                email = email,
+                                                photoUrl = photoUrl
+                                            )
+                                            // Automatically fetch cloud accounts linked to this user
+                                            CloudAdminSyncService.fetchConnectedAccountsFromCloud(
+                                                uid = currentUid,
+                                                onSuccess = { cloudAccounts: Map<String, String> ->
+                                                    for ((pName, handle) in cloudAccounts) {
+                                                        val platform = runCatching { Platform.valueOf(pName.uppercase(java.util.Locale.ROOT)) }.getOrNull()
+                                                        if (platform != null && handle.isNotBlank()) {
+                                                            repository.addPlatformAccount(platform, handle)
+                                                        }
+                                                    }
+                                                }
+                                            )
+                                        } catch (e: Exception) {
+                                            // Non-blocking
+                                        }
+
                                         navController.navigate("home") {
                                             popUpTo("auth") { inclusive = true }
                                         }
@@ -210,12 +304,17 @@ class MainActivity : ComponentActivity() {
                                     onGuestBypass = {
                                         authPrefs.edit()
                                             .putBoolean("onboarding_completed", true)
+                                            .putBoolean("terms_accepted", true)
                                             .putBoolean("is_logged_in", true)
                                             .putString("auth_username", "Guest Developer")
                                             .putString("auth_method", "Guest")
+                                            .remove("auth_email")
+                                            .remove("auth_avatar")
                                             .apply()
                                         authUsername = "Guest Developer"
                                         authMethod = "Guest"
+                                        authEmail = null
+                                        authAvatar = null
                                         navController.navigate("home") {
                                             popUpTo("auth") { inclusive = true }
                                         }
@@ -226,7 +325,9 @@ class MainActivity : ComponentActivity() {
                             composable("home") {
                                 HomeScreen(
                                     uiState = homeUiState,
-                                    onAddPlatformClick = { navController.navigate("add_platform") },
+                                    userName = activeUserName,
+                                    isLoggedIn = isLoggedIn && authMethod != "Guest",
+                                    onAddPlatformClick = onProtectedAddPlatform,
                                     onPlatformClick = { platform ->
                                         navController.navigate("platform_detail/${platform.name}")
                                     },
@@ -250,7 +351,7 @@ class MainActivity : ComponentActivity() {
                                     onContestClick = { id ->
                                         navController.navigate("contest_detail/$id")
                                     },
-                                    onAddPlatformClick = { navController.navigate("add_platform") },
+                                    onAddPlatformClick = onProtectedAddPlatform,
                                     onPastContestClick = { url -> openUrl(url) }
                                 )
                             }
@@ -283,12 +384,23 @@ class MainActivity : ComponentActivity() {
                                     connectedAccounts = connectedAccounts,
                                     onAddPlatform = { platform, username ->
                                         repository.addPlatformAccount(platform, username)
+                                        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                                        CloudAdminSyncService.saveConnectedAccountToCloud(
+                                            uid = uid,
+                                            platform = platform.name,
+                                            username = username
+                                        )
                                     },
                                     onValidateHandle = { platform, username ->
                                         repository.validateHandle(platform, username)
                                     },
                                     onRemovePlatform = { platform ->
                                         repository.removePlatformAccount(platform)
+                                        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                                        CloudAdminSyncService.deleteConnectedAccountFromCloud(
+                                            uid = uid,
+                                            platform = platform.name
+                                        )
                                     },
                                     onBackClick = { navController.popBackStack() }
                                 )
@@ -341,6 +453,20 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             }
                                             this@MainActivity.startActivity(Intent.createChooser(shareIntent, "Share Coding Streak via"))
+                                        },
+                                        onShareBadge = { badge ->
+                                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                type = "text/plain"
+                                                putExtra(
+                                                    Intent.EXTRA_SUBJECT,
+                                                    "🏆 Unlocked Trophy: ${badge.title} on Code Calendar!"
+                                                )
+                                                putExtra(
+                                                    Intent.EXTRA_TEXT,
+                                                    "🏆 I just unlocked the '${badge.title} (${badge.subtitle})' achievement on Code Calendar!\n\n${badge.description}\n\nTrack competitive programming contests, build streaks, and unlock trophies:\n📲 Download: https://play.google.com/store/apps/dev?id=8656025420118431472"
+                                                )
+                                            }
+                                            this@MainActivity.startActivity(Intent.createChooser(shareIntent, "Share Trophy via"))
                                         }
                                     )
                                 } else {
@@ -352,18 +478,90 @@ class MainActivity : ComponentActivity() {
                                 SettingsScreen(
                                     connectedAccounts = connectedAccounts,
                                     currentTheme = appTheme,
-                                    onThemeChange = { appTheme = it },
-                                    onAddPlatformClick = { navController.navigate("add_platform") },
+                                    onThemeChange = { newTheme ->
+                                        appTheme = newTheme
+                                        authPrefs.edit().putString("app_theme", newTheme.name).apply()
+                                    },
+                                    onAddPlatformClick = onProtectedAddPlatform,
                                     onManageAccountClick = { acc ->
                                         navController.navigate("platform_detail/${acc.platform.name}")
                                     },
                                     authUsername = authUsername,
                                     authMethod = authMethod,
-                                    currentStreak = homeUiState.streakInfo?.currentStreak ?: 14,
+                                    authEmail = authEmail,
+                                    authAvatar = authAvatar,
                                     onSignOutClick = {
-                                        authPrefs.edit().putBoolean("is_logged_in", false).apply()
+                                        try {
+                                            com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                                            val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
+                                                com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
+                                            ).build()
+                                            com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(this@MainActivity, gso).signOut()
+                                        } catch (e: Exception) {
+                                            // Ignore if already signed out
+                                        }
+
+                                        authPrefs.edit()
+                                            .putBoolean("is_logged_in", false)
+                                            .remove("auth_username")
+                                            .remove("auth_method")
+                                            .remove("auth_email")
+                                            .remove("auth_avatar")
+                                            .apply()
+
+                                        authUsername = null
+                                        authMethod = null
+                                        authEmail = null
+                                        authAvatar = null
+
                                         navController.navigate("auth") {
-                                            popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                                            popUpTo(0) { inclusive = true }
+                                            launchSingleTop = true
+                                        }
+                                    },
+                                    onDeleteAccountClick = {
+                                        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                                        val currentEmail = authEmail
+                                        val currentName = authUsername
+
+                                        CloudAdminSyncService.submitAccountDeletionRequest(
+                                            uid = currentUid,
+                                            email = currentEmail,
+                                            displayName = currentName
+                                        ) { success ->
+                                            try {
+                                                com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                                                val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
+                                                    com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
+                                                ).build()
+                                                com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(this@MainActivity, gso).signOut()
+                                            } catch (e: Exception) {
+                                                // Ignore
+                                            }
+
+                                            authPrefs.edit()
+                                                .putBoolean("is_logged_in", false)
+                                                .remove("auth_username")
+                                                .remove("auth_method")
+                                                .remove("auth_email")
+                                                .remove("auth_avatar")
+                                                .apply()
+
+                                            authUsername = null
+                                            authMethod = null
+                                            authEmail = null
+                                            authAvatar = null
+
+                                            Toast.makeText(
+                                                this@MainActivity,
+                                                "Account deletion request submitted. Session signed out.",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+
+                                            navController.navigate("auth") {
+                                                popUpTo(0) { inclusive = true }
+                                                launchSingleTop = true
+                                            }
                                         }
                                     },
                                     onReplayOnboardingClick = {
@@ -433,6 +631,16 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             }
+                        }
+
+                        if (showAuthRequiredModal) {
+                            AuthRequiredModal(
+                                onDismiss = { showAuthRequiredModal = false },
+                                onSignInClick = {
+                                    showAuthRequiredModal = false
+                                    navController.navigate("auth")
+                                }
+                            )
                         }
                     }
                 }

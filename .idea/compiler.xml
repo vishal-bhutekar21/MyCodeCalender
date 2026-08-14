@@ -1,6 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CompilerConfiguration">
-    <bytecodeTargetLevel target="21" />
+    <bytecodeTargetLevel target="21">
+      <module name="MyCodeCalender.app" target="25" />
+      <module name="MyCodeCalender.core.analytics" target="25" />
+      <module name="MyCodeCalender.core.calendar" target="25" />
+      <module name="MyCodeCalender.core.common" target="25" />
+      <module name="MyCodeCalender.core.datastore" target="25" />
+      <module name="MyCodeCalender.core.designsystem" target="25" />
+      <module name="MyCodeCalender.core.model" target="25" />
+      <module name="MyCodeCalender.core.navigation" target="25" />
+      <module name="MyCodeCalender.core.network" target="25" />
+      <module name="MyCodeCalender.core.notifications" target="25" />
+      <module name="MyCodeCalender.data.local" target="25" />
+      <module name="MyCodeCalender.data.mapper" target="25" />
+      <module name="MyCodeCalender.data.remote" target="25" />
+      <module name="MyCodeCalender.data.repository" target="25" />
+      <module name="MyCodeCalender.domain.model" target="25" />
+      <module name="MyCodeCalender.domain.repository" target="25" />
+      <module name="MyCodeCalender.domain.usecase" target="25" />
+      <module name="MyCodeCalender.feature.contestdetail" target="25" />
+      <module name="MyCodeCalender.feature.contests" target="25" />
+      <module name="MyCodeCalender.feature.home" target="25" />
+      <module name="MyCodeCalender.feature.onboarding" target="25" />
+      <module name="MyCodeCalender.feature.platformdetail" target="25" />
+      <module name="MyCodeCalender.feature.platforms" target="25" />
+      <module name="MyCodeCalender.feature.resources" target="25" />
+      <module name="MyCodeCalender.feature.settings" target="25" />
+      <module name="MyCodeCalender.sync" target="25" />
+      <module name="MyCodeCalender.widget" target="25" />
+    </bytecodeTargetLevel>
   </component>
 </project>

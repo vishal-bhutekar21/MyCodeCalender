@@ -10,3 +10,10 @@ build/
 .externalNativeBuild
 .cxx
 local.properties
+
+# Google Services & Secrets
+google-services.json
+**/google-services.json
+*.keystore
+*.jks
+
