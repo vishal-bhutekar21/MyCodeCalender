@@ -1,281 +1,225 @@
 <div align="center">
 
-# MyCodeCalendar
+# ⚡ Code Calendar (MyCodeCalendar)
 
-### A modern competitive programming companion for Android
+### *The Ultimate Competitive Programming Companion & Developer Hub for Android*
 
-*Track contests · Monitor ratings · Never miss a deadline*
+*Track Live Contests · Unified Rating Analytics · GitHub Heatmaps · Daily Habit Streaks · AI & Learning Hub*
 
-[![Android](https://img.shields.io/badge/Platform-Android-3DDC84?style=flat-square&logo=android&logoColor=white)](https://android.com)
-[![Kotlin](https://img.shields.io/badge/Language-Kotlin-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org)
-[![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
-[![Min SDK](https://img.shields.io/badge/Min%20SDK-26-orange?style=flat-square)](https://developer.android.com/about/versions/oreo)
-[![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
+<br/>
+
+[![Android Platform](https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://android.com)
+[![Kotlin Version](https://img.shields.io/badge/Kotlin-2.0.0-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![Material Design 3](https://img.shields.io/badge/Design-Material%203%20Glassmorphism-FF7043?style=for-the-badge&logo=materialdesign&logoColor=white)](https://m3.material.io)
+[![Min SDK](https://img.shields.io/badge/Min%20SDK-26%20(Oreo)-orange?style=for-the-badge)](https://developer.android.com/about/versions/oreo)
+[![Target SDK](https://img.shields.io/badge/Target%20SDK-34%20(Android%2014)-blue?style=for-the-badge)](https://developer.android.com/about/versions/14)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 </div>
 
 ---
 
-## Overview
+## 🌟 Overview
 
-**MyCodeCalendar** is a fully offline-capable Android application built for competitive programmers. It aggregates contests from the top 5 competitive programming platforms, tracks your personal ratings and statistics, and lets you sync upcoming contests directly to your Android calendar — all from one clean, minimal interface.
+**Code Calendar** (`com.vishal.codecalendar`) is a modern, high-performance Android application engineered for software engineers, competitive programmers, and tech enthusiasts. It aggregates live and upcoming contests from top platforms (**LeetCode, Codeforces, CodeChef, and AtCoder**), tracks your personal rating progression curves, visualizes GitHub contributions, builds daily problem-solving habits with streak trackers, and provides an all-in-one AI & education developer hub.
 
-Built entirely with **Jetpack Compose**, **Material Design 3**, and a clean **multi-module architecture**.
-
----
-
-## Features
-
-### Contest Tracking
-- Live countdown timers for upcoming contests
-- Real-time contest status (Live · Upcoming · Ended)
-- Filter by platform, status, or search by name
-- Time-until-start shown on every contest row
-
-### Platform Stats & Ratings
-- Connect your handles for **Codeforces, LeetCode, CodeChef, AtCoder, GeeksforGeeks, and GitHub**
-- View current rating, highest rating, global rank, and current streak
-- Rating progression line chart with gradient fill
-- Problem difficulty breakdown (Easy / Medium / Hard) with stacked progress bar
-
-### Developer Activity (GitHub)
-- Total contributions for the year
-- Current contribution streak
-- Total stars across repos
-- Public repository count
-- Top programming languages
-
-### Smart Refresh
-- Pull-to-refresh with animated spinning icon
-- Last-updated timestamp in the dashboard header
-- Progressive loading indicator
-
-### Study Resources
-- Curated hand-picked tutorials and guides
-- Category-based filtering with accent-colored chips
-- Direct link to resources via system browser
-
-### Calendar & Reminders
-- One-tap contest add to Android calendar
-- Set 15-minute pre-contest notifications
-- No duplicate events
-
-### Onboarding
-- Three-step animated onboarding with smooth slide transitions
-- Skip anytime
-
-### Settings
-- Connect / disconnect platform accounts
-- Contest notification toggle
-- Calendar sync toggle
-- App theme: Light · Dark · System Default
+Designed with **Jetpack Compose**, **Material 3 OLED Glassmorphism**, and a modular **Clean Architecture** powered by Room, Ktor, and Coroutines.
 
 ---
 
-## Screenshots
+## 🚀 Key Features
 
-> *Coming soon — install the debug APK and experience it live*
+### 🛰️ 1. Multi-Platform Live Contest Radar
+- **Real-Time Feed**: Aggregates live and upcoming contests across **LeetCode, Codeforces, CodeChef, and AtCoder**.
+- **Live Countdown Timers**: Precision millisecond and second tickers showing exact time until contest starts.
+- **Dynamic Status Chips**: `LIVE NOW` with pulsing neon radar indicators, `UPCOMING`, and `COMPLETED`.
+- **Smart Filtering & Search**: Instant filtering by platform, contest category, duration, and keywords.
 
 ---
 
-## Tech Stack
+### 📈 2. Real-Time Rating Curves & Performance Analytics
+- **Live Rating History Engine**: Interactive rating progression curves with gradient fills for Codeforces and LeetCode.
+- **Statistics Overview**: View Current Rating, Highest Rating, Global Rank, and Total Contests Participated.
+- **Problem Difficulty Matrix**: Easy, Medium, and Hard problem breakdowns with stacked progress indicators.
+- **Zero Fake Data**: Authentic dynamic data calculations based on connected handles.
 
-| Layer | Technology |
+---
+
+### 🐙 3. GitHub Matrix & Developer Showcase
+- **Day-Wise Activity Grid**: Authentic 52-week contribution heatmap matrix.
+- **Public Repositories Browser**: Real-time repository showcase with primary languages, stars ⭐, forks 🍴, and descriptions.
+- **Direct GitHub Web Deep Links**: 1-tap navigation directly to repository pages on GitHub.
+
+---
+
+### 🔥 4. Daily Coding Streak Habit System
+- **Daily App Open Habit Tracker**: Automatic +1 streak calculation on genuine daily app opens.
+- **Full-Screen Activity Calendar (`StreakScreen`)**: Monthly heatmap calendar highlighting active days and streaks.
+- **Milestone Celebration Modal**: Animated celebratory dialog upon unlocking streak milestones.
+- **1-Tap Share Streak**: Share your coding streak directly to WhatsApp, Twitter/X, and LinkedIn.
+
+---
+
+### 📇 5. Interactive QR Code Generator & Tri-Mode Share Modal
+- **Deterministic 25×25 Canvas QR Generator**: High-performance, razor-sharp QR matrix rendering with custom neon colors.
+- **Tab 1: Profile & Coding Streak Share Card**: Story/Social graphic card featuring avatar, streak badge, feature checklist, mini QR, and 1-tap social share text.
+- **Tab 2: App Download QR Code**: Large scannable QR Code linking directly to the Google Play Store.
+- **Tab 3: Creator Digital vCard**: Direct contact chips for portfolio, LinkedIn, Instagram, GitHub, and email.
+
+---
+
+### 🤖 6. Curated Developer Hub & Education Resources
+- **AI & Machine Learning Platforms**: Direct links to **Hugging Face Hub**, **Google Colab (Free GPU)**, **Kaggle**, **OpenAI Platform & Docs**, **PyTorch Tutorials**, **Ollama (Local LLMs)**, and **v0 by Vercel**.
+- **Masterclass YouTube Playlists**: Full courses from **Striver (takeUforward - A2Z DSA & DP)**, **NeetCode (NeetCode 150)**, **Andrej Karpathy (Neural Networks: Zero to Hero)**, **3Blue1Brown (Visual Backpropagation & Linear Algebra)**, **StatQuest (Josh Starmer)**, **Kunal Kushwaha (Java + DSA)**, and **Love Babbar (450 DSA Cracker)**.
+- **Curated Problem Sheets & Roadmaps**: **Striver SDE 180 Sheet**, **CSES 300 Problem Set**, **USACO Guide**, **CP-Algorithms (E-Maxx)**, and **System Design Primer**.
+- **Instant Search**: Real-time glassmorphic search bar with category filter tabs.
+
+---
+
+### 🎨 7. 5-Slide Infographic Onboarding & Majestic Auth
+- **Cinematic Animated Splash Screen**: Sweeping neon cyber ring, spring scaling physics, and staggered typography reveal.
+- **5-Page Animated Infographics**: Live Contest Radar, Unified Ratings, Heatmap & Streak, Smart Calendar Sync, and Curated Roadmaps with dynamic spring indicator pills.
+- **Majestic Glassmorphic Auth (`AuthScreen`)**:
+  - Sign In & Create Account tab switcher.
+  - Fast GitHub Handle verification.
+  - Email & Password with inline validation.
+  - **Instant Guest Bypass Card** for 1-tap offline access.
+
+---
+
+### 💫 8. State-of-the-Art Shimmer Skeletons & Cyber Loading
+- **Diagonal 45° Sweeping Shimmer Brush**: Smooth multi-color gradient luminance sweep across cards and charts.
+- **CyberLoadingSpinner**: Futuristic dual counter-rotating orbital neon arcs (Electric Indigo & Sky Cyan) with glowing center node.
+- **Screen Skeletons**: `HomeScreenSkeleton`, `ContestCardSkeleton`, `PlatformDetailSkeleton`, and `ResourcesListSkeleton`.
+
+---
+
+### ⏰ 9. Smart Alarms & Calendar Auto-Sync
+- **1-Tap Android Calendar Sync**: Export registered contests directly to the device calendar via Android `CalendarContract`.
+- **Pre-Contest Alarms**: Configurable 15-minute reminders before tracked contests start.
+
+---
+
+## 🛠️ Tech Stack & Architecture
+
+| Category | Technology |
 |---|---|
-| **Language** | Kotlin 2.0 |
-| **UI Framework** | Jetpack Compose + Material Design 3 |
-| **Architecture** | Multi-Module Clean Architecture (MVVM) |
+| **Language** | Kotlin 2.0.0 |
+| **UI Framework** | Jetpack Compose (BOM 2024.02.00) + Material Design 3 |
+| **Architecture** | Clean Architecture (MVVM) + Multi-Module Pattern |
 | **Navigation** | Jetpack Navigation Compose |
-| **Local Database** | Room (with KSP) |
-| **Async** | Kotlin Coroutines + StateFlow |
-| **DI** | Manual DI (no Hilt, lightweight) |
-| **Build System** | Gradle with Kotlin DSL |
-| **Min SDK** | 26 (Android 8.0 Oreo) |
-| **Target SDK** | 34 (Android 14) |
-| **Compile SDK** | 34 |
+| **Local Database** | Room Database 2.6.1 + KSP Symbol Processing |
+| **Networking** | Ktor Client 2.3.8 + Kotlinx Serialization (JSON) |
+| **Async & State** | Kotlin Coroutines + StateFlow / SharedFlow |
+| **QR Code Engine** | Pure Kotlin Deterministic 25×25 Matrix + Compose Canvas |
+| **Min SDK** | Android 8.0 (API 26) |
+| **Target / Compile SDK**| Android 14 (API 34) |
 
 ---
 
-## Architecture
+## 📂 Project Architecture
 
-MyCodeCalendar follows a strict **multi-module Clean Architecture** pattern:
-
-```
-MyCodeCalendar/
-├── app/                        # Application entry point, MainActivity, NavHost
+```text
+CodeCalendar/
+├── app/                        # Application entry point, MainActivity, Themes, ProGuard
 │
 ├── core/
-│   ├── designsystem/           # Color palette, typography, shared components
-│   │   └── components/         # FloatingBottomNavigation, PlatformBadge, StatusChip, ...
-│   ├── database/               # Room database, DAOs, entities
-│   ├── datastore/              # Preferences DataStore
-│   ├── network/                # Retrofit API definitions (future)
-│   ├── common/                 # Shared utilities
-│   ├── calendar/               # Android Calendar integration
-│   └── notifications/          # Notification scheduling
+│   ├── designsystem/           # Color tokens, Typography, GlassCard, ShimmerEffect, FloatingBottomNav
+│   ├── database/               # Room DB, DAOs (PlatformStatsDao, RatingHistoryDao, SyncStateDao)
+│   ├── network/                # Ktor client, RemoteDataSource, Contest API models
+│   ├── common/                 # NetworkMonitor, DateFormatters, DispatcherProviders
+│   ├── notifications/          # ReminderScheduler, AlarmManager integration
+│   ├── model/                  # Domain-shared cross-module models
+│   └── analytics/              # Analytics tracker abstraction
 │
 ├── domain/
-│   ├── model/                  # Pure Kotlin data models (Contest, Platform, PlatformStats, ...)
-│   ├── repository/             # Repository interfaces
-│   └── usecase/                # Business logic use cases
+│   └── model/                  # Pure Kotlin entities (Contest, PlatformStats, StreakInfo, Resource)
 │
 ├── data/
-│   ├── repository/             # FakeRepository (offline demo data)
-│   ├── local/                  # Room data source implementations
-│   ├── remote/                 # Network data source implementations
+│   ├── repository/             # FakeRepository, Offline Cache, DomainEntityMappers
+│   ├── local/                  # Local Room data source delegates
+│   ├── remote/                 # Network data source delegates
 │   └── mapper/                 # Entity ↔ Domain model mappers
 │
-├── feature/
-│   ├── home/                   # Dashboard, hero countdown, platform stats
-│   ├── contests/               # Contest list with filtering and search
-│   ├── contestdetail/          # Single contest detail + calendar / reminder actions
-│   ├── platformdetail/         # Rating chart, stat cards, problem breakdown
-│   ├── platforms/              # Add / connect platform account
-│   ├── resources/              # Curated study resource list
-│   ├── settings/               # Account management, preferences, appearance
-│   └── onboarding/             # First-launch walkthrough
-│
-├── sync/                       # Background sync worker (future live data)
-└── widget/                     # Home screen widget (future)
+└── feature/
+    ├── home/                   # Dashboard, Hero next contest card, StreakScreen, HomeViewModel
+    ├── contests/               # Contest list, Platform filters, ContestCard, Past contest records
+    ├── contestdetail/          # Single contest details, Google Calendar export, Alarm trigger
+    ├── platformdetail/         # Rating progression charts, Solved breakdown, GitHub repo list
+    ├── platforms/              # Add/connect platform handle with verification
+    ├── resources/              # AI/ML Tools, YouTube Masterclasses, DSA Sheets, Search Bar
+    ├── settings/               # Developer Showcase Card, QR Generator, ShareAppContactCardModal
+    └── onboarding/             # SplashScreen, 5-Slide Infographic Onboarding, AuthScreen
 ```
 
 ---
 
-## Design System
+## 🎨 Supported Platforms
 
-The app uses a custom **Material Design 3** design system defined in `core:designsystem`:
-
-### Color Palette
-
-| Token | Dark Mode | Light Mode |
-|---|---|---|
-| Background | `#0B0F19` (Obsidian) | `#F8FAFC` (Porcelain) |
-| Surface | `#131B2E` (Deep Slate) | `#FFFFFF` |
-| Primary | `#6366F1` (Indigo) | `#6366F1` |
-| Secondary | `#10B981` (Emerald) | `#10B981` |
-| Tertiary | `#06B6D4` (Cyan) | `#06B6D4` |
-
-### Platform Brand Colors
-
-| Platform | Color |
-|---|---|
-| Codeforces | `#3B82F6` Blue |
-| LeetCode | `#F59E0B` Amber |
-| CodeChef | `#8B5CF6` Violet |
-| AtCoder | `#64748B` Slate |
-| GeeksforGeeks | `#2F8D46` Green |
-| GitHub | `#10B981` Emerald |
-
-### Navigation
-
-A custom **FloatingBottomNavigation** pill replaces the standard `NavigationBar`. The selected tab expands with an animated label, and all tabs use smooth spring animations.
+| Platform | Contests Radar | Rating Curves | Solved Breakdown | Heatmap & Streak |
+|---|:---:|:---:|:---:|:---:|
+| **LeetCode** | ✅ | ✅ | ✅ | ✅ |
+| **Codeforces** | ✅ | ✅ | ✅ | ✅ |
+| **CodeChef** | ✅ | ✅ | ✅ | — |
+| **AtCoder** | ✅ | ✅ | — | — |
+| **GitHub** | — | — | — | ✅ (52-Week Grid) |
 
 ---
 
-## Supported Platforms
-
-| Platform | Contests | Rating | Streak | Rank |
-|---|---|---|---|---|
-| Codeforces | ✅ | ✅ | ✅ | ✅ |
-| LeetCode | ✅ | ✅ | ✅ | ✅ |
-| CodeChef | ✅ | ✅ | — | ✅ |
-| AtCoder | ✅ | ✅ | — | ✅ |
-| GeeksforGeeks | ✅ | ✅ | — | ✅ |
-| GitHub | — | — | ✅ | — |
-
----
-
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
-
-- **Android Studio Hedgehog** or newer
-- **JDK 21** (required for KSP with Kotlin 2.0)
-- Android SDK Platform 34
-- Git
+- **Android Studio Hedgehog** (2023.1.1) or newer
+- **JDK 21** (Required for Kotlin 2.0 KSP symbol processing)
+- **Android SDK Platform 34**
+- **Git**
 
 ### Clone & Build
 
 ```bash
+# Clone the repository
 git clone https://github.com/vishal-bhutekar21/MyCodeCalender.git
 cd MyCodeCalender
-```
 
-Open in Android Studio. Let Gradle sync complete, then:
+# Compile debug sources
+./gradlew compileDebugSources --no-daemon
 
-```bash
-# Debug build
+# Assemble Debug APK
 ./gradlew assembleDebug
 
-# Install directly to connected device
+# Install on connected device or emulator
 ./gradlew installDebug
 ```
 
-The output APK is at:
+Output APK will be located at:
 ```
 app/build/outputs/apk/debug/app-debug.apk
 ```
 
-### JDK Configuration
+---
 
-This project requires **JDK 21** for KSP symbol processing. In Android Studio:
+## 👨‍💻 Meet the Creator
 
-> **File → Project Structure → SDK Location → Gradle JDK → JDK 21**
+<div align="center">
 
-Or set in `gradle.properties`:
-```properties
-org.gradle.java.home=C:/Program Files/Java/jdk-21
-```
+### **Vishal Bhutekar**
+*Android & Full-Stack Developer*
+
+[![Portfolio](https://img.shields.io/badge/Portfolio-vishalbhutekar.netlify.app-06B6D4?style=for-the-badge&logo=google-chrome&logoColor=white)](https://vishalbhutekar.netlify.app/)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-vishal--bhutekar21-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/vishal-bhutekar21/)
+[![GitHub](https://img.shields.io/badge/GitHub-vishal--bhutekar21-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/vishal-bhutekar21)
+[![Instagram](https://img.shields.io/badge/Instagram-unexplored__vish__2.0-E4405F?style=for-the-badge&logo=instagram&logoColor=white)](https://www.instagram.com/unexplored_vish_2.0/)
+[![Google Play Dev](https://img.shields.io/badge/Google%20Play-Developer%20Page-00E676?style=for-the-badge&logo=googleplay&logoColor=white)](https://play.google.com/store/apps/dev?id=8656025420118431472)
+[![Email](https://img.shields.io/badge/Email-vishal.bhutekar1%40gmail.com-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:vishal.bhutekar1@gmail.com)
+
+</div>
 
 ---
 
-## Project Status
+## 📜 License
 
-| Module | Status |
-|---|---|
-| Core design system | ✅ Complete |
-| Onboarding flow | ✅ Complete |
-| Home dashboard | ✅ Complete |
-| Contest listing & detail | ✅ Complete |
-| Platform detail & rating chart | ✅ Complete |
-| Connect platform (Add handle) | ✅ Complete |
-| Resources screen | ✅ Complete |
-| Settings screen | ✅ Complete |
-| Floating bottom navigation | ✅ Complete |
-| Room database schema | ✅ Complete |
-| Live contest API integration | 🔄 Planned |
-| Background sync worker | 🔄 Planned |
-| Home screen widget | 🔄 Planned |
-| Rating history chart (live data) | 🔄 Planned |
-
----
-
-## Roadmap
-
-- [ ] **Live API integration** — Codeforces, LeetCode, and Kontests public APIs
-- [ ] **Background sync** — periodic WorkManager job to refresh contest data
-- [ ] **Home screen widget** — next contest countdown on the device home screen
-- [ ] **Deep links** — open contest detail from notification tap
-- [ ] **Export to iCal** — share contest schedule
-- [ ] **Dark / Light theme switching** — respect in-app setting immediately
-
----
-
-## Contributing
-
-Contributions are welcome. Please open an issue first to discuss what you'd like to change.
-
-1. Fork the repo
-2. Create a feature branch (`git checkout -b feature/your-feature`)
-3. Commit your changes (`git commit -m 'Add your feature'`)
-4. Push to the branch (`git push origin feature/your-feature`)
-5. Open a Pull Request
-
----
-
-## License
-
-```
+```text
 MIT License
 
 Copyright (c) 2026 Vishal Bhutekar
@@ -295,19 +239,8 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 ```
 
----
-
-## Author
-
-**Vishal Bhutekar**
-
-- GitHub: [@vishal-bhutekar21](https://github.com/vishal-bhutekar21)
-- Project: [MyCodeCalendar](https://github.com/vishal-bhutekar21/MyCodeCalender)
-
----
-
 <div align="center">
 
-*Built with Kotlin · Jetpack Compose · Material Design 3*
+*Crafted with ❤️ using Kotlin · Jetpack Compose · Material 3 Glassmorphism*
 
 </div>
