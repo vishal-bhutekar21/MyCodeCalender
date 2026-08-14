@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mycodecalendar.core.designsystem.GlassmorphismBackground
 import com.mycodecalendar.core.designsystem.Typography
+import com.mycodecalendar.core.designsystem.components.GlassBackButton
 import com.mycodecalendar.core.designsystem.components.GlassCard
 
 data class OnboardingSlide(
@@ -123,20 +124,7 @@ fun OnboardingScreen(
             ) {
                 // Left: Back button or Logo branding
                 if (currentStep > 0) {
-                    IconButton(
-                        onClick = { currentStep-- },
-                        modifier = Modifier
-                            .size(38.dp)
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f), CircleShape)
-                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f), CircleShape)
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Previous",
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
+                    GlassBackButton(onClick = { currentStep-- })
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -172,20 +160,6 @@ fun OnboardingScreen(
                             )
                         }
                     }
-                }
-
-                // Middle: Badge pill
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = currentSlide.badgeColor.copy(alpha = 0.14f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, currentSlide.badgeColor.copy(alpha = 0.40f))
-                ) {
-                    Text(
-                        text = currentSlide.badge,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 10.sp),
-                        color = currentSlide.badgeColor
-                    )
                 }
 
                 // Right: Skip Button

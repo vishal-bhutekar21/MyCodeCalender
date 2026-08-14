@@ -24,4 +24,10 @@ dependencies {
     implementation(libs.compose.foundation)
     implementation(libs.compose.material3)
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.activity.compose)
+
+    // Firebase Auth & Google Sign In
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.play.services.auth)
 }
