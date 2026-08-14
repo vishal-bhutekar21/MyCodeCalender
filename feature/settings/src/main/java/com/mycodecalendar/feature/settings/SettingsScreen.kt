@@ -449,6 +449,58 @@ fun SettingsScreen(
                             tint = brandEmerald
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onOpenUrl("https://vishalbhutekar.netlify.app/privacy-policy") },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .background(brandIndigo.copy(alpha = 0.18f), CircleShape)
+                                    .border(1.dp, brandIndigo.copy(alpha = 0.45f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Security,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(22.dp),
+                                    tint = brandIndigo
+                                )
+                            }
+
+                            Column {
+                                Text(
+                                    text = "Privacy Policy & Data Safety",
+                                    style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Zero tracking & on-device storage guarantee",
+                                    style = Typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+
+                        Icon(
+                            Icons.Rounded.ChevronRight,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = brandIndigo
+                        )
+                    }
                 }
             }
 
