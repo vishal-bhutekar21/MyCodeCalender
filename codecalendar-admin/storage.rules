@@ -1,0 +1,14 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /cms_images/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && (
+        request.auth.token.email in [
+          'vishal.bhutekar1@gmail.com',
+          'admin@mycodecalendar.app'
+        ]
+      ) && request.resource.size < 5 * 1024 * 1024; // 5MB max
+    }
+  }
+}
