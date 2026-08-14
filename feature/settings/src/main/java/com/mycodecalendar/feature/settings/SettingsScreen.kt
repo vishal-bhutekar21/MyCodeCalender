@@ -15,23 +15,28 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mycodecalendar.core.designsystem.AppTheme
+import com.mycodecalendar.core.designsystem.BrandPrimaryOrange
+import com.mycodecalendar.core.designsystem.BrandPurpleAccent
 import com.mycodecalendar.core.designsystem.GlassmorphismBackground
 import com.mycodecalendar.core.designsystem.Typography
 import com.mycodecalendar.core.designsystem.components.GlassCard
 import com.mycodecalendar.core.designsystem.components.PlatformBadge
 import com.mycodecalendar.core.designsystem.components.SectionHeader
-import com.mycodecalendar.core.designsystem.components.getBrandColor
 import com.mycodecalendar.domain.model.PlatformAccount
 
 /**
- * SettingsScreen — Accounts management, preferences, developer showcase card, and app sharing.
+ * SettingsScreen — Clean, Unified, Cohesive Settings & Developer Showcase.
+ *
+ * Design Improvements:
+ * - Removed rainbow color clutter (replaced disparate pastel chips with unified dark slate glass chips).
+ * - Standardized all form controls, switches, radio buttons, and buttons to BrandPrimaryOrange (#FF6B00).
+ * - Cohesive obsidian cards with clean 1px borders.
  */
 @Composable
 fun SettingsScreen(
@@ -50,13 +55,8 @@ fun SettingsScreen(
     onOpenUrl: (String) -> Unit = {}
 ) {
     var notificationsEnabled by remember { mutableStateOf(true) }
-    var calendarSyncEnabled  by remember { mutableStateOf(true) }
+    var calendarSyncEnabled by remember { mutableStateOf(true) }
     var showShareModal by remember { mutableStateOf(false) }
-
-    val brandIndigo = Color(0xFF818CF8)
-    val brandViolet = Color(0xFFA78BFA)
-    val brandCyan = Color(0xFF38BDF8)
-    val brandEmerald = Color(0xFF10F07B)
 
     val portfolioLink = "https://vishalbhutekar.netlify.app/"
     val linkedInLink = "https://www.linkedin.com/in/vishal-bhutekar21/"
@@ -81,13 +81,13 @@ fun SettingsScreen(
             ) {
                 Text(
                     text = "Settings",
-                    style = Typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                    style = Typography.headlineMedium.copy(fontWeight = FontWeight.Black),
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = "Accounts, preferences, and developer info",
                     style = Typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
                 )
             }
 
@@ -102,7 +102,7 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
                 cornerRadius = 18.dp,
-                accentColor = MaterialTheme.colorScheme.primary
+                accentColor = BrandPrimaryOrange
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -118,17 +118,17 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .size(44.dp)
                                     .background(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                        BrandPrimaryOrange.copy(alpha = 0.15f),
                                         CircleShape
                                     )
-                                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), CircleShape),
+                                    .border(1.dp, BrandPrimaryOrange.copy(alpha = 0.35f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     Icons.Rounded.Person,
                                     contentDescription = null,
                                     modifier = Modifier.size(22.dp),
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = BrandPrimaryOrange
                                 )
                             }
 
@@ -141,7 +141,7 @@ fun SettingsScreen(
                                 Text(
                                     text = "Signed in via ${authMethod ?: "Guest Mode"}",
                                     style = Typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = BrandPrimaryOrange
                                 )
                             }
                         }
@@ -156,7 +156,7 @@ fun SettingsScreen(
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f))
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Row(
@@ -175,7 +175,7 @@ fun SettingsScreen(
                                 Icons.Rounded.AutoAwesome,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = BrandPrimaryOrange
                             )
                             Text(
                                 text = "Replay App Tour & Onboarding",
@@ -211,7 +211,7 @@ fun SettingsScreen(
                                 Icons.Rounded.LocalFireDepartment,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
-                                tint = Color(0xFFF59E0B)
+                                tint = BrandPrimaryOrange
                             )
                             Text(
                                 text = "Share Profile & Streak Card ($currentStreak Days)",
@@ -223,13 +223,13 @@ fun SettingsScreen(
                             Icons.Rounded.Share,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
-                            tint = Color(0xFFF59E0B)
+                            tint = BrandPrimaryOrange
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // ── CONNECTED PLATFORMS ──────────────────────────────────────────────────
             SectionHeader(title = "Connected Platforms", modifier = Modifier.padding(horizontal = 20.dp))
@@ -295,7 +295,7 @@ fun SettingsScreen(
                             if (index < connectedAccounts.lastIndex) {
                                 HorizontalDivider(
                                     modifier = Modifier.padding(horizontal = 16.dp),
-                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f)
                                 )
                             }
                         }
@@ -305,19 +305,19 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Connect button
+            // Connect button with 1px border
             GlassCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                accentColor = MaterialTheme.colorScheme.primary,
+                accentColor = BrandPrimaryOrange,
                 cornerRadius = 14.dp,
                 onClick = onAddPlatformClick
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
@@ -325,18 +325,18 @@ fun SettingsScreen(
                         imageVector = Icons.Rounded.Add,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = BrandPrimaryOrange
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Connect a Platform",
                         style = Typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary
+                        color = BrandPrimaryOrange
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // ── SHARE & COMMUNITY ───────────────────────────────────────────────────
             SectionHeader(title = "Share & Community", modifier = Modifier.padding(horizontal = 20.dp))
@@ -347,7 +347,7 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
                 cornerRadius = 18.dp,
-                accentColor = brandCyan
+                accentColor = BrandPrimaryOrange
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -363,16 +363,16 @@ fun SettingsScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(42.dp)
-                                    .background(brandCyan.copy(alpha = 0.18f), CircleShape)
-                                    .border(1.dp, brandCyan.copy(alpha = 0.45f), CircleShape),
+                                    .size(40.dp)
+                                    .background(BrandPrimaryOrange.copy(alpha = 0.15f), CircleShape)
+                                    .border(1.dp, BrandPrimaryOrange.copy(alpha = 0.35f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     Icons.Rounded.QrCode2,
                                     contentDescription = null,
-                                    modifier = Modifier.size(22.dp),
-                                    tint = brandCyan
+                                    modifier = Modifier.size(20.dp),
+                                    tint = BrandPrimaryOrange
                                 )
                             }
 
@@ -385,7 +385,7 @@ fun SettingsScreen(
                                 Text(
                                     text = "Generate instant QR code or share with friends",
                                     style = Typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
                                 )
                             }
                         }
@@ -394,13 +394,13 @@ fun SettingsScreen(
                             Icons.Rounded.ChevronRight,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
-                            tint = brandCyan
+                            tint = BrandPrimaryOrange
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Row(
                         modifier = Modifier
@@ -415,16 +415,16 @@ fun SettingsScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(42.dp)
-                                    .background(brandEmerald.copy(alpha = 0.18f), CircleShape)
-                                    .border(1.dp, brandEmerald.copy(alpha = 0.45f), CircleShape),
+                                    .size(40.dp)
+                                    .background(BrandPurpleAccent.copy(alpha = 0.15f), CircleShape)
+                                    .border(1.dp, BrandPurpleAccent.copy(alpha = 0.35f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     Icons.Rounded.StarRate,
                                     contentDescription = null,
-                                    modifier = Modifier.size(22.dp),
-                                    tint = brandEmerald
+                                    modifier = Modifier.size(20.dp),
+                                    tint = BrandPurpleAccent
                                 )
                             }
 
@@ -437,7 +437,7 @@ fun SettingsScreen(
                                 Text(
                                     text = "Discover more published apps & rate us",
                                     style = Typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
                                 )
                             }
                         }
@@ -446,65 +446,13 @@ fun SettingsScreen(
                             Icons.Rounded.ChevronRight,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
-                            tint = brandEmerald
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onOpenUrl("https://vishalbhutekar.netlify.app/privacy-policy") },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .background(brandIndigo.copy(alpha = 0.18f), CircleShape)
-                                    .border(1.dp, brandIndigo.copy(alpha = 0.45f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Rounded.Security,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(22.dp),
-                                    tint = brandIndigo
-                                )
-                            }
-
-                            Column {
-                                Text(
-                                    text = "Privacy Policy & Data Safety",
-                                    style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Zero tracking & on-device storage guarantee",
-                                    style = Typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                                )
-                            }
-                        }
-
-                        Icon(
-                            Icons.Rounded.ChevronRight,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = brandIndigo
+                            tint = BrandPurpleAccent
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // ── MEET THE CREATOR / DEVELOPER SHOWCASE CARD ──────────────────────────
             SectionHeader(title = "Meet the Creator", modifier = Modifier.padding(horizontal = 20.dp))
@@ -514,10 +462,10 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                cornerRadius = 22.dp,
-                accentColor = brandIndigo
+                cornerRadius = 20.dp,
+                accentColor = BrandPrimaryOrange
             ) {
-                Column(modifier = Modifier.padding(18.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -529,19 +477,16 @@ fun SettingsScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(52.dp)
-                                    .background(
-                                        Brush.radialGradient(listOf(brandIndigo, brandViolet)),
-                                        CircleShape
-                                    )
-                                    .border(1.5.dp, brandCyan.copy(alpha = 0.6f), CircleShape),
+                                    .size(46.dp)
+                                    .background(BrandPrimaryOrange.copy(alpha = 0.15f), CircleShape)
+                                    .border(1.dp, BrandPrimaryOrange.copy(alpha = 0.40f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     Icons.Rounded.Terminal,
                                     contentDescription = null,
-                                    modifier = Modifier.size(28.dp),
-                                    tint = Color.White
+                                    modifier = Modifier.size(24.dp),
+                                    tint = BrandPrimaryOrange
                                 )
                             }
 
@@ -552,48 +497,48 @@ fun SettingsScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Android & Full-Stack Developer",
-                                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = brandIndigo
+                                    text = "Android & Full-Stack Engineer",
+                                    style = Typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                    color = BrandPrimaryOrange
                                 )
                             }
                         }
 
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = brandEmerald.copy(alpha = 0.15f),
-                            border = BorderStroke(1.dp, brandEmerald.copy(alpha = 0.40f))
+                            color = BrandPrimaryOrange.copy(alpha = 0.12f),
+                            border = BorderStroke(1.dp, BrandPrimaryOrange.copy(alpha = 0.35f))
                         ) {
                             Text(
-                                text = "★ Verified Dev",
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                text = "Verified Dev",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                 style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
-                                color = brandEmerald
+                                color = BrandPrimaryOrange
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
                         text = "Passionate mobile engineer crafting modern, fluid, and state-of-the-art Android experiences for developers worldwide.",
                         style = Typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 18.sp
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                        lineHeight = 17.sp
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                    // Social buttons grid
+                    // Social buttons grid — Unified Slate Cards with Brand Styling
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            DeveloperLinkChip("Portfolio", Icons.Rounded.Language, Color(0xFF06B6D4), Modifier.weight(1f)) {
+                            UnifiedDeveloperLinkChip("Portfolio", Icons.Rounded.Language, Modifier.weight(1f)) {
                                 onOpenUrl(portfolioLink)
                             }
-                            DeveloperLinkChip("LinkedIn", Icons.Rounded.Work, Color(0xFF0A66C2), Modifier.weight(1f)) {
+                            UnifiedDeveloperLinkChip("LinkedIn", Icons.Rounded.Work, Modifier.weight(1f)) {
                                 onOpenUrl(linkedInLink)
                             }
                         }
@@ -602,10 +547,10 @@ fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            DeveloperLinkChip("Instagram", Icons.Rounded.CameraAlt, Color(0xFFE1306C), Modifier.weight(1f)) {
+                            UnifiedDeveloperLinkChip("Instagram", Icons.Rounded.CameraAlt, Modifier.weight(1f)) {
                                 onOpenUrl(instagramLink)
                             }
-                            DeveloperLinkChip("GitHub", Icons.Rounded.Code, Color(0xFF10F07B), Modifier.weight(1f)) {
+                            UnifiedDeveloperLinkChip("GitHub", Icons.Rounded.Code, Modifier.weight(1f)) {
                                 onOpenUrl(githubLink)
                             }
                         }
@@ -614,10 +559,10 @@ fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            DeveloperLinkChip("JustU Launcher", Icons.Rounded.Shop, Color(0xFFF59E0B), Modifier.weight(1f)) {
+                            UnifiedDeveloperLinkChip("JustU Launcher", Icons.Rounded.Shop, Modifier.weight(1f)) {
                                 onOpenUrl(playStoreApp)
                             }
-                            DeveloperLinkChip("Email Me", Icons.Rounded.Email, Color(0xFF8B5CF6), Modifier.weight(1f)) {
+                            UnifiedDeveloperLinkChip("Email Me", Icons.Rounded.Email, Modifier.weight(1f)) {
                                 onOpenUrl(emailLink)
                             }
                         }
@@ -625,7 +570,7 @@ fun SettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // ── NOTIFICATIONS ────────────────────────────────────────────────────────
             SectionHeader(title = "Notifications", modifier = Modifier.padding(horizontal = 20.dp))
@@ -645,7 +590,7 @@ fun SettingsScreen(
                         onCheckedChange = { notificationsEnabled = it }
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f))
                     Spacer(modifier = Modifier.height(8.dp))
                     SettingSwitchRow(
                         title = "Calendar Auto-Sync",
@@ -656,7 +601,7 @@ fun SettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // ── APPEARANCE ───────────────────────────────────────────────────────────
             SectionHeader(title = "Appearance", modifier = Modifier.padding(horizontal = 20.dp))
@@ -678,7 +623,7 @@ fun SettingsScreen(
                     )
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f)
                     )
                     ThemeRow(
                         label = "Light Mode",
@@ -689,7 +634,7 @@ fun SettingsScreen(
                     )
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f)
                     )
                     ThemeRow(
                         label = "System Default",
@@ -701,7 +646,7 @@ fun SettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(36.dp))
 
             // Footer
             Column(
@@ -710,10 +655,10 @@ fun SettingsScreen(
                     .padding(horizontal = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-                Spacer(modifier = Modifier.height(20.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+                Spacer(modifier = Modifier.height(18.dp))
                 Text(
-                    text = "Code Calendar  ·  v1.0.0",
+                    text = "MyCodeCalendar  ·  v1.0.0",
                     style = Typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
                 )
@@ -762,8 +707,8 @@ private fun ThemeRow(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(18.dp),
-                tint = if (selected) MaterialTheme.colorScheme.primary
-                       else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                tint = if (selected) BrandPrimaryOrange
+                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
             )
             Spacer(modifier = Modifier.width(14.dp))
             Column {
@@ -771,7 +716,7 @@ private fun ThemeRow(
                     text = label,
                     style = Typography.titleSmall.copy(fontWeight = FontWeight.Medium),
                     color = if (selected) MaterialTheme.colorScheme.onSurface
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
                 )
                 Text(
                     text = subtitle,
@@ -784,7 +729,7 @@ private fun ThemeRow(
             selected = selected,
             onClick = onClick,
             colors = RadioButtonDefaults.colors(
-                selectedColor = MaterialTheme.colorScheme.primary,
+                selectedColor = BrandPrimaryOrange,
                 unselectedColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
             )
         )
@@ -821,29 +766,28 @@ fun SettingSwitchRow(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                checkedThumbColor = Color.White,
+                checkedTrackColor = BrandPrimaryOrange,
                 uncheckedThumbColor = MaterialTheme.colorScheme.outline,
                 uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                uncheckedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                uncheckedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
             )
         )
     }
 }
 
 @Composable
-private fun DeveloperLinkChip(
+private fun UnifiedDeveloperLinkChip(
     title: String,
     icon: ImageVector,
-    color: Color,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
-        color = color.copy(alpha = 0.12f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.35f)),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)),
         modifier = modifier.height(38.dp)
     ) {
         Row(
@@ -857,13 +801,13 @@ private fun DeveloperLinkChip(
                 imageVector = icon,
                 contentDescription = title,
                 modifier = Modifier.size(15.dp),
-                tint = color
+                tint = BrandPrimaryOrange
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = title,
                 style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
-                color = color
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }

@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material3.*
@@ -23,35 +22,31 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mycodecalendar.core.designsystem.BrandOrangeAccent
+import com.mycodecalendar.core.designsystem.BrandPrimaryOrange
 import com.mycodecalendar.core.designsystem.GlassmorphismBackground
 import com.mycodecalendar.core.designsystem.Typography
 import kotlinx.coroutines.delay
 
 /**
- * Modern, Majestic Animated Splash Screen.
+ * Modern, High-Performance 2-Second Developer Splash Screen.
  *
- * Visual Features:
- * - Ambient pulsating neon aura with rotating gradient ring.
- * - Spring-based overshoot scale entrance for the core developer emblem.
- * - Staggered typography and tagline slide-up animation.
- * - Floating platform chips showcasing unified CP hub support.
- * - Smooth exit transition after initialization delay.
+ * Design:
+ * - Pure Developer/Coder Aesthetic: Deep Obsidian surface with glowing orange radar ring & terminal prompt.
+ * - Exact 2.0-second timed animation sequence.
+ * - Cohesive Brand Colors: BrandPrimaryOrange (#FF6B00) and Obsidian Slate (#0F121E) — no rainbow clutter.
  */
 @Composable
 fun SplashScreen(
     onSplashFinished: () -> Unit
 ) {
-    // ── Animation Controllers ───────────────────────────────────────────────
-    val scaleAnim = remember { Animatable(0.4f) }
+    val scaleAnim = remember { Animatable(0.6f) }
     val alphaAnim = remember { Animatable(0f) }
-    val textAlphaAnim = remember { Animatable(0f) }
-    val textSlideAnim = remember { Animatable(40f) }
-    val chipsAlphaAnim = remember { Animatable(0f) }
     val progressAnim = remember { Animatable(0f) }
 
     val infiniteTransition = rememberInfiniteTransition(label = "splashLoop")
@@ -59,34 +54,40 @@ fun SplashScreen(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(4000, easing = LinearEasing),
+            animation = tween(2000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "ringRotation"
     )
 
-    val pulseGlow by infiniteTransition.animateFloat(
-        initialValue = 0.88f,
-        targetValue = 1.15f,
+    val cursorBlink by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1800, easing = FastOutSlowInEasing),
+            animation = tween(400, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "pulseGlow"
+        label = "cursorBlink"
     )
 
-    val brandIndigo = Color(0xFF818CF8)
-    val brandViolet = Color(0xFFA78BFA)
-    val brandCyan = Color(0xFF38BDF8)
-    val brandEmerald = Color(0xFF34D399)
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 0.95f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
+    )
 
+    // Master 2-Second Animation Controller
     LaunchedEffect(Unit) {
-        // Phase 1: Logo zoom & alpha burst
+        // Phase 1: Logo & text entrance (0 - 500ms)
         scaleAnim.animateTo(
             targetValue = 1f,
             animationSpec = spring(
                 dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow
+                stiffness = Spring.StiffnessMedium
             )
         )
     }
@@ -94,35 +95,18 @@ fun SplashScreen(
     LaunchedEffect(Unit) {
         alphaAnim.animateTo(
             targetValue = 1f,
-            animationSpec = tween(600, easing = FastOutSlowInEasing)
-        )
-        // Phase 2: Title & tagline reveal
-        textAlphaAnim.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(500, easing = FastOutSlowInEasing)
+            animationSpec = tween(400, easing = FastOutSlowInEasing)
         )
     }
 
     LaunchedEffect(Unit) {
-        textSlideAnim.animateTo(
-            targetValue = 0f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioLowBouncy,
-                stiffness = Spring.StiffnessMediumLow
-            )
-        )
-        // Phase 3: Platform chips & progress line
-        chipsAlphaAnim.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(400, easing = FastOutSlowInEasing)
-        )
+        // Progress runs smoothly for 1800ms
         progressAnim.animateTo(
             targetValue = 1f,
-            animationSpec = tween(1200, easing = LinearOutSlowInEasing)
+            animationSpec = tween(1800, easing = LinearEasing)
         )
-
-        // Hold and trigger exit
-        delay(300)
+        // Brief 200ms hold to reach exactly 2.0 seconds total
+        delay(200)
         onSplashFinished()
     }
 
@@ -131,23 +115,22 @@ fun SplashScreen(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            // Background ambient canvas stars / glow points
+            // Subtle ambient radial glow in signature orange
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val w = size.width
                 val h = size.height
 
-                // Ambient gradient circle in center
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            brandIndigo.copy(alpha = 0.18f * pulseGlow),
-                            brandViolet.copy(alpha = 0.08f),
+                            BrandPrimaryOrange.copy(alpha = 0.16f),
+                            Color(0xFF6C5CE7).copy(alpha = 0.06f),
                             Color.Transparent
                         ),
                         center = Offset(w / 2, h / 2),
-                        radius = 280.dp.toPx()
+                        radius = 260.dp.toPx()
                     ),
-                    radius = 280.dp.toPx(),
+                    radius = 260.dp.toPx(),
                     center = Offset(w / 2, h / 2)
                 )
             }
@@ -161,130 +144,130 @@ fun SplashScreen(
             ) {
                 Spacer(modifier = Modifier.weight(1f))
 
-                // ── CORE EMBLEM WITH ROTATING CYBER RING ─────────────────────────
+                // ── SLEEK CODER EMBLEM ──────────────────────────────────────────
                 Box(
                     modifier = Modifier
-                        .size(140.dp)
-                        .scale(scaleAnim.value)
+                        .size(130.dp)
+                        .scale(scaleAnim.value * pulseScale)
                         .alpha(alphaAnim.value),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Rotating Gradient Outer Glow Ring
+                    // Outer rotating orange radar ring
                     Box(
                         modifier = Modifier
-                            .size(136.dp)
+                            .size(126.dp)
                             .rotate(rotation)
                             .border(
-                                width = 2.dp,
+                                width = 1.5.dp,
                                 brush = Brush.sweepGradient(
                                     listOf(
-                                        brandIndigo,
-                                        brandCyan,
-                                        brandEmerald,
-                                        brandViolet,
-                                        brandIndigo
+                                        BrandPrimaryOrange,
+                                        BrandOrangeAccent.copy(alpha = 0.4f),
+                                        Color.Transparent,
+                                        BrandPrimaryOrange.copy(alpha = 0.8f),
+                                        BrandPrimaryOrange
                                     )
                                 ),
                                 shape = CircleShape
                             )
                     )
 
-                    // Outer soft pulsing halo
+                    // Inner slate glass badge
                     Box(
                         modifier = Modifier
-                            .size(116.dp * pulseGlow)
-                            .clip(CircleShape)
-                            .background(brandIndigo.copy(alpha = 0.12f))
-                    )
-
-                    // Inner Glassmorphic Orb
-                    Box(
-                        modifier = Modifier
-                            .size(96.dp)
-                            .clip(CircleShape)
+                            .size(92.dp)
+                            .clip(RoundedCornerShape(26.dp))
                             .background(
-                                Brush.radialGradient(
+                                Brush.linearGradient(
                                     listOf(
-                                        Color(0xFF1E1B4B),
-                                        Color(0xFF0F172A)
+                                        Color(0xFF1B2033),
+                                        Color(0xFF101422)
                                     )
                                 )
                             )
-                            .border(1.5.dp, brandIndigo.copy(alpha = 0.5f), CircleShape)
-                            .shadow(24.dp, CircleShape, spotColor = brandIndigo),
+                            .border(1.dp, BrandPrimaryOrange.copy(alpha = 0.5f), RoundedCornerShape(26.dp))
+                            .shadow(20.dp, RoundedCornerShape(26.dp), spotColor = BrandPrimaryOrange),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.Terminal,
+                            imageVector = Icons.Rounded.Code,
                             contentDescription = null,
                             modifier = Modifier.size(46.dp),
-                            tint = brandIndigo
+                            tint = BrandPrimaryOrange
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // ── TYPOGRAPHY REVEAL ───────────────────────────────────────────
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .alpha(textAlphaAnim.value)
-                        .offset(y = textSlideAnim.value.dp)
-                ) {
-                    Text(
-                        text = "Code Calendar",
-                        style = Typography.displayMedium.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = 32.sp,
-                            brush = Brush.horizontalGradient(
-                                listOf(brandIndigo, brandViolet, brandCyan)
-                            )
-                        ),
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "Unified Developer & Contest Hub",
-                        style = Typography.titleSmall.copy(fontWeight = FontWeight.Medium),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        letterSpacing = 0.5.sp
-                    )
-                }
-
                 Spacer(modifier = Modifier.height(28.dp))
 
-                // ── PLATFORM ACCENT CHIPS ───────────────────────────────────────
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.alpha(chipsAlphaAnim.value)
+                // ── LOGO & CODER TYPOGRAPHY ─────────────────────────────────────
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.alpha(alphaAnim.value)
                 ) {
-                    SplashPlatformPill("Codeforces", Color(0xFF3B82F6))
-                    SplashPlatformPill("LeetCode", Color(0xFFF59E0B))
-                    SplashPlatformPill("GitHub", Color(0xFF10F07B))
-                    SplashPlatformPill("CodeChef", Color(0xFF8B5CF6))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "MyCode",
+                            style = Typography.displayMedium.copy(
+                                fontWeight = FontWeight.Black,
+                                fontSize = 34.sp,
+                                letterSpacing = (-0.5).sp
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = "Calendar",
+                            style = Typography.displayMedium.copy(
+                                fontWeight = FontWeight.Black,
+                                fontSize = 34.sp,
+                                letterSpacing = (-0.5).sp
+                            ),
+                            color = BrandPrimaryOrange
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // Monospace developer prompt tagline
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = ">_ Plan. Code. Conquer.",
+                            style = Typography.labelMedium.copy(
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                letterSpacing = 1.sp
+                            ),
+                            color = BrandPrimaryOrange.copy(alpha = 0.9f)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .padding(start = 2.dp)
+                                .size(width = 6.dp, height = 12.dp)
+                                .alpha(cursorBlink)
+                                .background(BrandPrimaryOrange)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // ── BOTTOM PROGRESS LINE & VERSION ──────────────────────────────
+                // ── CLEAN PROGRESS BAR & STATUS ─────────────────────────────────
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .padding(bottom = 32.dp)
-                        .alpha(chipsAlphaAnim.value)
+                        .padding(bottom = 36.dp)
+                        .alpha(alphaAnim.value)
                 ) {
-                    // Sleek progress bar
                     Box(
                         modifier = Modifier
-                            .width(180.dp)
+                            .width(160.dp)
                             .height(3.dp)
                             .clip(RoundedCornerShape(2.dp))
-                            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
                     ) {
                         Box(
                             modifier = Modifier
@@ -292,41 +275,26 @@ fun SplashScreen(
                                 .fillMaxWidth(progressAnim.value)
                                 .background(
                                     Brush.horizontalGradient(
-                                        listOf(brandIndigo, brandCyan, brandEmerald)
+                                        listOf(BrandPrimaryOrange, BrandOrangeAccent)
                                     )
                                 )
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "SYNCING CONTESTS & RATINGS",
+                        text = "INITIALIZING CONTEST RADAR",
                         style = Typography.labelSmall.copy(
-                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 9.5.sp,
                             fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.5.sp
+                            letterSpacing = 1.8.sp
                         ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
                     )
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun SplashPlatformPill(name: String, accentColor: Color) {
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = accentColor.copy(alpha = 0.12f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.35f))
-    ) {
-        Text(
-            text = name,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
-            color = accentColor
-        )
     }
 }

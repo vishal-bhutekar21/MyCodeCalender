@@ -28,6 +28,7 @@ data class HomeUiState(
     val connectedStats: List<PlatformStats> = emptyList(),
     val gitHubStats: GitHubStats? = null,
     val nextContest: Contest? = null,
+    val highlightContests: List<Contest> = emptyList(),
     val upcomingContests: List<Contest> = emptyList(),
     val featuredResource: Resource? = null,
     val lastUpdatedText: String = "just now",
@@ -99,6 +100,13 @@ class HomeViewModel(
         )
 
         val nextContest = sortedContests.firstOrNull()
+        val liveContests = sortedContests.filter { it.status.name == "LIVE" }
+        val highlightContests = if (liveContests.isNotEmpty()) {
+            if (liveContests.size >= 2) liveContests
+            else liveContests + sortedContests.filter { it.status.name == "UPCOMING" }.take(2)
+        } else {
+            sortedContests.take(3)
+        }
         val featuredRes = resources.firstOrNull()
 
         HomeUiState(
@@ -110,6 +118,7 @@ class HomeViewModel(
             connectedStats = stats,
             gitHubStats = ghStats,
             nextContest = nextContest,
+            highlightContests = highlightContests,
             upcomingContests = sortedContests,
             featuredResource = featuredRes,
             lastUpdatedText = formatLastUpdated(),

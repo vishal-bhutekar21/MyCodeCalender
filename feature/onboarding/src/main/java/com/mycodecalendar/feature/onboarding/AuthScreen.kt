@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -36,10 +37,9 @@ import kotlinx.coroutines.launch
 /**
  * Modern, Majestic Minimal Login & Sign-Up Screen.
  *
- * Supports:
- * 1. GitHub Token / Handle Authentication
- * 2. Email & Password Sign In / Sign Up
- * 3. One-Tap Guest / Instant Access Bypass
+ * Visual Styling:
+ * - Brand MyCodeCalendar styling with Vivid Orange (#FF6B00) highlights.
+ * - Supports GitHub Token / Handle Authentication, Email & Password, and Guest Instant Access.
  */
 @Composable
 fun AuthScreen(
@@ -60,58 +60,71 @@ fun AuthScreen(
 
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var successMessage by remember { mutableStateOf<String?>(null) }
 
-    val brandIndigo = Color(0xFF818CF8)
-    val brandViolet = Color(0xFFA78BFA)
-    val brandCyan = Color(0xFF38BDF8)
-    val brandGreen = Color(0xFF10F07B)
+    val brandOrange = Color(0xFFFF6B00)
+    val brandOrangeGrad = listOf(Color(0xFFFF7A00), Color(0xFFFF5200))
+    val brandPurple = Color(0xFF6C5CE7)
+    val brandGreen = Color(0xFF10B981)
 
     GlassmorphismBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                .padding(horizontal = 20.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // ── APP LOGO & HEADER ───────────────────────────────────────────
             Box(
                 modifier = Modifier
-                    .size(68.dp)
+                    .size(72.dp)
                     .background(
-                        Brush.radialGradient(
-                            listOf(brandIndigo.copy(alpha = 0.35f), Color.Transparent)
-                        ),
-                        CircleShape
+                        Brush.linearGradient(listOf(Color(0xFF1E2235), Color(0xFF121624))),
+                        RoundedCornerShape(20.dp)
                     )
-                    .border(1.5.dp, brandIndigo.copy(alpha = 0.5f), CircleShape),
+                    .border(1.5.dp, brandOrange.copy(alpha = 0.6f), RoundedCornerShape(20.dp))
+                    .shadow(16.dp, RoundedCornerShape(20.dp), spotColor = brandOrange.copy(alpha = 0.4f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Rounded.Terminal,
+                    Icons.Rounded.Code,
                     contentDescription = null,
-                    modifier = Modifier.size(34.dp),
-                    tint = brandIndigo
+                    modifier = Modifier.size(36.dp),
+                    tint = brandOrange
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "MyCode",
+                    style = Typography.displaySmall.copy(fontWeight = FontWeight.Black),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "Calendar",
+                    style = Typography.displaySmall.copy(fontWeight = FontWeight.Black),
+                    color = brandOrange
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
             Text(
-                text = "Code Calendar",
-                style = Typography.displaySmall.copy(
-                    fontWeight = FontWeight.Black,
-                    brush = Brush.horizontalGradient(
-                        listOf(brandIndigo, brandViolet, brandCyan)
-                    )
+                text = "Plan. Code. Achieve.",
+                style = Typography.labelMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.2.sp
                 ),
-                textAlign = TextAlign.Center
+                color = brandOrange
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = if (selectedTab == 0) "Welcome back! Sign in to sync your ratings & calendar."
@@ -131,7 +144,7 @@ fun AuthScreen(
                     .height(48.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
-                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(14.dp))
                     .padding(4.dp)
             ) {
                 Box(
@@ -140,7 +153,9 @@ fun AuthScreen(
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(10.dp))
                         .then(
-                            if (selectedTab == 0) Modifier.background(brandIndigo)
+                            if (selectedTab == 0) Modifier.background(
+                                Brush.horizontalGradient(brandOrangeGrad)
+                            )
                             else Modifier.clickable { selectedTab = 0; errorMessage = null }
                         ),
                     contentAlignment = Alignment.Center
@@ -158,7 +173,9 @@ fun AuthScreen(
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(10.dp))
                         .then(
-                            if (selectedTab == 1) Modifier.background(brandIndigo)
+                            if (selectedTab == 1) Modifier.background(
+                                Brush.horizontalGradient(brandOrangeGrad)
+                            )
                             else Modifier.clickable { selectedTab = 1; errorMessage = null }
                         ),
                     contentAlignment = Alignment.Center
@@ -177,7 +194,7 @@ fun AuthScreen(
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
                 cornerRadius = 24.dp,
-                accentColor = brandIndigo
+                accentColor = brandOrange
             ) {
                 Column(
                     modifier = Modifier
@@ -319,7 +336,7 @@ fun AuthScreen(
                                     Text("e.g. Alex Turing", color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                                 },
                                 leadingIcon = {
-                                    Icon(Icons.Rounded.Person, null, modifier = Modifier.size(18.dp), tint = brandIndigo)
+                                    Icon(Icons.Rounded.Person, null, modifier = Modifier.size(18.dp), tint = brandOrange)
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
@@ -342,7 +359,7 @@ fun AuthScreen(
                             Text("developer@domain.com", color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         },
                         leadingIcon = {
-                            Icon(Icons.Rounded.Email, null, modifier = Modifier.size(18.dp), tint = brandIndigo)
+                            Icon(Icons.Rounded.Email, null, modifier = Modifier.size(18.dp), tint = brandOrange)
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier.fillMaxWidth(),
@@ -366,7 +383,7 @@ fun AuthScreen(
                             Text("••••••••", color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         },
                         leadingIcon = {
-                            Icon(Icons.Rounded.Lock, null, modifier = Modifier.size(18.dp), tint = brandIndigo)
+                            Icon(Icons.Rounded.Lock, null, modifier = Modifier.size(18.dp), tint = brandOrange)
                         },
                         trailingIcon = {
                             IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
@@ -428,10 +445,11 @@ fun AuthScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp),
+                            .height(52.dp)
+                            .shadow(12.dp, RoundedCornerShape(14.dp), spotColor = brandOrange.copy(alpha = 0.5f)),
                         enabled = !isLoading,
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = brandIndigo)
+                        colors = ButtonDefaults.buttonColors(containerColor = brandOrange)
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
@@ -448,12 +466,13 @@ fun AuthScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // ── GUEST / INSTANT ACCESS BYPASS ───────────────────────────────
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
                 cornerRadius = 18.dp,
+                accentColor = brandOrange,
                 onClick = onGuestBypass
             ) {
                 Row(
@@ -470,14 +489,14 @@ fun AuthScreen(
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
-                                .background(Color(0xFFF59E0B).copy(alpha = 0.15f), CircleShape),
+                                .background(brandOrange.copy(alpha = 0.15f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 Icons.Rounded.Bolt,
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp),
-                                tint = Color(0xFFF59E0B)
+                                tint = brandOrange
                             )
                         }
 
@@ -499,12 +518,12 @@ fun AuthScreen(
                         Icons.AutoMirrored.Rounded.ArrowForward,
                         contentDescription = "Bypass",
                         modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        tint = brandOrange
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

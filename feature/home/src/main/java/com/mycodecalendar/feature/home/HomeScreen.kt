@@ -9,6 +9,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,6 +27,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
@@ -48,14 +51,8 @@ import java.time.LocalTime
 
 /**
  * HomeScreen — Primary dashboard of MyCodeCalendar.
- *
- * Daily App Open Streak System:
- * - Automatically tracks consecutive daily app opens in SharedPreferences.
- * - Increments streak by +1 once a day when opening the app.
- * - Maintains streak count when opened multiple times on the same day.
- * - Resets to 1 if a day is missed.
- * - Shows an animated [StreakCelebrationModal] dialog popup on new day app open or when tapping the streak flame badge.
  */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
@@ -117,20 +114,24 @@ fun HomeScreen(
                         style = Typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
                     )
-                    Text(
-                        text = "Code Calendar",
-                        style = Typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = 24.sp,
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color(0xFF818CF8), // Electric Indigo
-                                    Color(0xFFA78BFA), // Lavender Violet
-                                    Color(0xFF38BDF8)  // Sky Cyan
-                                )
-                            )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "MyCode",
+                            style = Typography.headlineMedium.copy(
+                                fontWeight = FontWeight.Black,
+                                fontSize = 24.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground
                         )
-                    )
+                        Text(
+                            text = "Calendar",
+                            style = Typography.headlineMedium.copy(
+                                fontWeight = FontWeight.Black,
+                                fontSize = 24.sp
+                            ),
+                            color = com.mycodecalendar.core.designsystem.BrandPrimaryOrange
+                        )
+                    }
                 }
 
                 Row(
@@ -256,16 +257,69 @@ fun HomeScreen(
             if (uiState.isLoading || (uiState.connectedStats.isEmpty() && uiState.upcomingContests.isEmpty() && uiState.nextContest == null && isRefreshing)) {
                 HomeScreenSkeleton()
             } else {
-                // ── HERO SPOTLIGHT: NEXT CONTEST CARD ────────────────────────────────
-                uiState.nextContest?.let { contest ->
-                    NextContestHeroCard(
-                        contest = contest,
-                        onClick = { onContestClick(contest.id) },
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
+                // ── HERO SPOTLIGHT: SWIPEABLE LIVE & ONGOING CONTESTS ────────────────
+                val highlightList = remember(uiState.highlightContests, uiState.nextContest) {
+                    if (uiState.highlightContests.isNotEmpty()) uiState.highlightContests
+                    else listOfNotNull(uiState.nextContest)
                 }
 
-                Spacer(modifier = Modifier.height(26.dp))
+                if (highlightList.isNotEmpty()) {
+                    if (highlightList.size == 1) {
+                        NextContestHeroCard(
+                            contest = highlightList.first(),
+                            onClick = { onContestClick(highlightList.first().id) },
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    } else {
+                        val pagerState = rememberPagerState(pageCount = { highlightList.size })
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            HorizontalPager(
+                                state = pagerState,
+                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                pageSpacing = 12.dp,
+                                modifier = Modifier.fillMaxWidth()
+                            ) { page ->
+                                val contest = highlightList[page]
+                                NextContestHeroCard(
+                                    contest = contest,
+                                    onClick = { onContestClick(contest.id) },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Animated swipeable dot indicators
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                repeat(highlightList.size) { index ->
+                                    val isSelected = pagerState.currentPage == index
+                                    val dotWidth by animateDpAsState(
+                                        targetValue = if (isSelected) 20.dp else 6.dp,
+                                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                        label = "dotWidth"
+                                    )
+                                    val dotColor = if (isSelected) com.mycodecalendar.core.designsystem.BrandPrimaryOrange
+                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(horizontal = 3.dp)
+                                            .height(6.dp)
+                                            .width(dotWidth)
+                                            .clip(CircleShape)
+                                            .background(dotColor)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // ── PLATFORM RATINGS & ACCOUNTS ──────────────────────────────────────
                 Row(

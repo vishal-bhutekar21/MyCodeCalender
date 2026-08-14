@@ -1,5 +1,8 @@
 package com.mycodecalendar.feature.resources
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,39 +27,33 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mycodecalendar.core.designsystem.BrandPrimaryOrange
+import com.mycodecalendar.core.designsystem.BrandPurpleAccent
 import com.mycodecalendar.core.designsystem.GlassmorphismBackground
 import com.mycodecalendar.core.designsystem.Typography
+import com.mycodecalendar.core.designsystem.components.AppSearchBar
 import com.mycodecalendar.core.designsystem.components.EmptyState
 import com.mycodecalendar.core.designsystem.components.GlassCard
-import com.mycodecalendar.core.designsystem.components.GlassChip
 import com.mycodecalendar.core.designsystem.components.PlatformBadge
 import com.mycodecalendar.core.designsystem.components.ResourcesListSkeleton
 import com.mycodecalendar.domain.model.Resource
 
-private fun getCategoryColor(category: String): Color = when {
-    category.contains("AI", ignoreCase = true) || category.contains("ML", ignoreCase = true) -> Color(0xFF06B6D4)
-    category.contains("YouTube", ignoreCase = true) -> Color(0xFFFF0000)
-    category.contains("DSA", ignoreCase = true) || category.contains("CP", ignoreCase = true) -> Color(0xFF818CF8)
-    category.contains("System", ignoreCase = true) -> Color(0xFFF59E0B)
-    category.contains("Algorithms", ignoreCase = true) -> Color(0xFF8B5CF6)
-    category.contains("Graphs", ignoreCase = true) -> Color(0xFF10F07B)
-    else -> Color(0xFF818CF8)
-}
-
-private fun getCategoryIcon(category: String, isYouTube: Boolean): ImageVector = when {
+private fun getResourceCategoryIcon(category: String, isYouTube: Boolean): ImageVector = when {
     isYouTube -> Icons.Rounded.PlayCircle
     category.contains("AI", ignoreCase = true) || category.contains("ML", ignoreCase = true) -> Icons.Rounded.Psychology
     category.contains("DSA", ignoreCase = true) || category.contains("CP", ignoreCase = true) -> Icons.Rounded.Code
     category.contains("System", ignoreCase = true) -> Icons.Rounded.Storage
-    else -> Icons.Rounded.Description
+    else -> Icons.AutoMirrored.Rounded.MenuBook
 }
 
 /**
- * ResourcesScreen — Modern, aesthetic, and minimal learning hub featuring:
- * - AI & Machine Learning Tools (Hugging Face, Google Colab, Kaggle, OpenAI, PyTorch, Ollama, v0)
- * - Masterclass YouTube Playlists (Striver, NeetCode, Andrej Karpathy, 3Blue1Brown, StatQuest, Babbar)
- * - Curated DSA & CP Problem Sheets (Striver SDE 180, CSES 300, USACO Guide, CP-Algorithms)
- * - System Design Primers & Roadmaps
+ * ResourcesScreen — Clean, refined, unified developer hub & education center.
+ *
+ * Design Improvements:
+ * - Removed cluttered multiple rows of rainbow chips.
+ * - Single, cohesive horizontal category selector in signature Brand Orange / Slate.
+ * - 1px crisp bordered minimalist search bar.
+ * - Unified card hierarchy with subtle category badges and clean action links.
  */
 @Composable
 fun ResourcesScreen(
@@ -66,8 +64,8 @@ fun ResourcesScreen(
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var selectedCreator by remember { mutableStateOf<String?>(null) }
 
-    val categories = remember(resources) {
-        listOf("All", "AI & ML Tools", "YouTube Playlists", "DSA & CP Sheets", "System Design")
+    val categories = remember {
+        listOf("All", "AI & ML", "YouTube Playlists", "DSA & CP Sheets", "System Design")
     }
 
     val creators = remember(resources) {
@@ -84,6 +82,10 @@ fun ResourcesScreen(
 
             val matchesCategory = when (selectedCategory) {
                 null, "All" -> true
+                "AI & ML" -> res.category.contains("AI", ignoreCase = true) || res.category.contains("ML", ignoreCase = true)
+                "YouTube Playlists" -> res.category.contains("YouTube", ignoreCase = true) || res.url.contains("youtube") || res.url.contains("youtu.be")
+                "DSA & CP Sheets" -> res.category.contains("DSA", ignoreCase = true) || res.category.contains("CP", ignoreCase = true)
+                "System Design" -> res.category.contains("System", ignoreCase = true)
                 else -> res.category.equals(selectedCategory, ignoreCase = true)
             }
 
@@ -95,104 +97,70 @@ fun ResourcesScreen(
 
     GlassmorphismBackground {
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
         ) {
             // ── TOP HEADER ─────────────────────────────────────────────────────────
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
-                    .padding(top = 20.dp, bottom = 4.dp)
+                    .padding(top = 16.dp, bottom = 4.dp)
             ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Developer Hub",
+                        style = Typography.headlineMedium.copy(fontWeight = FontWeight.Black),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = BrandPrimaryOrange.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, BrandPrimaryOrange.copy(alpha = 0.35f))
+                    ) {
+                        Text(
+                            text = "${filteredResources.size} Guides",
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                            style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
+                            color = BrandPrimaryOrange
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Developer Hub & Education",
-                    style = Typography.headlineMedium.copy(fontWeight = FontWeight.Black),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = "AI platforms, YouTube playlists, DSA sheets, and system design",
+                    text = "Curated AI tools, YouTube masterclasses, DSA sheets & roadmaps",
                     style = Typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // ── 1PX BORDERED MINIMALIST SEARCH BAR ─────────────────────────────────
+            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                AppSearchBar(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    placeholder = "Search AI tools, playlists, DSA sheets, creators…"
                 )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ── SEARCH BAR ─────────────────────────────────────────────────────────
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 14.dp
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Rounded.Search,
-                            contentDescription = "Search",
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        TextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            placeholder = {
-                                Text(
-                                    "Search AI tools, YouTube playlists, sheets…",
-                                    style = Typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-                                )
-                            },
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                disabledContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent
-                            ),
-                            textStyle = Typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(
-                                onClick = { searchQuery = "" },
-                                modifier = Modifier.size(24.dp)
-                            ) {
-                                Icon(
-                                    Icons.Rounded.Close,
-                                    contentDescription = "Clear",
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // ── MAIN CATEGORY TABS ─────────────────────────────────────────────────
+            // ── SINGLE COHESIVE CATEGORY TABS ROW ──────────────────────────────────
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp)
             ) {
                 items(categories) { cat ->
                     val isSelected = (selectedCategory == null && cat == "All") || (selectedCategory == cat)
-                    val catColor = if (cat == "All") MaterialTheme.colorScheme.primary else getCategoryColor(cat)
-                    GlassChip(
+                    CategoryPill(
                         label = cat,
                         selected = isSelected,
-                        accentColor = catColor,
                         onClick = {
                             selectedCategory = if (cat == "All") null else cat
                         }
@@ -200,34 +168,53 @@ fun ResourcesScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // ── CREATORS FILTER ROW ────────────────────────────────────────────────
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp)
+            // Optional Active Creator Filter Indicator (Clean & Minimal)
+            AnimatedVisibility(
+                visible = selectedCreator != null,
+                enter = fadeIn(),
+                exit = fadeOut()
             ) {
-                item {
-                    GlassChip(
-                        label = "All Creators",
-                        selected = selectedCreator == null,
-                        accentColor = MaterialTheme.colorScheme.primary,
-                        onClick = { selectedCreator = null }
-                    )
-                }
-                items(creators) { creator ->
-                    GlassChip(
-                        label = creator,
-                        selected = selectedCreator == creator,
-                        accentColor = Color(0xFFA78BFA),
-                        onClick = { selectedCreator = if (selectedCreator == creator) null else creator }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "Filtered by creator:",
+                            style = Typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = BrandPurpleAccent.copy(alpha = 0.15f),
+                            border = BorderStroke(1.dp, BrandPurpleAccent.copy(alpha = 0.4f))
+                        ) {
+                            Text(
+                                text = selectedCreator ?: "",
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
+                                color = BrandPurpleAccent
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "Clear filter",
+                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = BrandPrimaryOrange),
+                        modifier = Modifier.clickable { selectedCreator = null }
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // ── FEED LIST ──────────────────────────────────────────────────────────
+            // ── RESOURCE CARDS LIST ────────────────────────────────────────────────
             if (resources.isEmpty()) {
                 ResourcesListSkeleton()
             } else if (filteredResources.isEmpty()) {
@@ -238,8 +225,11 @@ fun ResourcesScreen(
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 100.dp)
                 ) {
                     items(filteredResources, key = { it.id }) { resource ->
-                        ResourceCard(
+                        RefinedResourceCard(
                             resource = resource,
+                            onCreatorFilter = { creator ->
+                                selectedCreator = if (selectedCreator == creator) null else creator
+                            },
                             onClick = { onResourceClick(resource.url) }
                         )
                     }
@@ -249,178 +239,217 @@ fun ResourcesScreen(
     }
 }
 
+/**
+ * Cohesive Category Pill with unified Brand Orange highlight.
+ */
 @Composable
-fun ResourceCard(
+private fun CategoryPill(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val bgColor = if (selected) BrandPrimaryOrange.copy(alpha = 0.16f)
+    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f)
+
+    val borderColor = if (selected) BrandPrimaryOrange.copy(alpha = 0.65f)
+    else MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
+
+    val textColor = if (selected) BrandPrimaryOrange
+    else MaterialTheme.colorScheme.onSurfaceVariant
+
+    Box(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(bgColor)
+            .border(1.dp, borderColor, CircleShape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 7.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            if (selected) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .background(BrandPrimaryOrange, CircleShape)
+                )
+            }
+            Text(
+                text = label,
+                style = Typography.labelMedium.copy(
+                    fontWeight = if (selected) FontWeight.Black else FontWeight.SemiBold,
+                    fontSize = 12.5.sp
+                ),
+                color = textColor
+            )
+        }
+    }
+}
+
+/**
+ * Refined Resource Card — Elegant, unified styling without rainbow clutter.
+ */
+@Composable
+private fun RefinedResourceCard(
     resource: Resource,
+    onCreatorFilter: (String) -> Unit,
     onClick: () -> Unit
 ) {
     val isYouTube = resource.url.contains("youtube.com") || resource.url.contains("youtu.be")
-    val accentColor = getCategoryColor(resource.category)
-    val categoryIcon = getCategoryIcon(resource.category, isYouTube)
+    val categoryIcon = getResourceCategoryIcon(resource.category, isYouTube)
+
+    val badgeColor = when {
+        isYouTube -> Color(0xFFFF5252)
+        resource.category.contains("AI", ignoreCase = true) -> Color(0xFF06B6D4)
+        resource.category.contains("System", ignoreCase = true) -> BrandPurpleAccent
+        else -> BrandPrimaryOrange
+    }
 
     val ctaText = when {
-        isYouTube -> "Watch Playlist"
-        resource.category.contains("AI", ignoreCase = true) -> "Launch Tool"
-        resource.category.contains("DSA", ignoreCase = true) || resource.category.contains("CP", ignoreCase = true) -> "Open Sheet"
-        else -> "Open Guide"
+        isYouTube -> "Watch Video ↗"
+        resource.category.contains("AI", ignoreCase = true) -> "Launch Tool ↗"
+        resource.category.contains("DSA", ignoreCase = true) || resource.category.contains("CP", ignoreCase = true) -> "Open Sheet ↗"
+        else -> "Open Guide ↗"
     }
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        accentColor = if (isYouTube) Color(0xFFFF0000) else accentColor,
+        accentColor = badgeColor,
         cornerRadius = 18.dp,
         onClick = onClick
     ) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            // Left Glow Indicator Strip
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .fillMaxHeight()
-                    .background(
-                        color = if (isYouTube) Color(0xFFFF0000) else accentColor,
-                        shape = RoundedCornerShape(topStart = 18.dp, bottomStart = 18.dp)
-                    )
-            )
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(14.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp)
+        ) {
+            // Top Meta Row (Platform/Category Badge + Duration)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Top Meta Row
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        resource.platform?.let { platform ->
-                            PlatformBadge(platform = platform)
-                        }
-
-                        // Category Badge
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = (if (isYouTube) Color(0xFFFF0000) else accentColor).copy(alpha = 0.14f),
-                            border = BorderStroke(
-                                1.dp, (if (isYouTube) Color(0xFFFF0000) else accentColor).copy(alpha = 0.35f)
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = categoryIcon,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(12.dp),
-                                    tint = if (isYouTube) Color(0xFFFF0000) else accentColor
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = if (isYouTube) "YouTube Masterclass" else resource.category,
-                                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
-                                    color = if (isYouTube) Color(0xFFFF0000) else accentColor
-                                )
-                            }
-                        }
+                    resource.platform?.let { platform ->
+                        PlatformBadge(platform = platform)
                     }
 
-                    resource.duration?.let { dur ->
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
-                            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-                        ) {
-                            Text(
-                                text = dur,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Text(
-                    text = resource.title,
-                    style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                resource.description?.let { desc ->
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = desc,
-                        style = Typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        lineHeight = 16.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Creator Credits & Action CTA
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                        border = BorderStroke(
-                            0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
-                        )
+                        color = badgeColor.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.35f))
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Rounded.Person,
+                                imageVector = categoryIcon,
                                 contentDescription = null,
                                 modifier = Modifier.size(12.dp),
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = badgeColor
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = resource.creator ?: "Community",
-                                style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
-                                color = MaterialTheme.colorScheme.primary
+                                text = if (isYouTube) "YouTube Masterclass" else resource.category,
+                                style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
+                                color = badgeColor
                             )
                         }
                     }
+                }
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                resource.duration?.let { dur ->
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
                     ) {
                         Text(
-                            text = ctaText,
-                            style = Typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = if (isYouTube) Color(0xFFFF0000) else accentColor
-                            )
-                        )
-                        Icon(
-                            imageVector = Icons.Rounded.ArrowOutward,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = if (isYouTube) Color(0xFFFF0000) else accentColor
+                            text = dur,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Title
+            Text(
+                text = resource.title,
+                style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 14.5.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            // Description
+            resource.description?.let { desc ->
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = desc,
+                    style = Typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 16.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Bottom Action Row (Creator tag & Clean Orange Link)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Creator tag (clickable to filter)
+                resource.creator?.let { creator ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable { onCreatorFilter(creator) }
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                            .padding(horizontal = 6.dp, vertical = 3.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Person,
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                        Text(
+                            text = creator,
+                            style = Typography.labelSmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 11.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } ?: Spacer(modifier = Modifier.size(1.dp))
+
+                // CTA Link
+                Text(
+                    text = ctaText,
+                    style = Typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.5.sp,
+                        color = BrandPrimaryOrange
+                    )
+                )
             }
         }
     }

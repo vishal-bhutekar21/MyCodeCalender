@@ -134,52 +134,22 @@ fun ContestsScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // ── FROSTED GLASS SEARCH BAR ─────────────────────────────────────────
-            GlassCard(
+            // ── 1PX BORDERED MINIMALIST SEARCH BAR ─────────────────────────────────
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                cornerRadius = 14.dp
+                    .padding(horizontal = 16.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Search,
-                        contentDescription = "Search",
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    TextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = {
-                            Text(
-                                if (selectedMainTab == 0) "Search live & upcoming contests..." else "Search past rating history...",
-                                style = Typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            disabledContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent
-                        ),
-                        textStyle = Typography.bodyMedium
-                    )
-                }
+                com.mycodecalendar.core.designsystem.components.AppSearchBar(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    placeholder = if (selectedMainTab == 0) "Search live & upcoming contests…" else "Search past rating history…"
+                )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // ── PLATFORM CHIPS ───────────────────────────────────────────────────
+            // ── CONSOLIDATED PLATFORM & LIVE FILTER BAR ─────────────────────────────
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp)
@@ -187,11 +157,28 @@ fun ContestsScreen(
                 item {
                     GlassChip(
                         label = "All Platforms",
-                        selected = selectedPlatform == null,
+                        selected = selectedPlatform == null && selectedStatus == null,
                         accentColor = MaterialTheme.colorScheme.primary,
-                        onClick = { selectedPlatform = null }
+                        onClick = {
+                            selectedPlatform = null
+                            selectedStatus = null
+                        }
                     )
                 }
+
+                if (selectedMainTab == 0) {
+                    item {
+                        GlassChip(
+                            label = "● Live Now",
+                            selected = selectedStatus == ContestStatus.LIVE,
+                            accentColor = Color(0xFF00F579),
+                            onClick = {
+                                selectedStatus = if (selectedStatus == ContestStatus.LIVE) null else ContestStatus.LIVE
+                            }
+                        )
+                    }
+                }
+
                 items(Platform.values()) { platform ->
                     GlassChip(
                         label = platform.name.lowercase().replaceFirstChar { it.uppercase() },
@@ -201,38 +188,6 @@ fun ContestsScreen(
                             selectedPlatform = if (selectedPlatform == platform) null else platform
                         }
                     )
-                }
-            }
-
-            if (selectedMainTab == 0) {
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // STATUS CHIPS (Only in Upcoming tab)
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp)
-                ) {
-                    item {
-                        GlassChip(
-                            label = "All Status",
-                            selected = selectedStatus == null,
-                            accentColor = MaterialTheme.colorScheme.primary,
-                            onClick = { selectedStatus = null }
-                        )
-                    }
-                    items(ContestStatus.values()) { status ->
-                        val color = when (status) {
-                            ContestStatus.LIVE -> Color(0xFF22C55E)
-                            ContestStatus.UPCOMING -> Color(0xFF818CF8)
-                            ContestStatus.ENDED -> Color(0xFF64748B)
-                        }
-                        GlassChip(
-                            label = status.name.lowercase().replaceFirstChar { it.uppercase() },
-                            selected = selectedStatus == status,
-                            accentColor = color,
-                            onClick = { selectedStatus = if (selectedStatus == status) null else status }
-                        )
-                    }
                 }
             }
 

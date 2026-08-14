@@ -20,9 +20,10 @@ class GetRecommendedResourceUseCaseTest {
             creator = "Alex",
             url = "https://example.com/dp",
             category = "Dynamic Programming",
-            platform = "YouTube",
+            platform = Platform.CODEFORCES,
             duration = "30m",
             priority = 1,
+            thumbnailUrl = null,
             publishedAt = Instant.now()
         ),
         Resource(
@@ -32,9 +33,10 @@ class GetRecommendedResourceUseCaseTest {
             creator = "Bob",
             url = "https://example.com/ds",
             category = "Data Structures",
-            platform = "YouTube",
+            platform = Platform.LEETCODE,
             duration = "20m",
             priority = 2,
+            thumbnailUrl = null,
             publishedAt = Instant.now()
         )
     )

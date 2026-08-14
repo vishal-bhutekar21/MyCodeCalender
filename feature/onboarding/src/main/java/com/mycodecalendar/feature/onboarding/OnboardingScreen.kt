@@ -2,6 +2,7 @@ package com.mycodecalendar.feature.onboarding
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,9 +20,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -32,8 +36,10 @@ import com.mycodecalendar.core.designsystem.components.GlassCard
 
 data class OnboardingSlide(
     val badge: String,
-    val title: String,
+    val headlinePrefix: String,
+    val headlineHighlight: String,
     val description: String,
+    val badgeColor: Color,
     val accentColor: Color
 )
 
@@ -44,37 +50,53 @@ fun OnboardingScreen(
     var currentStep by remember { mutableStateOf(0) }
     val totalSteps = 5
 
+    val brandOrange = Color(0xFFFF6B00)
+    val brandPurple = Color(0xFF6C5CE7)
+    val brandLavender = Color(0xFF7C4DFF)
+    val brandCoral = Color(0xFFFF5722)
+    val brandIndigo = Color(0xFF6366F1)
+
     val slides = remember {
         listOf(
             OnboardingSlide(
-                badge = "REAL-TIME AGGREGATOR",
-                title = "Never Miss a Contest",
-                description = "Live countdowns and instant contest feeds aggregated from Codeforces, LeetCode, CodeChef, and AtCoder with time-zone synchronization.",
-                accentColor = Color(0xFF818CF8)
+                badge = "SMART SCHEDULING",
+                headlinePrefix = "Plan your code.\nMaster your goals.\n",
+                headlineHighlight = "Build your future.",
+                description = "The all-in-one coding calendar for developers to plan schedules, track progress, prepare for interviews, and stay consistent.",
+                badgeColor = brandLavender,
+                accentColor = brandOrange
             ),
             OnboardingSlide(
-                badge = "UNIFIED RATINGS",
-                title = "Track Ranks & Performance",
-                description = "Connect your handles across all competitive programming platforms to view unified rating progressions, global rankings, and problem breakdown.",
-                accentColor = Color(0xFF38BDF8)
+                badge = "DAILY HABITS & GOALS",
+                headlinePrefix = "Stay consistent.\nCrush daily targets.\n",
+                headlineHighlight = "Code every day.",
+                description = "Monitor daily progress bars, solve structured problem sets, and build lasting algorithmic problem-solving habits.",
+                badgeColor = brandOrange,
+                accentColor = brandOrange
             ),
             OnboardingSlide(
-                badge = "ACTIVITY & STREAKS",
-                title = "Daily Heatmaps & Streak",
-                description = "Visualize your GitHub contributions and maintain your daily problem-solving streak with motivating milestones and monthly heatmaps.",
-                accentColor = Color(0xFF34D399)
+                badge = "LIVE CONTEST RADAR",
+                headlinePrefix = "Never miss a round.\nReal-time alerts for\n",
+                headlineHighlight = "All CP platforms.",
+                description = "Live countdowns and instant feeds aggregated from Codeforces, LeetCode, CodeChef, and AtCoder with time-zone synchronization.",
+                badgeColor = brandIndigo,
+                accentColor = brandIndigo
             ),
             OnboardingSlide(
-                badge = "SMART CALENDAR",
-                title = "1-Tap Calendar & Alerts",
-                description = "Export upcoming contests directly to your device calendar and configure customizable 15-minute advance notifications.",
-                accentColor = Color(0xFFF59E0B)
+                badge = "DETAILED ANALYTICS",
+                headlinePrefix = "Visualize growth.\nMonitor weekly metrics &\n",
+                headlineHighlight = "Rating curves.",
+                description = "Track rating progression curves, GitHub contribution heatmaps, study time, and maintain your 7+ day coding streak.",
+                badgeColor = brandCoral,
+                accentColor = brandCoral
             ),
             OnboardingSlide(
-                badge = "CURATED RESOURCES",
-                title = "Master Algorithms & CP",
-                description = "Explore handpicked roadmaps, cheat sheets, dynamic programming patterns, and curated interview problem sets to level up.",
-                accentColor = Color(0xFFA78BFA)
+                badge = "DEVELOPER HUB",
+                headlinePrefix = "Everything you need.\nTools & roadmaps to\n",
+                headlineHighlight = "Level up your skills.",
+                description = "Smart calendar, goal tracking, problem practice, and detailed analytics in one unified, sleek developer toolkit.",
+                badgeColor = brandLavender,
+                accentColor = brandOrange
             )
         )
     }
@@ -85,25 +107,28 @@ fun OnboardingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // ── TOP BAR (Back / Skip) ───────────────────────────────────────
+            // ── TOP HEADER (Logo Badge, Back, Skip) ─────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
+                    .padding(top = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Left: Back button or Logo branding
                 if (currentStep > 0) {
                     IconButton(
                         onClick = { currentStep-- },
                         modifier = Modifier
                             .size(38.dp)
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), CircleShape)
-                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), CircleShape)
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f), CircleShape)
+                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f), CircleShape)
                     ) {
                         Icon(
                             Icons.AutoMirrored.Rounded.ArrowBack,
@@ -113,25 +138,60 @@ fun OnboardingScreen(
                         )
                     }
                 } else {
-                    Spacer(modifier = Modifier.size(38.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(
+                                    Brush.linearGradient(listOf(Color(0xFF1E2235), Color(0xFF141724))),
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .border(1.dp, brandOrange.copy(alpha = 0.5f), RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Rounded.Code,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = brandOrange
+                            )
+                        }
+                        Row {
+                            Text(
+                                text = "MyCode",
+                                style = Typography.titleMedium.copy(fontWeight = FontWeight.Black),
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Text(
+                                text = "Calendar",
+                                style = Typography.titleMedium.copy(fontWeight = FontWeight.Black),
+                                color = brandOrange
+                            )
+                        }
+                    }
                 }
 
+                // Middle: Badge pill
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = currentSlide.accentColor.copy(alpha = 0.12f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, currentSlide.accentColor.copy(alpha = 0.35f))
+                    color = currentSlide.badgeColor.copy(alpha = 0.14f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, currentSlide.badgeColor.copy(alpha = 0.40f))
                 ) {
                     Text(
                         text = currentSlide.badge,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 10.sp),
-                        color = currentSlide.accentColor
+                        color = currentSlide.badgeColor
                     )
                 }
 
+                // Right: Skip Button
                 TextButton(
                     onClick = onComplete,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = "Skip",
@@ -162,58 +222,75 @@ fun OnboardingScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(vertical = 12.dp),
+                        .padding(vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // Infographic Illustration Card
+                    // Infographic Illustration Card matching the exact image phones
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(240.dp),
+                            .height(230.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         when (step) {
-                            0 -> ContestRadarInfographic(slide.accentColor)
-                            1 -> RatingProgressInfographic(slide.accentColor)
-                            2 -> HeatmapStreakInfographic(slide.accentColor)
-                            3 -> CalendarAlertsInfographic(slide.accentColor)
-                            4 -> ResourcesCodeInfographic(slide.accentColor)
+                            0 -> CalendarScheduleInfographic(slide.accentColor)
+                            1 -> DailyProgressDashboardInfographic(slide.accentColor)
+                            2 -> ContestRadarInfographic(slide.accentColor)
+                            3 -> AnalyticsAndStreakInfographic(slide.accentColor)
+                            4 -> LevelUpFeatureGridInfographic(slide.accentColor)
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(28.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                    Text(
-                        text = slide.title,
-                        style = Typography.headlineLarge.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = 26.sp
-                        ),
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
+                    // Title with colored signature highlight
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    ) {
+                        Text(
+                            text = slide.headlinePrefix.trimEnd(),
+                            style = Typography.headlineLarge.copy(
+                                fontWeight = FontWeight.Black,
+                                fontSize = 24.sp,
+                                lineHeight = 30.sp
+                            ),
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = slide.headlineHighlight,
+                            style = Typography.headlineLarge.copy(
+                                fontWeight = FontWeight.Black,
+                                fontSize = 24.sp,
+                                lineHeight = 30.sp
+                            ),
+                            textAlign = TextAlign.Center,
+                            color = slide.accentColor
+                        )
+                    }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
                         text = slide.description,
-                        style = Typography.bodyLarge,
+                        style = Typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 22.sp,
-                        modifier = Modifier.padding(horizontal = 12.dp)
+                        lineHeight = 20.sp,
+                        modifier = Modifier.padding(horizontal = 14.dp)
                     )
                 }
             }
 
-            // ── BOTTOM CONTROLS (Pill Indicators & CTA Button) ──────────────
+            // ── BOTTOM CONTROLS (Expanding Indicators & Orange CTA Button) ──
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                    .padding(bottom = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Expanding Pill Page Indicators
                 Row(
@@ -223,7 +300,7 @@ fun OnboardingScreen(
                     for (i in 0 until totalSteps) {
                         val isSelected = i == currentStep
                         val pillWidth by animateDpAsState(
-                            targetValue = if (isSelected) 32.dp else 8.dp,
+                            targetValue = if (isSelected) 34.dp else 8.dp,
                             animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                             label = "indicatorWidth_$i"
                         )
@@ -235,14 +312,14 @@ fun OnboardingScreen(
 
                         Box(
                             modifier = Modifier
-                                .size(width = pillWidth, height = 8.dp)
+                                .size(width = pillWidth, height = 7.dp)
                                 .clip(CircleShape)
                                 .background(pillColor)
                         )
                     }
                 }
 
-                // CTA Button
+                // CTA Button in vivid Electric Orange
                 Button(
                     onClick = {
                         if (currentStep < totalSteps - 1) {
@@ -253,10 +330,11 @@ fun OnboardingScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(54.dp),
+                        .height(54.dp)
+                        .shadow(16.dp, RoundedCornerShape(16.dp), spotColor = brandOrange.copy(alpha = 0.5f)),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = currentSlide.accentColor
+                        containerColor = brandOrange
                     )
                 ) {
                     Row(
@@ -264,7 +342,7 @@ fun OnboardingScreen(
                         horizontalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = if (currentStep == totalSteps - 1) "Get Started →" else "Continue",
+                            text = if (currentStep == totalSteps - 1) "Build Your Future →" else "Continue",
                             style = Typography.labelLarge.copy(fontWeight = FontWeight.Black, fontSize = 15.sp),
                             color = Color.White
                         )
@@ -285,9 +363,302 @@ fun OnboardingScreen(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ANIMATED INFOGRAPHIC ILLUSTRATIONS
+// ANIMATED INFOGRAPHIC ILLUSTRATIONS (Modeled after reference image)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Slide 1 Infographic: Calendar & Schedule Showcase (Phone 1 from image)
+ */
+@Composable
+private fun CalendarScheduleInfographic(accentColor: Color) {
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(220.dp)
+            .padding(horizontal = 8.dp),
+        accentColor = Color(0xFF7C4DFF),
+        cornerRadius = 24.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Calendar Month & Days Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Rounded.CalendarMonth,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = Color(0xFF7C4DFF)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        "Calendar May 2025 >",
+                        style = Typography.labelMedium.copy(fontWeight = FontWeight.Black),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFF7C4DFF).copy(alpha = 0.15f)
+                ) {
+                    Text(
+                        "15 Active",
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                        color = Color(0xFF7C4DFF)
+                    )
+                }
+            }
+
+            // Days Grid Strip
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                listOf("11", "12", "13", "14", "15", "16", "17").forEachIndexed { idx, day ->
+                    val isToday = idx == 4
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isToday) Color(0xFF7C4DFF)
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = day,
+                            style = Typography.labelSmall.copy(
+                                fontWeight = if (isToday) FontWeight.Black else FontWeight.Normal,
+                                fontSize = 11.sp
+                            ),
+                            color = if (isToday) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            // "Today's Schedule" items
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                ScheduleItemRow(
+                    icon = Icons.Rounded.Code,
+                    title = "Two Sum",
+                    tag = "LeetCode • Easy",
+                    time = "9:00 AM",
+                    tagColor = Color(0xFF10B981)
+                )
+                ScheduleItemRow(
+                    icon = Icons.Rounded.AccountTree,
+                    title = "Trees in Binary Tree",
+                    tag = "LeetCode • Medium",
+                    time = "11:30 AM",
+                    tagColor = Color(0xFFFF9800)
+                )
+                ScheduleItemRow(
+                    icon = Icons.Rounded.EmojiEvents,
+                    title = "Codeforces Round 950",
+                    tag = "Practice Round",
+                    time = "7:00 PM",
+                    tagColor = Color(0xFF3B82F6)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScheduleItemRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    tag: String,
+    time: String,
+    tagColor: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = tagColor)
+            Column {
+                Text(title, style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface)
+                Text(tag, style = Typography.labelSmall.copy(fontSize = 10.sp), color = tagColor)
+            }
+        }
+        Text(time, style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/**
+ * Slide 2 Infographic: Dashboard with Daily Progress 75% & Upcoming Tasks (Phone 2 from image)
+ */
+@Composable
+private fun DailyProgressDashboardInfographic(accentColor: Color) {
+    val brandOrange = Color(0xFFFF6B00)
+
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(220.dp)
+            .padding(horizontal = 8.dp),
+        accentColor = brandOrange,
+        cornerRadius = 24.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Header: Good Morning, Developer! 👋
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "Good Morning,",
+                        style = Typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "Developer! 👋",
+                        style = Typography.titleMedium.copy(fontWeight = FontWeight.Black),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(brandOrange.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Rounded.Notifications, null, modifier = Modifier.size(16.dp), tint = brandOrange)
+                }
+            }
+
+            // Daily Progress 75% Card with Glowing Orange Bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF1A1F30))
+                    .border(1.dp, brandOrange.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                    .padding(10.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Daily Progress",
+                            style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = Color.White
+                        )
+                        Text(
+                            "75%",
+                            style = Typography.labelSmall.copy(fontWeight = FontWeight.Black),
+                            color = brandOrange
+                        )
+                    }
+
+                    // Progress Bar
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF2B3147))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .fillMaxWidth(0.75f)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(Color(0xFFFF8A00), Color(0xFFFF5200))
+                                    )
+                                )
+                        )
+                    }
+
+                    Text(
+                        "Great job! Keep it up 🔥",
+                        style = Typography.labelSmall.copy(fontSize = 10.sp),
+                        color = Color(0xFFFFB74D)
+                    )
+                }
+            }
+
+            // Upcoming Tasks row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                UpcomingTaskMiniCard(
+                    title = "Dynamic Programming",
+                    time = "2:00 PM",
+                    color = Color(0xFFFF9800),
+                    modifier = Modifier.weight(1f)
+                )
+                UpcomingTaskMiniCard(
+                    title = "System Design",
+                    time = "4:00 PM",
+                    color = Color(0xFF6C5CE7),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun UpcomingTaskMiniCard(
+    title: String,
+    time: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .border(1.dp, color.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+            .padding(8.dp)
+    ) {
+        Column {
+            Text(title, style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1, color = MaterialTheme.colorScheme.onSurface)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(time, style = Typography.labelSmall.copy(fontSize = 10.sp), color = color)
+        }
+    }
+}
+
+/**
+ * Slide 3 Infographic: Multi-Platform Radar
+ */
 @Composable
 private fun ContestRadarInfographic(accentColor: Color) {
     val infiniteTransition = rememberInfiniteTransition(label = "radar")
@@ -354,7 +725,7 @@ private fun ContestRadarInfographic(accentColor: Color) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 PlatformTagPill("CF", Color(0xFF3B82F6))
-                PlatformTagPill("LC", Color(0xFFF59E0B))
+                PlatformTagPill("LC", Color(0xFFFFA116))
             }
 
             Column(
@@ -371,248 +742,242 @@ private fun ContestRadarInfographic(accentColor: Color) {
     }
 }
 
+/**
+ * Slide 4 Infographic: Analytics & Streak Showcase (Phone 3 from image)
+ */
 @Composable
-private fun RatingProgressInfographic(accentColor: Color) {
+private fun AnalyticsAndStreakInfographic(accentColor: Color) {
+    val brandOrange = Color(0xFFFF6B00)
+    val brandPurple = Color(0xFF7C4DFF)
+
     GlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .height(200.dp)
-            .padding(horizontal = 16.dp),
-        accentColor = accentColor,
+            .height(220.dp)
+            .padding(horizontal = 8.dp),
+        accentColor = brandOrange,
         cornerRadius = 24.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(18.dp),
+                .padding(14.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
+            // Header: Progress + Curve Chart
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(
-                        "RATING: 2140",
-                        style = Typography.titleMedium.copy(fontWeight = FontWeight.Black),
-                        color = accentColor
-                    )
-                    Text(
-                        "Global Rank #412",
-                        style = Typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                }
-
+                Text(
+                    "Progress",
+                    style = Typography.titleMedium.copy(fontWeight = FontWeight.Black),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = accentColor.copy(alpha = 0.15f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.40f))
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 ) {
                     Text(
-                        "Master ★",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = accentColor
+                        "This Week ▾",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            // Mini visual rating line
+            // Smooth Rating Line Chart Canvas
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(55.dp)
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val w = size.width
+                    val h = size.height
+
+                    val path = Path().apply {
+                        moveTo(0f, h * 0.7f)
+                        cubicTo(w * 0.2f, h * 0.85f, w * 0.35f, h * 0.3f, w * 0.55f, h * 0.4f)
+                        cubicTo(w * 0.7f, h * 0.5f, w * 0.85f, h * 0.1f, w, h * 0.2f)
+                    }
+
+                    // Glow line
+                    drawPath(
+                        path = path,
+                        color = brandOrange,
+                        style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+                    )
+
+                    // Target Dot
+                    drawCircle(
+                        color = brandOrange,
+                        radius = 5.dp.toPx(),
+                        center = Offset(w * 0.88f, h * 0.14f)
+                    )
+                }
+            }
+
+            // 3 Metric Stat Cards
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                listOf(40.dp, 65.dp, 55.dp, 90.dp, 80.dp, 115.dp, 130.dp).forEachIndexed { idx, h ->
-                    val isLast = idx == 6
-                    Box(
-                        modifier = Modifier
-                            .width(18.dp)
-                            .height(h)
-                            .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                            .background(
-                                if (isLast) Brush.verticalGradient(listOf(accentColor, accentColor.copy(alpha = 0.4f)))
-                                else Brush.verticalGradient(listOf(accentColor.copy(alpha = 0.35f), accentColor.copy(alpha = 0.1f)))
-                            )
-                    )
-                }
+                MetricStatPill(
+                    icon = Icons.Rounded.CheckCircle,
+                    value = "86",
+                    label = "Solved",
+                    color = brandPurple,
+                    modifier = Modifier.weight(1f)
+                )
+                MetricStatPill(
+                    icon = Icons.Rounded.Timer,
+                    value = "14h 30m",
+                    label = "Study Time",
+                    color = brandPurple,
+                    modifier = Modifier.weight(1.2f)
+                )
+                MetricStatPill(
+                    icon = Icons.Rounded.LocalFireDepartment,
+                    value = "7 Days",
+                    label = "Streak 🔥",
+                    color = brandOrange,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
 }
 
 @Composable
-private fun HeatmapStreakInfographic(accentColor: Color) {
+private fun MetricStatPill(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    value: String,
+    label: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            .border(1.dp, color.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+            .padding(horizontal = 6.dp, vertical = 6.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp), tint = color)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(value, style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 11.sp), color = MaterialTheme.colorScheme.onSurface)
+            Text(label, style = Typography.labelSmall.copy(fontSize = 9.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/**
+ * Slide 5 Infographic: "Everything You Need to Level Up" 4-Grid Showcase (from bottom of reference image)
+ */
+@Composable
+private fun LevelUpFeatureGridInfographic(accentColor: Color) {
+    val brandOrange = Color(0xFFFF6B00)
+    val brandPurple = Color(0xFF7C4DFF)
+    val brandIndigo = Color(0xFF6366F1)
+    val brandCoral = Color(0xFFFF5722)
+
     GlassCard(
         modifier = Modifier
-            .size(220.dp),
-        accentColor = accentColor,
-        cornerRadius = 28.dp
+            .fillMaxWidth()
+            .height(220.dp)
+            .padding(horizontal = 8.dp),
+        accentColor = brandOrange,
+        cornerRadius = 24.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(18.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(12.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Fire badge
+            Text(
+                "Everything you need to level up",
+                style = Typography.labelMedium.copy(fontWeight = FontWeight.Black),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier
-                    .background(Color(0xFFF59E0B).copy(alpha = 0.15f), CircleShape)
-                    .border(1.dp, Color(0xFFF59E0B).copy(alpha = 0.40f), CircleShape)
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    Icons.Rounded.LocalFireDepartment,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = Color(0xFFF59E0B)
+                FeatureGridCard(
+                    icon = Icons.Rounded.CalendarMonth,
+                    title = "Smart Calendar",
+                    desc = "Plan study & contests",
+                    accent = brandPurple,
+                    modifier = Modifier.weight(1f)
                 )
-                Text(
-                    "14 DAYS ACTIVE",
-                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Black),
-                    color = Color(0xFFF59E0B)
+                FeatureGridCard(
+                    icon = Icons.Rounded.TrackChanges,
+                    title = "Goal Tracking",
+                    desc = "Track daily progress",
+                    accent = brandOrange,
+                    modifier = Modifier.weight(1f)
                 )
             }
 
-            // Activity Grid (5x4)
-            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                repeat(4) { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                        repeat(6) { col ->
-                            val level = (row + col) % 5
-                            val cellColor = when (level) {
-                                4 -> Color(0xFF00F579)
-                                3 -> Color(0xFF00C962)
-                                2 -> Color(0xFF006D35)
-                                1 -> Color(0xFF00381B)
-                                else -> Color(0xFF1E293B)
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(cellColor)
-                            )
-                        }
-                    }
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FeatureGridCard(
+                    icon = Icons.Rounded.Code,
+                    title = "Problem Practice",
+                    desc = "Curated algorithms",
+                    accent = brandIndigo,
+                    modifier = Modifier.weight(1f)
+                )
+                FeatureGridCard(
+                    icon = Icons.Rounded.PieChart,
+                    title = "Detailed Analytics",
+                    desc = "Progress & streaks",
+                    accent = brandCoral,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
 }
 
 @Composable
-private fun CalendarAlertsInfographic(accentColor: Color) {
-    GlassCard(
-        modifier = Modifier
-            .size(220.dp),
-        accentColor = accentColor,
-        cornerRadius = 28.dp
+private fun FeatureGridCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    desc: String,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+            .padding(8.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
-            horizontalAlignment = Alignment.CenterHorizontally
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(64.dp)
-                    .background(accentColor.copy(alpha = 0.15f), CircleShape)
-                    .border(1.5.dp, accentColor.copy(alpha = 0.45f), CircleShape),
+                    .size(28.dp)
+                    .background(accent.copy(alpha = 0.18f), RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    Icons.Rounded.NotificationsActive,
-                    contentDescription = null,
-                    modifier = Modifier.size(32.dp),
-                    tint = accentColor
-                )
+                Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = accent)
             }
-
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    "Codeforces Round 950",
-                    style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "Starts in 15 mins",
-                    style = Typography.labelSmall,
-                    color = accentColor
-                )
-            }
-
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            ) {
-                Text(
-                    "✓ Synced with Google Calendar",
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                    style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ResourcesCodeInfographic(accentColor: Color) {
-    GlassCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp)
-            .padding(horizontal = 16.dp),
-        accentColor = accentColor,
-        cornerRadius = 24.dp
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(18.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(modifier = Modifier.size(10.dp).background(Color(0xFFF43F5E), CircleShape))
-                    Box(modifier = Modifier.size(10.dp).background(Color(0xFFF59E0B), CircleShape))
-                    Box(modifier = Modifier.size(10.dp).background(Color(0xFF10B981), CircleShape))
-                }
-                Text(
-                    "roadmap.cpp",
-                    style = Typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    "// Core CP Topics & Templates",
-                    style = Typography.bodySmall.copy(fontSize = 12.sp),
-                    color = accentColor.copy(alpha = 0.8f)
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    TopicChip("Dynamic Programming", accentColor)
-                    TopicChip("Segment Trees", Color(0xFF38BDF8))
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    TopicChip("Graph Flow", Color(0xFF34D399))
-                    TopicChip("Binary Search", Color(0xFFF59E0B))
-                }
+            Column {
+                Text(title, style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1, color = MaterialTheme.colorScheme.onSurface)
+                Text(desc, style = Typography.labelSmall.copy(fontSize = 9.sp), maxLines = 1, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -633,20 +998,3 @@ private fun PlatformTagPill(name: String, color: Color) {
         )
     }
 }
-
-@Composable
-private fun TopicChip(name: String, color: Color) {
-    Surface(
-        shape = RoundedCornerShape(6.dp),
-        color = color.copy(alpha = 0.12f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.30f))
-    ) {
-        Text(
-            text = name,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-            style = Typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
-            color = color
-        )
-    }
-}
-

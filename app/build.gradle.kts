@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.vishal.codecalendar"
+    namespace = "com.vishal.mycodecalendar"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.vishal.codecalendar"
+        applicationId = "com.vishal.mycodecalendar"
         minSdk = 26
         targetSdk = 34
         versionCode = 100

@@ -1,4 +1,4 @@
-package com.vishal.codecalendar
+package com.vishal.mycodecalendar
 
 import android.content.Context
 import android.content.Intent
@@ -12,7 +12,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.*
@@ -23,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -51,10 +51,8 @@ import com.mycodecalendar.feature.platformdetail.PlatformDetailScreen
 import com.mycodecalendar.feature.platforms.AddPlatformScreen
 import com.mycodecalendar.feature.resources.ResourcesScreen
 import com.mycodecalendar.feature.settings.SettingsScreen
-import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.time.Instant
 
 class MainActivity : ComponentActivity() {
 

@@ -1,4 +1,4 @@
-package com.vishal.codecalendar
+package com.vishal.mycodecalendar
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -19,6 +19,6 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("com.vishal.codecalendar", appContext.packageName)
+        assertEquals("com.vishal.mycodecalendar", appContext.packageName)
     }
 }
