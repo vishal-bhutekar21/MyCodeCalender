@@ -413,6 +413,113 @@ fun ContestsScreen(
                             verticalArrangement = Arrangement.spacedBy(14.dp),
                             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 100.dp)
                         ) {
+                            // ── HACKATHONS HERO HEADER ─────────────────────────────
+                            item {
+                                GlassCard(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    accentColor = BrandPrimaryOrange,
+                                    cornerRadius = 22.dp
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(
+                                                androidx.compose.ui.graphics.Brush.linearGradient(
+                                                    listOf(
+                                                        BrandPrimaryOrange.copy(alpha = 0.22f),
+                                                        Color(0xFF1E2235),
+                                                        Color(0xFF0F121C)
+                                                    )
+                                                )
+                                            )
+                                            .padding(18.dp)
+                                    ) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Text("🏆", fontSize = 22.sp)
+                                                Column {
+                                                    Text(
+                                                        text = "Hackathons & Grand Challenges",
+                                                        style = Typography.titleLarge.copy(
+                                                            fontWeight = FontWeight.Black,
+                                                            fontSize = 18.sp,
+                                                            letterSpacing = (-0.3).sp
+                                                        ),
+                                                        color = Color.White
+                                                    )
+                                                    Text(
+                                                        text = "Innovation competitions, prize pools & more",
+                                                        style = Typography.bodySmall.copy(fontSize = 11.5.sp),
+                                                        color = Color.White.copy(alpha = 0.65f)
+                                                    )
+                                                }
+                                            }
+
+                                            // Stats row
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                listOf(
+                                                    Triple("🔥", "${filteredHackathons.size}", "Active Events"),
+                                                    Triple("💰", "₹3L+", "Total Prizes"),
+                                                    Triple("🌐", "Hybrid", "Mode")
+                                                ).forEach { (emoji, value, label) ->
+                                                    Surface(
+                                                        shape = RoundedCornerShape(10.dp),
+                                                        color = Color.White.copy(alpha = 0.08f),
+                                                        modifier = Modifier.weight(1f),
+                                                        border = androidx.compose.foundation.BorderStroke(
+                                                            0.8.dp, Color.White.copy(alpha = 0.18f)
+                                                        )
+                                                    ) {
+                                                        Column(
+                                                            modifier = Modifier.padding(10.dp),
+                                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                                                        ) {
+                                                            Text(text = emoji, fontSize = 16.sp)
+                                                            Text(
+                                                                text = value,
+                                                                style = Typography.titleSmall.copy(fontWeight = FontWeight.Black, fontSize = 14.sp),
+                                                                color = Color.White
+                                                            )
+                                                            Text(
+                                                                text = label,
+                                                                style = Typography.labelSmall.copy(fontSize = 9.5.sp),
+                                                                color = Color.White.copy(alpha = 0.60f)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // Tags row
+                                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                listOf("Applied AI", "Web3", "Offline Finale", "Unstop").forEach { tag ->
+                                                    Surface(
+                                                        shape = RoundedCornerShape(6.dp),
+                                                        color = BrandPrimaryOrange.copy(alpha = 0.20f),
+                                                        border = androidx.compose.foundation.BorderStroke(0.8.dp, BrandPrimaryOrange.copy(alpha = 0.40f))
+                                                    ) {
+                                                        Text(
+                                                            text = tag,
+                                                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                                            style = Typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 10.sp),
+                                                            color = BrandPrimaryOrange
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // ── HACKATHON CARDS ────────────────────────────────────
                             items(filteredHackathons) { hackathon ->
                                 HackathonCard(
                                     hackathon = hackathon,

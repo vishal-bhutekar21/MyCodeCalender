@@ -78,7 +78,8 @@ fun HomeScreen(
     onStreakClick: () -> Unit = {},
     onNotificationClick: (CloudBroadcastBanner) -> Unit = {},
     isRefreshing: Boolean = false,
-    onRefresh: () -> Unit = {}
+    onRefresh: () -> Unit = {},
+    onViewAllNotificationsClick: () -> Unit = {}
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var showStreakModal by remember { mutableStateOf(false) }
@@ -229,20 +230,8 @@ fun HomeScreen(
                         cornerRadius = 24.dp,
                         accentColor = if (cloudBroadcast != null) BrandPrimaryOrange else Color.Transparent,
                         onClick = {
-                            val target = cloudBroadcast ?: CloudBroadcastBanner(
-                                title = "Innovik 6.0 – International Hackathon 2026",
-                                subtitle = "Registrations open for ₹2,00,000 prize pool Hackathon at VITM Indore",
-                                actionUrl = "https://unstop.com",
-                                badge = "HACKATHON",
-                                bannerImageUrl = "",
-                                description = "Welcome to INNOVIK 6.0 – International Hackathon 2026 at Vikrant Institute of Technology and Management, Indore! Compete with top developers across Applied AI, Agentic AI, and smart systems.",
-                                prizePool = "₹ 2,00,000",
-                                location = "VITM Campus, Indore (A.B. Road)",
-                                teamSize = "2 - 4 Members",
-                                timeline = "06 Aug 2026 – 25 Aug 2026",
-                                tags = listOf("Applied AI", "Agentic AI", "Hackathon", "₹2 Lakh Prizes", "Unstop")
-                            )
-                            onNotificationClick(target)
+                            // Navigate to the full Notifications List screen
+                            onViewAllNotificationsClick()
                         }
                     ) {
                         Box(

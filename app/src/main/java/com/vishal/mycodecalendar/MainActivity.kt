@@ -46,6 +46,7 @@ import com.mycodecalendar.feature.home.BroadcastDetailScreen
 import com.mycodecalendar.feature.home.CloudBroadcastBanner
 import com.mycodecalendar.feature.home.HomeScreen
 import com.mycodecalendar.feature.home.HomeViewModel
+import com.mycodecalendar.feature.home.NotificationsListScreen
 import com.mycodecalendar.feature.home.StreakScreen
 import com.mycodecalendar.feature.onboarding.AuthScreen
 import com.mycodecalendar.feature.onboarding.OnboardingScreen
@@ -429,8 +430,25 @@ class MainActivity : ComponentActivity() {
                                         activeBroadcastDetail = broadcastItem
                                         navController.navigate("broadcast_detail")
                                     },
+                                    onViewAllNotificationsClick = {
+                                        navController.navigate("notifications_list")
+                                    },
                                     isRefreshing = isRefreshing,
                                     onRefresh = { homeViewModel.refresh() }
+                                )
+                            }
+
+                            composable("notifications_list") {
+                                NotificationsListScreen(
+                                    onBackClick = { navController.popBackStack() },
+                                    onNotificationClick = { appNotif ->
+                                        if (appNotif.broadcast != null) {
+                                            activeBroadcastDetail = appNotif.broadcast
+                                            navController.navigate("broadcast_detail")
+                                        } else if (appNotif.actionUrl.isNotBlank()) {
+                                            openUrl(appNotif.actionUrl)
+                                        }
+                                    }
                                 )
                             }
 
