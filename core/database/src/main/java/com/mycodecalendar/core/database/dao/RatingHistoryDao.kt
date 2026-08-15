@@ -20,4 +20,7 @@ interface RatingHistoryDao {
 
     @Query("DELETE FROM rating_history WHERE platform = :platform AND username = :username")
     suspend fun deleteHistory(platform: String, username: String)
+
+    @Query("DELETE FROM rating_history")
+    suspend fun deleteAllHistory()
 }

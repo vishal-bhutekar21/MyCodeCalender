@@ -41,7 +41,7 @@ import java.time.temporal.TemporalAdjusters
  * - Returns an empty list if no platform accounts are connected, triggering the UI guidance card.
  */
 class FakeRepository(
-    context: Context? = null,
+    private val context: Context? = null,
     private val db: MyCodeCalendarDatabase? = null
 ) {
 
@@ -1061,7 +1061,7 @@ class FakeRepository(
         )
     }
 
-    private fun fetchFallbackGitHubStats(username: String) {
+    private suspend fun fetchFallbackGitHubStats(username: String) {
         val cachedGh = db?.gitHubStatsDao()?.getGitHubStats(username)
         if (cachedGh != null) {
             gitHubStatsFlow.value = cachedGh.toDomain(jsonSerializer)
@@ -1168,8 +1168,8 @@ class FakeRepository(
 
         scope.launch {
             try {
-                db?.platformStatsDao()?.clearAll()
-                db?.ratingHistoryDao()?.clearAll()
+                db?.platformStatsDao()?.deleteAllStats()
+                db?.ratingHistoryDao()?.deleteAllHistory()
                 db?.gitHubStatsDao()?.clearAll()
             } catch (_: Exception) {}
         }
