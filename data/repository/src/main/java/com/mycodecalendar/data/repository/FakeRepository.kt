@@ -1445,6 +1445,21 @@ private val samplePastContests = listOf(
 
 private val fallbackContests = listOf(
     Contest(
+        id = "innovik-6-hackathon-2026",
+        providerContestId = "innovik-6",
+        platform = Platform.CODEFORCES,
+        name = "Innovik 6.0 – International Hackathon 2026 (Agentic AI) [₹2,00,000 Prizes]",
+        officialUrl = "https://unstop.com",
+        registrationUrl = "https://unstop.com",
+        startTimeUtc = Instant.now().plusSeconds(3600 * 4),
+        endTimeUtc = Instant.now().plusSeconds(3600 * 28),
+        durationSeconds = 86400L,
+        contestType = "International Hackathon",
+        ratingType = "₹2,00,000 Prize Pool · Offline VITM Indore",
+        status = ContestStatus.UPCOMING,
+        lastFetchedAt = Instant.now()
+    ),
+    Contest(
         id = "cf-fallback-1",
         providerContestId = "2071",
         platform = Platform.CODEFORCES,
