@@ -42,6 +42,8 @@ import com.mycodecalendar.domain.model.Platform
 import com.mycodecalendar.domain.model.PlatformAccount
 import com.mycodecalendar.feature.contestdetail.ContestDetailScreen
 import com.mycodecalendar.feature.contests.ContestsScreen
+import com.mycodecalendar.feature.home.BroadcastDetailScreen
+import com.mycodecalendar.feature.home.CloudBroadcastBanner
 import com.mycodecalendar.feature.home.HomeScreen
 import com.mycodecalendar.feature.home.HomeViewModel
 import com.mycodecalendar.feature.home.StreakScreen
@@ -123,6 +125,7 @@ class MainActivity : ComponentActivity() {
                 val termsAccepted = remember { authPrefs.getBoolean("terms_accepted", false) }
                 var isLoggedIn by remember { mutableStateOf(authPrefs.getBoolean("is_logged_in", false)) }
                 var showAuthRequiredModal by remember { mutableStateOf(false) }
+                var activeBroadcastDetail by remember { mutableStateOf<CloudBroadcastBanner?>(null) }
 
                 val currentFirebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
                 val activeUserName = remember(authUsername, currentFirebaseUser?.displayName, currentFirebaseUser?.email) {
@@ -413,8 +416,20 @@ class MainActivity : ComponentActivity() {
                                     onViewAllContestsClick = { navController.navigate("contests") },
                                     onResourceClick = { url -> openUrl(url) },
                                     onStreakClick = { navController.navigate("streak") },
+                                    onNotificationClick = { broadcastItem ->
+                                        activeBroadcastDetail = broadcastItem
+                                        navController.navigate("broadcast_detail")
+                                    },
                                     isRefreshing = isRefreshing,
                                     onRefresh = { homeViewModel.refresh() }
+                                )
+                            }
+
+                            composable("broadcast_detail") {
+                                BroadcastDetailScreen(
+                                    broadcast = activeBroadcastDetail,
+                                    onBackClick = { navController.popBackStack() },
+                                    onOpenUrl = { url -> openUrl(url) }
                                 )
                             }
 

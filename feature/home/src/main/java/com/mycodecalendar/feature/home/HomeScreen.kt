@@ -47,10 +47,18 @@ import java.time.Instant
 import java.time.LocalTime
 
 data class CloudBroadcastBanner(
-    val title: String,
-    val subtitle: String,
-    val actionUrl: String,
-    val badge: String
+    val id: String = "",
+    val title: String = "",
+    val subtitle: String = "",
+    val actionUrl: String = "",
+    val badge: String = "NOTICE",
+    val bannerImageUrl: String = "",
+    val description: String = "",
+    val prizePool: String = "₹2,00,000",
+    val location: String = "VITM Indore Campus",
+    val teamSize: String = "2 - 4 Members",
+    val timeline: String = "06 Aug 2026 – 25 Aug 2026",
+    val tags: List<String> = listOf("Applied AI", "Agentic AI", "Hackathon", "₹2 Lakh Prizes", "Unstop")
 )
 
 /**
@@ -68,11 +76,14 @@ fun HomeScreen(
     onViewAllContestsClick: () -> Unit,
     onResourceClick: (String) -> Unit,
     onStreakClick: () -> Unit = {},
+    onNotificationClick: (CloudBroadcastBanner) -> Unit = {},
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {}
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var showStreakModal by remember { mutableStateOf(false) }
+    var cloudBroadcast by remember { mutableStateOf<CloudBroadcastBanner?>(null) }
+    var isBroadcastDismissed by remember { mutableStateOf(false) }
 
     // Auto-show streak modal ONLY on a genuine new-day increment, and only once per calendar day
     LaunchedEffect(uiState.streakInfo?.isNewDayIncrement) {
@@ -213,6 +224,53 @@ fun HomeScreen(
                         }
                     }
 
+                    // ── GLASS NOTIFICATION BELL (BETWEEN STREAK AND REFRESH) ──
+                    GlassCard(
+                        cornerRadius = 24.dp,
+                        accentColor = if (cloudBroadcast != null) BrandPrimaryOrange else Color.Transparent,
+                        onClick = {
+                            val target = cloudBroadcast ?: CloudBroadcastBanner(
+                                title = "Innovik 6.0 – International Hackathon 2026",
+                                subtitle = "Registrations open for ₹2,00,000 prize pool Hackathon at VITM Indore",
+                                actionUrl = "https://unstop.com",
+                                badge = "HACKATHON",
+                                bannerImageUrl = "",
+                                description = "Welcome to INNOVIK 6.0 – International Hackathon 2026 at Vikrant Institute of Technology and Management, Indore! Compete with top developers across Applied AI, Agentic AI, and smart systems.",
+                                prizePool = "₹ 2,00,000",
+                                location = "VITM Campus, Indore (A.B. Road)",
+                                teamSize = "2 - 4 Members",
+                                timeline = "06 Aug 2026 – 25 Aug 2026",
+                                tags = listOf("Applied AI", "Agentic AI", "Hackathon", "₹2 Lakh Prizes", "Unstop")
+                            )
+                            onNotificationClick(target)
+                        }
+                    ) {
+                        Box(
+                            modifier = Modifier.size(42.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Rounded.Notifications,
+                                contentDescription = "Notifications & Broadcasts",
+                                modifier = Modifier.size(19.dp),
+                                tint = if (cloudBroadcast != null && !isBroadcastDismissed) BrandPrimaryOrange
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            // Glowing notification dot
+                            if (cloudBroadcast != null) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(top = 9.dp, end = 9.dp)
+                                        .size(7.dp)
+                                        .background(BrandPrimaryOrange, CircleShape)
+                                        .border(1.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                                )
+                            }
+                        }
+                    }
+
                     // Refresh FAB
                     GlassCard(
                         cornerRadius = 24.dp,
@@ -237,9 +295,6 @@ fun HomeScreen(
             }
 
             // ── DYNAMIC LIVE CLOUD BROADCAST (Web Admin CMS) ───────────────────
-            var cloudBroadcast by remember { mutableStateOf<CloudBroadcastBanner?>(null) }
-            var isBroadcastDismissed by remember { mutableStateOf(false) }
-
             LaunchedEffect(Unit) {
                 try {
                     com.google.firebase.firestore.FirebaseFirestore.getInstance()
@@ -254,8 +309,29 @@ fun HomeScreen(
                                 val subtitle = doc.getString("message") ?: doc.getString("subtitle") ?: ""
                                 val actionUrl = doc.getString("actionUrl") ?: ""
                                 val badge = doc.getString("badge") ?: "NOTICE"
+                                val bannerImageUrl = doc.getString("bannerImageUrl") ?: ""
+                                val description = doc.getString("description") ?: ""
+                                val prizePool = doc.getString("prizePool") ?: "₹ 2,00,000"
+                                val location = doc.getString("location") ?: "VITM Indore Campus"
+                                val teamSize = doc.getString("teamSize") ?: "2 - 4 Members"
+                                val timeline = doc.getString("timeline") ?: "06 Aug 2026 – 25 Aug 2026"
+                                val tags = (doc.get("tags") as? List<*>)?.mapNotNull { it?.toString() }
+                                    ?: listOf("Applied AI", "Agentic AI", "Hackathon", "₹2 Lakh Prizes", "Unstop")
                                 if (title.isNotBlank()) {
-                                    cloudBroadcast = CloudBroadcastBanner(title, subtitle, actionUrl, badge)
+                                    cloudBroadcast = CloudBroadcastBanner(
+                                        id = doc.id,
+                                        title = title,
+                                        subtitle = subtitle,
+                                        actionUrl = actionUrl,
+                                        badge = badge,
+                                        bannerImageUrl = bannerImageUrl,
+                                        description = description,
+                                        prizePool = prizePool,
+                                        location = location,
+                                        teamSize = teamSize,
+                                        timeline = timeline,
+                                        tags = tags
+                                    )
                                 }
                             }
                         }
@@ -265,7 +341,7 @@ fun HomeScreen(
             }
 
             if (cloudBroadcast != null && !isBroadcastDismissed) {
-                val (bTitle, bSubtitle, bUrl, bBadge) = cloudBroadcast!!
+                val currentBroadcast = cloudBroadcast!!
                 GlassCard(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -273,7 +349,7 @@ fun HomeScreen(
                     cornerRadius = 18.dp,
                     accentColor = BrandPrimaryOrange,
                     onClick = {
-                        if (bUrl.isNotBlank()) onResourceClick(bUrl)
+                        onNotificationClick(currentBroadcast)
                     }
                 ) {
                     Row(
@@ -308,24 +384,24 @@ fun HomeScreen(
                                     color = BrandPrimaryOrange.copy(alpha = 0.20f)
                                 ) {
                                     Text(
-                                        text = bBadge.uppercase(),
+                                        text = currentBroadcast.badge.uppercase(),
                                         style = Typography.labelSmall.copy(fontSize = 8.5.sp, fontWeight = FontWeight.Black),
                                         color = BrandPrimaryOrange,
                                         modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
                                     )
                                 }
                                 Text(
-                                    text = bTitle,
+                                    text = currentBroadcast.title,
                                     style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 13.5.sp),
                                     color = MaterialTheme.colorScheme.onSurface,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
-                            if (bSubtitle.isNotBlank()) {
+                            if (currentBroadcast.subtitle.isNotBlank()) {
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = bSubtitle,
+                                    text = currentBroadcast.subtitle,
                                     style = Typography.bodySmall.copy(fontSize = 11.sp),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f),
                                     maxLines = 2,
