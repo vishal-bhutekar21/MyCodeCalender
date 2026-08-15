@@ -201,18 +201,27 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
 
-                            // 3. Fetch connected accounts
+                            // 3. Fetch and auto-restore connected accounts from cloud
                             CloudAdminSyncService.fetchConnectedAccountsFromCloud(
                                 uid = uid,
                                 onSuccess = { cloudAccounts: Map<String, String> ->
+                                    var restoredCount = 0
                                     for ((pName, handle) in cloudAccounts) {
                                         val platform = runCatching { Platform.valueOf(pName.uppercase(java.util.Locale.ROOT)) }.getOrNull()
                                         if (platform != null && handle.isNotBlank()) {
                                             val existing = connectedAccounts.find { it.platform == platform }
                                             if (existing == null || existing.username != handle) {
                                                 repository.addPlatformAccount(platform, handle)
+                                                restoredCount++
                                             }
                                         }
+                                    }
+                                    if (restoredCount > 0) {
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "✓ Restored $restoredCount handles from your cloud profile",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                                 }
                             )
@@ -476,11 +485,15 @@ class MainActivity : ComponentActivity() {
                                     onAddPlatform = { platform, username ->
                                         repository.addPlatformAccount(platform, username)
                                         val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-                                        CloudAdminSyncService.saveConnectedAccountToCloud(
-                                            uid = uid,
-                                            platform = platform.name,
-                                            username = username
-                                        )
+                                            ?: authEmail?.replace(".", "_")
+                                        if (!uid.isNullOrBlank()) {
+                                            CloudAdminSyncService.saveConnectedAccountToCloud(
+                                                uid = uid,
+                                                platform = platform.name,
+                                                username = username
+                                            )
+                                        }
+                                        Toast.makeText(this@MainActivity, "✓ ${platform.name} handle saved & synced to cloud", Toast.LENGTH_SHORT).show()
                                     },
                                     onValidateHandle = { platform, username ->
                                         repository.validateHandle(platform, username)
@@ -488,10 +501,14 @@ class MainActivity : ComponentActivity() {
                                     onRemovePlatform = { platform ->
                                         repository.removePlatformAccount(platform)
                                         val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-                                        CloudAdminSyncService.deleteConnectedAccountFromCloud(
-                                            uid = uid,
-                                            platform = platform.name
-                                        )
+                                            ?: authEmail?.replace(".", "_")
+                                        if (!uid.isNullOrBlank()) {
+                                            CloudAdminSyncService.deleteConnectedAccountFromCloud(
+                                                uid = uid,
+                                                platform = platform.name
+                                            )
+                                        }
+                                        Toast.makeText(this@MainActivity, "Removed ${platform.name} handle", Toast.LENGTH_SHORT).show()
                                     },
                                     onBackClick = { navController.popBackStack() }
                                 )

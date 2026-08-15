@@ -259,7 +259,7 @@ object CloudAdminSyncService {
         )
 
         firestore.collection("users").document(targetUid)
-            .collection("connected_accounts").document(platform)
+            .collection("connected_accounts").document(platform.uppercase(java.util.Locale.ROOT))
             .set(accountData, com.google.firebase.firestore.SetOptions.merge())
             .addOnSuccessListener {
                 Log.d(TAG, "Successfully synced $platform ($username) to cloud for $targetUid")
@@ -268,9 +268,10 @@ object CloudAdminSyncService {
                 Log.w(TAG, "Failed to sync $platform account to cloud: ${e.message}")
             }
 
-        // Also update the summary map in the user document
+        // Also update the summary map and connectedPlatforms array in the user document
         val summaryUpdate = hashMapOf<String, Any>(
-            "connectedAccountsMap.$platform" to username,
+            "connectedAccountsMap.${platform.lowercase(java.util.Locale.ROOT)}" to username,
+            "connectedPlatforms" to FieldValue.arrayUnion(platform.uppercase(java.util.Locale.ROOT)),
             "lastSyncedAt" to FieldValue.serverTimestamp()
         )
         firestore.collection("users").document(targetUid)
@@ -278,7 +279,13 @@ object CloudAdminSyncService {
             .addOnFailureListener {
                 // If document does not exist yet, set with merge
                 firestore.collection("users").document(targetUid)
-                    .set(hashMapOf("connectedAccountsMap" to mapOf(platform to username)), com.google.firebase.firestore.SetOptions.merge())
+                    .set(
+                        hashMapOf(
+                            "connectedAccountsMap" to mapOf(platform.lowercase(java.util.Locale.ROOT) to username),
+                            "connectedPlatforms" to listOf(platform.uppercase(java.util.Locale.ROOT))
+                        ),
+                        com.google.firebase.firestore.SetOptions.merge()
+                    )
             }
     }
 
@@ -296,7 +303,7 @@ object CloudAdminSyncService {
         if (targetUid.isBlank()) return
 
         firestore.collection("users").document(targetUid)
-            .collection("connected_accounts").document(platform)
+            .collection("connected_accounts").document(platform.uppercase(java.util.Locale.ROOT))
             .delete()
             .addOnSuccessListener {
                 Log.d(TAG, "Deleted $platform account from cloud for $targetUid")
@@ -306,7 +313,12 @@ object CloudAdminSyncService {
             }
 
         firestore.collection("users").document(targetUid)
-            .update("connectedAccountsMap.$platform", FieldValue.delete())
+            .update(
+                mapOf(
+                    "connectedAccountsMap.${platform.lowercase(java.util.Locale.ROOT)}" to FieldValue.delete(),
+                    "connectedPlatforms" to FieldValue.arrayRemove(platform.uppercase(java.util.Locale.ROOT))
+                )
+            )
             .addOnFailureListener { /* Non-fatal */ }
     }
 
@@ -331,46 +343,51 @@ object CloudAdminSyncService {
             return
         }
 
-        // First check the connected_accounts subcollection
+        // Fetch from user document first, then enrich with subcollection
         firestore.collection("users").document(targetUid)
-            .collection("connected_accounts")
             .get()
-            .addOnSuccessListener { snapshot ->
-                val result = mutableMapOf<String, String>()
-                for (doc in snapshot.documents) {
-                    val platform = doc.getString("platform") ?: doc.id
-                    val username = doc.getString("username")
-                    if (!username.isNullOrBlank()) {
-                        result[platform] = username
-                    }
+            .addOnSuccessListener { userDoc ->
+                val combined = mutableMapOf<String, String>()
+                @Suppress("UNCHECKED_CAST")
+                val docMap = (userDoc.get("connectedAccountsMap") as? Map<String, String>) ?: emptyMap()
+                for ((k, v) in docMap) {
+                    if (v.isNotBlank()) combined[k.uppercase(java.util.Locale.ROOT)] = v
                 }
 
-                if (result.isNotEmpty()) {
-                    Log.d(TAG, "Fetched ${result.size} accounts from cloud for $targetUid")
-                    onSuccess(result)
-                } else {
-                    // Fallback to reading the user document connectedAccountsMap
-                    firestore.collection("users").document(targetUid)
-                        .get()
-                        .addOnSuccessListener { userDoc ->
-                            @Suppress("UNCHECKED_CAST")
-                            val map = (userDoc.get("connectedAccountsMap") as? Map<String, String>) ?: emptyMap()
-                            onSuccess(map)
+                // Also check connected_accounts subcollection
+                firestore.collection("users").document(targetUid)
+                    .collection("connected_accounts")
+                    .get()
+                    .addOnSuccessListener { snapshot ->
+                        for (doc in snapshot.documents) {
+                            val platform = (doc.getString("platform") ?: doc.id).uppercase(java.util.Locale.ROOT)
+                            val username = doc.getString("username")
+                            if (!username.isNullOrBlank()) {
+                                combined[platform] = username
+                            }
                         }
-                        .addOnFailureListener { e ->
-                            onError(e)
-                        }
-                }
+                        Log.d(TAG, "Fetched ${combined.size} accounts from cloud for $targetUid")
+                        onSuccess(combined)
+                    }
+                    .addOnFailureListener {
+                        onSuccess(combined)
+                    }
             }
             .addOnFailureListener { e ->
-                Log.w(TAG, "Failed to fetch accounts subcollection, trying user doc: ${e.message}")
-                // Fallback to user document
+                Log.w(TAG, "Failed to read user doc, attempting subcollection: ${e.message}")
                 firestore.collection("users").document(targetUid)
+                    .collection("connected_accounts")
                     .get()
-                    .addOnSuccessListener { userDoc ->
-                        @Suppress("UNCHECKED_CAST")
-                        val map = (userDoc.get("connectedAccountsMap") as? Map<String, String>) ?: emptyMap()
-                        onSuccess(map)
+                    .addOnSuccessListener { snapshot ->
+                        val result = mutableMapOf<String, String>()
+                        for (doc in snapshot.documents) {
+                            val platform = (doc.getString("platform") ?: doc.id).uppercase(java.util.Locale.ROOT)
+                            val username = doc.getString("username")
+                            if (!username.isNullOrBlank()) {
+                                result[platform] = username
+                            }
+                        }
+                        onSuccess(result)
                     }
                     .addOnFailureListener { err ->
                         onError(err)

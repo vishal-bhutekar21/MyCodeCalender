@@ -73,32 +73,49 @@ fun ResourcesScreen(
         try {
             FirebaseFirestore.getInstance()
                 .collection("featured_materials")
-                .whereEqualTo("isActive", true)
-                .orderBy("priority", Query.Direction.ASCENDING)
                 .get()
                 .addOnSuccessListener { snapshot ->
                     val cloudItems = snapshot.documents.mapNotNull { doc ->
                         try {
+                            val isActive = doc.getBoolean("isActive") ?: true
+                            if (!isActive) return@mapNotNull null
+
+                            val rawPriority = doc.get("priority")
+                            val priorityVal = when (rawPriority) {
+                                is Number -> rawPriority.toInt()
+                                is String -> rawPriority.toIntOrNull() ?: 1
+                                else -> 1
+                            }
+
+                            val rawUrl = doc.getString("redirectUrl") ?: doc.getString("url") ?: ""
+                            val rawCategory = doc.getString("category") ?: "DSA & CP Sheets"
+                            val rawTitle = doc.getString("title") ?: ""
+                            if (rawTitle.isBlank()) return@mapNotNull null
+
                             Resource(
                                 id = "cloud_${doc.id}",
-                                title = doc.getString("title") ?: "",
+                                title = rawTitle,
                                 description = doc.getString("description"),
-                                creator = "Featured CMS",
-                                url = doc.getString("redirectUrl") ?: "",
-                                category = doc.getString("category") ?: "DSA & CP Sheets",
+                                creator = doc.getString("creator") ?: "Featured Sheet",
+                                url = rawUrl,
+                                category = rawCategory,
                                 platform = null,
-                                duration = null,
-                                priority = doc.getLong("priority")?.toInt() ?: 1,
-                                thumbnailUrl = doc.getString("imageUrl"),
+                                duration = doc.getString("duration"),
+                                priority = priorityVal,
+                                thumbnailUrl = doc.getString("imageUrl") ?: doc.getString("thumbnailUrl"),
                                 publishedAt = null
                             )
                         } catch (e: Exception) {
                             null
                         }
-                    }
+                    }.sortedBy { it.priority }
+
                     if (cloudItems.isNotEmpty()) {
                         cloudMaterials = cloudItems
                     }
+                }
+                .addOnFailureListener { e ->
+                    android.util.Log.w("ResourcesScreen", "Failed to fetch cloud materials: ${e.message}")
                 }
         } catch (e: Exception) {
             // Non-blocking fallback
@@ -129,7 +146,7 @@ fun ResourcesScreen(
                 null, "All" -> true
                 "AI & ML" -> res.category.contains("AI", ignoreCase = true) || res.category.contains("ML", ignoreCase = true)
                 "YouTube Playlists" -> res.category.contains("YouTube", ignoreCase = true) || res.url.contains("youtube") || res.url.contains("youtu.be")
-                "DSA & CP Sheets" -> res.category.contains("DSA", ignoreCase = true) || res.category.contains("CP", ignoreCase = true)
+                "DSA & CP Sheets" -> res.category.contains("DSA", ignoreCase = true) || res.category.contains("CP", ignoreCase = true) || res.category.contains("Sheet", ignoreCase = true)
                 "System Design" -> res.category.contains("System", ignoreCase = true)
                 else -> res.category.equals(selectedCategory, ignoreCase = true)
             }
@@ -143,8 +160,33 @@ fun ResourcesScreen(
     var selectedMainTab by remember { mutableStateOf(0) } // 0 = Guides & Roadmaps, 1 = Practice Problem Sets
     var selectedProblemPlatform by remember { mutableStateOf("All") }
 
-    val filteredPracticeSheets = remember(searchQuery, selectedProblemPlatform) {
-        curatedPracticeSheets.filter { sheet ->
+    val allPracticeSheets = remember(cloudMaterials) {
+        val cloudSheets = cloudMaterials.map { res ->
+            val detectedPlatform = when {
+                res.title.contains("LeetCode", ignoreCase = true) || res.url.contains("leetcode") -> Platform.LEETCODE
+                res.title.contains("Codeforces", ignoreCase = true) || res.url.contains("codeforces") -> Platform.CODEFORCES
+                res.title.contains("AtCoder", ignoreCase = true) || res.url.contains("atcoder") -> Platform.ATCODER
+                res.title.contains("Geeks", ignoreCase = true) || res.url.contains("geeksforgeeks") -> Platform.GEEKSFORGEEKS
+                res.title.contains("CodeChef", ignoreCase = true) || res.url.contains("codechef") -> Platform.CODECHEF
+                else -> Platform.LEETCODE
+            }
+            TopPracticeSheet(
+                id = res.id,
+                title = res.title,
+                description = res.description ?: "Curated elite practice sheet featuring topic-wise problem sets and interview roadmaps.",
+                problemCount = res.duration ?: "Featured Sheet",
+                platform = detectedPlatform,
+                platformName = res.creator ?: "Featured Practice",
+                url = res.url,
+                tags = listOf("Featured", res.category.take(16), "Top Practice"),
+                difficulty = "Curated Practice"
+            )
+        }
+        (cloudSheets + curatedPracticeSheets).distinctBy { it.url.ifBlank { it.id } }
+    }
+
+    val filteredPracticeSheets = remember(allPracticeSheets, searchQuery, selectedProblemPlatform) {
+        allPracticeSheets.filter { sheet ->
             val matchesQuery = searchQuery.isBlank() ||
                 sheet.title.contains(searchQuery, ignoreCase = true) ||
                 sheet.description.contains(searchQuery, ignoreCase = true) ||
