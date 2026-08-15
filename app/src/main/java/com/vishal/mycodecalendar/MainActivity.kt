@@ -175,12 +175,17 @@ class MainActivity : ComponentActivity() {
                             ?: authEmail?.replace(".", "_")
                         if (!uid.isNullOrBlank()) {
                             // 1. Sync User Profile in Firestore
+                            val connMap = connectedAccounts.associate { it.platform.name.lowercase() to it.username }
+                            val currentStreak = streakInfo?.currentStreak ?: 0
                             CloudAdminSyncService.syncUserProfileToCloud(
                                 uid = uid,
                                 displayName = activeUserName ?: "Developer",
-                                method = authMethod ?: "Email/Google",
+                                method = authMethod ?: "Google",
                                 email = authEmail,
-                                photoUrl = authAvatar
+                                photoUrl = authAvatar,
+                                connectedPlatforms = connectedAccounts.map { it.platform.name },
+                                connectedAccountsMap = connMap,
+                                currentStreak = currentStreak
                             )
 
                             // 2. Fetch and merge cloud streak
@@ -323,13 +328,19 @@ class MainActivity : ComponentActivity() {
                                         try {
                                             val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
                                                 ?: email?.replace(".", "_")
+                                                ?: user.replace(" ", "_")
                                             if (!currentUid.isNullOrBlank()) {
+                                                val connMap = connectedAccounts.associate { it.platform.name.lowercase() to it.username }
+                                                val currentStreak = streakInfo?.currentStreak ?: 0
                                                 CloudAdminSyncService.syncUserProfileToCloud(
                                                     uid = currentUid,
                                                     displayName = user,
                                                     method = method,
                                                     email = email,
-                                                    photoUrl = photoUrl
+                                                    photoUrl = photoUrl,
+                                                    connectedPlatforms = connectedAccounts.map { it.platform.name },
+                                                    connectedAccountsMap = connMap,
+                                                    currentStreak = currentStreak
                                                 )
                                                 // Fetch and merge user streak from cloud
                                                 CloudAdminSyncService.fetchUserStreakFromCloud(

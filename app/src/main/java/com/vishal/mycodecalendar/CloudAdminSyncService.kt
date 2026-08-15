@@ -99,29 +99,35 @@ object CloudAdminSyncService {
         method: String,
         email: String?,
         photoUrl: String?,
-        connectedPlatforms: List<String> = emptyList()
+        connectedPlatforms: List<String> = emptyList(),
+        connectedAccountsMap: Map<String, String> = emptyMap(),
+        currentStreak: Int = 0
     ) {
         val targetUid = uid?.ifBlank { null } ?: email?.replace(".", "_") ?: displayName.replace(" ", "_")
         if (targetUid.isBlank()) return
 
-        val userData = hashMapOf(
+        val userData = hashMapOf<String, Any>(
             "uid" to targetUid,
             "displayName" to displayName,
             "authProvider" to method,
             "email" to (email ?: ""),
             "photoUrl" to (photoUrl ?: ""),
             "connectedPlatforms" to connectedPlatforms,
+            "connectedAccountsMap" to connectedAccountsMap,
+            "currentStreak" to currentStreak,
+            "streakCount" to currentStreak,
             "lastLoginAt" to FieldValue.serverTimestamp(),
+            "updatedAt" to FieldValue.serverTimestamp(),
             "appVersion" to "1.0.0"
         )
 
         firestore.collection("users").document(targetUid)
             .set(userData, com.google.firebase.firestore.SetOptions.merge())
             .addOnSuccessListener {
-                Log.d(TAG, "Successfully synced user profile for $displayName to Firestore.")
+                Log.d(TAG, "Successfully synced user profile for $displayName ($method) to Firestore.")
             }
             .addOnFailureListener { e ->
-                Log.w(TAG, "Failed to sync user profile to Firestore (Offline / Rules): ${e.message}")
+                Log.w(TAG, "Failed to sync user profile to Firestore: ${e.message}")
             }
     }
 
