@@ -46,6 +46,13 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalTime
 
+data class CloudBroadcastBanner(
+    val title: String,
+    val subtitle: String,
+    val actionUrl: String,
+    val badge: String
+)
+
 /**
  * HomeScreen — Primary dashboard of MyCodeCalendar.
  */
@@ -230,7 +237,7 @@ fun HomeScreen(
             }
 
             // ── DYNAMIC LIVE CLOUD BROADCAST (Web Admin CMS) ───────────────────
-            var cloudBroadcast by remember { mutableStateOf<Triple<String, String, String>?>(null) }
+            var cloudBroadcast by remember { mutableStateOf<CloudBroadcastBanner?>(null) }
             var isBroadcastDismissed by remember { mutableStateOf(false) }
 
             LaunchedEffect(Unit) {
@@ -244,10 +251,11 @@ fun HomeScreen(
                             val doc = snapshot.documents.firstOrNull()
                             if (doc != null) {
                                 val title = doc.getString("title") ?: ""
-                                val subtitle = doc.getString("subtitle") ?: ""
+                                val subtitle = doc.getString("message") ?: doc.getString("subtitle") ?: ""
                                 val actionUrl = doc.getString("actionUrl") ?: ""
+                                val badge = doc.getString("badge") ?: "NOTICE"
                                 if (title.isNotBlank()) {
-                                    cloudBroadcast = Triple(title, subtitle, actionUrl)
+                                    cloudBroadcast = CloudBroadcastBanner(title, subtitle, actionUrl, badge)
                                 }
                             }
                         }
@@ -257,7 +265,7 @@ fun HomeScreen(
             }
 
             if (cloudBroadcast != null && !isBroadcastDismissed) {
-                val (bTitle, bSubtitle, bUrl) = cloudBroadcast!!
+                val (bTitle, bSubtitle, bUrl, bBadge) = cloudBroadcast!!
                 GlassCard(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -300,7 +308,7 @@ fun HomeScreen(
                                     color = BrandPrimaryOrange.copy(alpha = 0.20f)
                                 ) {
                                     Text(
-                                        text = "NOTICE",
+                                        text = bBadge.uppercase(),
                                         style = Typography.labelSmall.copy(fontSize = 8.5.sp, fontWeight = FontWeight.Black),
                                         color = BrandPrimaryOrange,
                                         modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
