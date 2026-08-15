@@ -83,7 +83,7 @@ fun PlatformBadge(
         modifier = modifier
             .clip(CircleShape)
             .background(bgFill)
-            .border(0.3.dp, borderColor, CircleShape)
+            .border(0.1.dp, borderColor, CircleShape)
             .padding(horizontal = hPad, vertical = vPad),
         verticalAlignment = Alignment.CenterVertically
     ) {

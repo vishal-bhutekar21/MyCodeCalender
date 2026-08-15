@@ -100,7 +100,7 @@ fun GlassCard(
             drawRect(brush = highlightBrush)
         }
         .border(
-            width = 1.dp,
+            width = 0.1.dp,
             brush = borderBrush,
             shape = shape
         )
@@ -150,7 +150,7 @@ fun GlassChip(
         modifier = modifier
             .clip(CircleShape)
             .background(bgColor)
-            .border(0.3.dp, borderColor, CircleShape)
+            .border(0.1.dp, borderColor, CircleShape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = rememberRipple(bounded = true, color = accentColor),

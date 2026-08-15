@@ -189,7 +189,7 @@ fun ResourcesScreen(
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = BrandPrimaryOrange.copy(alpha = 0.15f),
-                        border = BorderStroke(0.3.dp, BrandPrimaryOrange.copy(alpha = 0.35f))
+                        border = BorderStroke(0.1.dp, BrandPrimaryOrange.copy(alpha = 0.35f))
                     ) {
                         Text(
                             text = if (selectedMainTab == 0) "${filteredResources.size} Guides" else "${filteredPracticeSheets.size} Sheets",
@@ -290,7 +290,7 @@ fun ResourcesScreen(
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
                                 color = BrandPurpleAccent.copy(alpha = 0.15f),
-                                border = BorderStroke(0.3.dp, BrandPurpleAccent.copy(alpha = 0.4f))
+                                border = BorderStroke(0.1.dp, BrandPurpleAccent.copy(alpha = 0.4f))
                             ) {
                                 Text(
                                     text = selectedCreator ?: "",
@@ -412,7 +412,7 @@ private fun CategoryPill(
         modifier = Modifier
             .clip(CircleShape)
             .background(bgColor)
-            .border(0.3.dp, borderColor, CircleShape)
+            .border(0.1.dp, borderColor, CircleShape)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 7.dp),
         contentAlignment = Alignment.Center
@@ -441,7 +441,7 @@ private fun CategoryPill(
 }
 
 /**
- * Refined Resource Card — Ultra-minimal, modern layout with 0.3.dp card border.
+ * Refined Resource Card — Ultra-minimal, modern layout with 0.1.dp card border.
  */
 @Composable
 private fun RefinedResourceCard(
@@ -463,7 +463,7 @@ private fun RefinedResourceCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .border(0.3.dp, badgeColor.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
+            .border(0.1.dp, badgeColor.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
     ) {
         GlassCard(
             modifier = Modifier.fillMaxWidth(),
@@ -486,7 +486,7 @@ private fun RefinedResourceCard(
                         modifier = Modifier
                             .size(50.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .border(0.3.dp, badgeColor.copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
+                            .border(0.1.dp, badgeColor.copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
                         contentScale = ContentScale.Crop
                     )
                 } else {
@@ -495,7 +495,7 @@ private fun RefinedResourceCard(
                             .size(46.dp)
                             .clip(RoundedCornerShape(14.dp))
                             .background(badgeColor.copy(alpha = 0.12f))
-                            .border(0.3.dp, badgeColor.copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
+                            .border(0.1.dp, badgeColor.copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -645,7 +645,7 @@ private fun ResourceDetailBottomSheet(
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = badgeColor.copy(alpha = 0.15f),
-                        border = BorderStroke(0.3.dp, badgeColor.copy(alpha = 0.4f))
+                        border = BorderStroke(0.1.dp, badgeColor.copy(alpha = 0.4f))
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -671,7 +671,7 @@ private fun ResourceDetailBottomSheet(
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        border = BorderStroke(0.3.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                        border = BorderStroke(0.1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                     ) {
                         Text(
                             text = dur,
@@ -745,7 +745,7 @@ private fun ResourceDetailBottomSheet(
                         .weight(1f)
                         .height(48.dp),
                     shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(0.3.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
+                    border = BorderStroke(0.1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.onSurface
                     )
@@ -814,7 +814,7 @@ private fun HubSegmentPill(
         onClick = onClick,
         shape = RoundedCornerShape(14.dp),
         color = bgColor,
-        border = BorderStroke(0.3.dp, borderColor),
+        border = BorderStroke(0.1.dp, borderColor),
         modifier = modifier.height(44.dp)
     ) {
         Row(
@@ -880,7 +880,7 @@ private fun PracticeSheetCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .border(0.3.dp, brandColor.copy(alpha = 0.40f), RoundedCornerShape(18.dp))
+            .border(0.1.dp, brandColor.copy(alpha = 0.40f), RoundedCornerShape(18.dp))
     ) {
         GlassCard(
             modifier = Modifier.fillMaxWidth(),
@@ -889,7 +889,7 @@ private fun PracticeSheetCard(
             onClick = onOpen
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                // Top Row: Platform Badge + Problem Count Chip (0.3.dp border)
+                // Top Row: Platform Badge + Problem Count Chip (0.1.dp border)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -900,7 +900,7 @@ private fun PracticeSheetCard(
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = brandColor.copy(alpha = 0.15f),
-                        border = BorderStroke(0.3.dp, brandColor.copy(alpha = 0.35f))
+                        border = BorderStroke(0.1.dp, brandColor.copy(alpha = 0.35f))
                     ) {
                         Text(
                             text = sheet.problemCount,
@@ -939,7 +939,7 @@ private fun PracticeSheetCard(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Footer Row: Tags + 1-Tap Open Button (0.3.dp borders)
+                // Footer Row: Tags + 1-Tap Open Button (0.1.dp borders)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -953,7 +953,7 @@ private fun PracticeSheetCard(
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
-                                border = BorderStroke(0.3.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.20f))
+                                border = BorderStroke(0.1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.20f))
                             ) {
                                 Text(
                                     text = tag,
@@ -969,7 +969,7 @@ private fun PracticeSheetCard(
                         onClick = onOpen,
                         shape = RoundedCornerShape(10.dp),
                         color = brandColor.copy(alpha = 0.16f),
-                        border = BorderStroke(0.3.dp, brandColor.copy(alpha = 0.40f))
+                        border = BorderStroke(0.1.dp, brandColor.copy(alpha = 0.40f))
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),

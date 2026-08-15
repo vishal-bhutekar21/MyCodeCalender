@@ -42,8 +42,8 @@ fun ShareAppContactCardModal(
     onDismiss: () -> Unit,
     onShareAppClick: () -> Unit,
     onOpenUrl: (String) -> Unit,
-    username: String? = "Vishal Bhutekar",
-    currentStreak: Int = 14,
+    username: String? = null,
+    currentStreak: Int = 1,
     onShareProfileText: (String) -> Unit = {}
 ) {
     val clipboardManager = LocalClipboardManager.current
@@ -63,7 +63,7 @@ fun ShareAppContactCardModal(
 
     val profileShareText = """
 Coding Streak on Code Calendar: $currentStreak Days
-Developer: ${username ?: "Vishal Bhutekar"}
+Developer: ${username ?: "Developer"}
 
 Key Features:
 - Live Contest Radar (LeetCode, Codeforces, CodeChef, AtCoder)
@@ -114,7 +114,7 @@ $appShareLink
                                 modifier = Modifier
                                     .size(36.dp)
                                     .background(brandOrange.copy(alpha = 0.15f), CircleShape)
-                                    .border(1.dp, brandOrange.copy(alpha = 0.4f), CircleShape),
+                                    .border(0.1.dp, brandOrange.copy(alpha = 0.4f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -164,7 +164,7 @@ $appShareLink
                             .height(44.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
-                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                            .border(0.1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
                             .padding(3.dp)
                     ) {
                         TabPill("Streak Card", 0, selectedTab, brandOrange) { selectedTab = 0 }
@@ -203,7 +203,7 @@ $appShareLink
                                                     Brush.radialGradient(listOf(brandOrange.copy(alpha = 0.25f), Color(0xFF1E2235))),
                                                     CircleShape
                                                 )
-                                                .border(1.5.dp, brandOrange.copy(alpha = 0.6f), CircleShape),
+                                                .border(0.1.dp, brandOrange.copy(alpha = 0.6f), CircleShape),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
@@ -220,7 +220,7 @@ $appShareLink
 
                                         Column {
                                             Text(
-                                                text = username ?: "Vishal Bhutekar",
+                                                text = username ?: "Developer",
                                                 style = Typography.titleSmall.copy(fontWeight = FontWeight.Black),
                                                 color = MaterialTheme.colorScheme.onSurface
                                             )
@@ -234,7 +234,7 @@ $appShareLink
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
                                         color = brandOrange.copy(alpha = 0.15f),
-                                        border = BorderStroke(1.dp, brandOrange.copy(alpha = 0.40f))
+                                        border = BorderStroke(0.1.dp, brandOrange.copy(alpha = 0.40f))
                                     ) {
                                         Row(
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -291,7 +291,7 @@ $appShareLink
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(14.dp))
                                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
-                                        .border(1.dp, brandOrange.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
+                                        .border(0.1.dp, brandOrange.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
                                         .padding(10.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
@@ -442,7 +442,7 @@ $appShareLink
                                     .weight(1f)
                                     .height(48.dp),
                                 shape = RoundedCornerShape(14.dp),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                                border = BorderStroke(0.1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
                             ) {
                                 Icon(
                                     if (isCopied) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
@@ -570,7 +570,7 @@ private fun FeatureHighlightRow(
             modifier = Modifier
                 .size(32.dp)
                 .background(tint.copy(alpha = 0.12f), CircleShape)
-                .border(1.dp, tint.copy(alpha = 0.25f), CircleShape),
+                .border(0.1.dp, tint.copy(alpha = 0.25f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -607,7 +607,7 @@ private fun SocialPillButton(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.35f)),
+        border = BorderStroke(0.1.dp, color.copy(alpha = 0.35f)),
         modifier = modifier.height(42.dp)
     ) {
         Row(

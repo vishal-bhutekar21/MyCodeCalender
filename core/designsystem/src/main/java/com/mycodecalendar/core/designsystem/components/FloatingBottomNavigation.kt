@@ -103,7 +103,7 @@ fun FloatingBottomNavigation(
                     )
                 )
                 .border(
-                    width = 0.2.dp,
+                    width = 0.1.dp,
                     brush = borderBrush,
                     shape = CircleShape
                 )
@@ -178,7 +178,7 @@ private fun NavTabItem(
         modifier = Modifier
             .clip(CircleShape)
             .background(pillBg)
-            .border(0.3.dp, pillBorder, CircleShape)
+            .border(0.1.dp, pillBorder, CircleShape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,

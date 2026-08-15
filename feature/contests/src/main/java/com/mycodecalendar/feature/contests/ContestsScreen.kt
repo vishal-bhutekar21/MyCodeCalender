@@ -492,7 +492,7 @@ fun PastContestHistoryCard(
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                    border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+                    border = androidx.compose.foundation.BorderStroke(0.1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
                 ) {
                     Text(
                         text = record.rankText,
@@ -528,7 +528,7 @@ fun ContestCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .border(0.5.dp, activeColor.copy(alpha = 0.40f), RoundedCornerShape(16.dp))
+            .border(0.1.dp, activeColor.copy(alpha = 0.40f), RoundedCornerShape(16.dp))
     ) {
         GlassCard(
             modifier = Modifier.fillMaxWidth(),

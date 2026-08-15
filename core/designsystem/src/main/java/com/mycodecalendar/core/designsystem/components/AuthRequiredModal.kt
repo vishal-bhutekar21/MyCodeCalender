@@ -40,7 +40,7 @@ fun AuthRequiredModal(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
                 .clip(RoundedCornerShape(22.dp))
-                .border(0.3.dp, BrandPrimaryOrange.copy(alpha = 0.40f), RoundedCornerShape(22.dp))
+                .border(0.1.dp, BrandPrimaryOrange.copy(alpha = 0.40f), RoundedCornerShape(22.dp))
         ) {
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
@@ -57,7 +57,7 @@ fun AuthRequiredModal(
                         modifier = Modifier
                             .size(44.dp)
                             .background(BrandPrimaryOrange.copy(alpha = 0.14f), CircleShape)
-                            .border(0.3.dp, BrandPrimaryOrange.copy(alpha = 0.45f), CircleShape),
+                            .border(0.1.dp, BrandPrimaryOrange.copy(alpha = 0.45f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -99,7 +99,7 @@ fun AuthRequiredModal(
                                 .weight(1f)
                                 .height(42.dp),
                             shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(0.3.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.30f)),
+                            border = BorderStroke(0.1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.30f)),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )

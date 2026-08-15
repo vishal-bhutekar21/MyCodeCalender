@@ -114,22 +114,28 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
-                    .padding(top = 20.dp, bottom = 14.dp),
+                    .padding(top = 24.dp, bottom = 18.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f, fill = false)) {
                     Text(
                         text = greeting,
-                        style = Typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
+                        style = Typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.6.sp,
+                            fontSize = 11.5.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     if (!resolvedUserName.isNullOrBlank()) {
                         Text(
                             text = resolvedUserName,
                             style = Typography.headlineMedium.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = 24.sp
+                                fontSize = 26.sp,
+                                letterSpacing = (-0.5).sp
                             ),
                             color = MaterialTheme.colorScheme.onBackground,
                             maxLines = 1,
@@ -141,7 +147,8 @@ fun HomeScreen(
                                 text = "MyCode",
                                 style = Typography.headlineMedium.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 24.sp
+                                    fontSize = 26.sp,
+                                    letterSpacing = (-0.5).sp
                                 ),
                                 color = MaterialTheme.colorScheme.onBackground
                             )
@@ -149,7 +156,8 @@ fun HomeScreen(
                                 text = "Calendar",
                                 style = Typography.headlineMedium.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 24.sp
+                                    fontSize = 26.sp,
+                                    letterSpacing = (-0.5).sp
                                 ),
                                 color = BrandPrimaryOrange
                             )
@@ -158,7 +166,7 @@ fun HomeScreen(
                 }
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Daily App Login Streak Pill
@@ -173,12 +181,12 @@ fun HomeScreen(
                     )
 
                     GlassCard(
-                        cornerRadius = 20.dp,
+                        cornerRadius = 24.dp,
                         accentColor = Color(0xFFF59E0B),
                         onClick = onStreakClick
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
@@ -189,10 +197,10 @@ fun HomeScreen(
                                     .scale(fireScale),
                                 tint = Color(0xFFF59E0B)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(5.dp))
                             Text(
                                 text = "${uiState.userStreak}d streak",
-                                style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                         }
@@ -200,11 +208,11 @@ fun HomeScreen(
 
                     // Refresh FAB
                     GlassCard(
-                        cornerRadius = 20.dp,
+                        cornerRadius = 24.dp,
                         onClick = onRefresh
                     ) {
                         Box(
-                            modifier = Modifier.size(40.dp),
+                            modifier = Modifier.size(42.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -253,8 +261,8 @@ fun HomeScreen(
                 GlassCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    cornerRadius = 16.dp,
+                        .padding(horizontal = 20.dp, vertical = 6.dp),
+                    cornerRadius = 18.dp,
                     accentColor = BrandPrimaryOrange,
                     onClick = {
                         if (bUrl.isNotBlank()) onResourceClick(bUrl)
@@ -263,15 +271,15 @@ fun HomeScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
+                            .padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
+                                .size(38.dp)
                                 .background(BrandPrimaryOrange.copy(alpha = 0.16f), CircleShape)
-                                .border(1.dp, BrandPrimaryOrange.copy(alpha = 0.40f), CircleShape),
+                                .border(0.1.dp, BrandPrimaryOrange.copy(alpha = 0.40f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -307,6 +315,7 @@ fun HomeScreen(
                                 )
                             }
                             if (bSubtitle.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = bSubtitle,
                                     style = Typography.bodySmall.copy(fontSize = 11.sp),
@@ -319,12 +328,12 @@ fun HomeScreen(
 
                         IconButton(
                             onClick = { isBroadcastDismissed = true },
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(24.dp)
                         ) {
                             Icon(
                                 Icons.Rounded.Clear,
                                 contentDescription = "Dismiss",
-                                modifier = Modifier.size(14.dp),
+                                modifier = Modifier.size(15.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.50f)
                             )
                         }
@@ -340,14 +349,14 @@ fun HomeScreen(
                 GlassCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    cornerRadius = 14.dp,
+                        .padding(horizontal = 20.dp, vertical = 6.dp),
+                    cornerRadius = 16.dp,
                     accentColor = MaterialTheme.colorScheme.primary
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
@@ -369,14 +378,14 @@ fun HomeScreen(
                 GlassCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                        .padding(horizontal = 20.dp, vertical = 6.dp),
                     accentColor = Color(0xFFF59E0B),
-                    cornerRadius = 12.dp
+                    cornerRadius = 14.dp
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                            .padding(horizontal = 16.dp, vertical = 11.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
@@ -402,15 +411,15 @@ fun HomeScreen(
                         NextContestHeroCard(
                             contest = highlightList.first(),
                             onClick = { onContestClick(highlightList.first().id) },
-                            modifier = Modifier.padding(horizontal = 16.dp)
+                            modifier = Modifier.padding(horizontal = 20.dp)
                         )
                     } else {
                         val pagerState = rememberPagerState(pageCount = { highlightList.size })
                         Column(modifier = Modifier.fillMaxWidth()) {
                             HorizontalPager(
                                 state = pagerState,
-                                contentPadding = PaddingValues(horizontal = 16.dp),
-                                pageSpacing = 12.dp,
+                                contentPadding = PaddingValues(horizontal = 20.dp),
+                                pageSpacing = 14.dp,
                                 modifier = Modifier.fillMaxWidth()
                             ) { page ->
                                 val contest = highlightList[page]
@@ -421,7 +430,7 @@ fun HomeScreen(
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
 
                             // Animated swipeable dot indicators
                             Row(
@@ -432,7 +441,7 @@ fun HomeScreen(
                                 repeat(highlightList.size) { index ->
                                     val isSelected = pagerState.currentPage == index
                                     val dotWidth by animateDpAsState(
-                                        targetValue = if (isSelected) 20.dp else 6.dp,
+                                        targetValue = if (isSelected) 22.dp else 6.dp,
                                         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
                                         label = "dotWidth"
                                     )
@@ -442,7 +451,7 @@ fun HomeScreen(
                                     Box(
                                         modifier = Modifier
                                             .padding(horizontal = 3.dp)
-                                            .height(6.dp)
+                                            .height(5.dp)
                                             .width(dotWidth)
                                             .clip(CircleShape)
                                             .background(dotColor)
@@ -453,7 +462,7 @@ fun HomeScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(30.dp))
 
                 // ── PLATFORM RATINGS & ACCOUNTS ──────────────────────────────────────
                 Row(
@@ -482,17 +491,17 @@ fun HomeScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 if (uiState.connectedStats.isEmpty()) {
                     EmptyState(
                         message = "No platform handles connected yet. Tap Connect to add Codeforces, LeetCode, GitHub, or CodeChef.",
-                        modifier = Modifier.padding(horizontal = 16.dp)
+                        modifier = Modifier.padding(horizontal = 20.dp)
                     )
                 } else {
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(horizontal = 20.dp)
                     ) {
                         items(uiState.connectedStats) { stat ->
                             PlatformRatingCard(stat = stat, onClick = { onPlatformClick(stat.platform) })
@@ -500,18 +509,18 @@ fun HomeScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(26.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
                 // ── OFFICIAL 2D GITHUB CONTRIBUTION HEATMAP GRID ────────────────────
                 uiState.gitHubStats?.let { gh ->
                     SectionHeader(title = "GitHub Activity", modifier = Modifier.padding(horizontal = 20.dp))
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     GitHubActivityCard(
                         stats = gh,
                         onClick = { onPlatformClick(Platform.GITHUB) },
-                        modifier = Modifier.padding(horizontal = 16.dp)
+                        modifier = Modifier.padding(horizontal = 20.dp)
                     )
-                    Spacer(modifier = Modifier.height(26.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
 
                 // ── UPCOMING CONTESTS STREAM ─────────────────────────────────────────
@@ -530,14 +539,14 @@ fun HomeScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 if (uiState.upcomingContests.isEmpty()) {
-                    EmptyState(message = "No upcoming contests found.", modifier = Modifier.padding(horizontal = 16.dp))
+                    EmptyState(message = "No upcoming contests found.", modifier = Modifier.padding(horizontal = 20.dp))
                 } else {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(horizontal = 16.dp)
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.padding(horizontal = 20.dp)
                     ) {
                         uiState.upcomingContests.take(4).forEach { contest ->
                             UpcomingContestRow(
@@ -548,26 +557,26 @@ fun HomeScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(26.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
                 // ── FEATURED STUDY RESOURCE ──────────────────────────────────────────
                 uiState.featuredResource?.let { resource ->
                     SectionHeader(title = "Featured Resource", modifier = Modifier.padding(horizontal = 20.dp))
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     FeaturedResourceCard(
                         resource = resource,
                         onClick = { onResourceClick(resource.url) },
-                        modifier = Modifier.padding(horizontal = 16.dp)
+                        modifier = Modifier.padding(horizontal = 20.dp)
                     )
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(28.dp))
                 }
 
                 // ── LAST UPDATED TIMESTAMP ────────────────────────────────────────────
-                Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp), Alignment.Center) {
+                Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp), Alignment.Center) {
                     LastUpdatedLabel(timeAgo = uiState.lastUpdatedText)
                 }
 
-                Spacer(modifier = Modifier.height(110.dp))
+                Spacer(modifier = Modifier.height(120.dp))
             }
         }
 
@@ -616,11 +625,11 @@ fun NextContestHeroCard(
     GlassCard(
         modifier = modifier,
         accentColor = brandColor,
-        cornerRadius = 18.dp,
+        cornerRadius = 20.dp,
         elevation = 4.dp,
         onClick = onClick
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -630,17 +639,22 @@ fun NextContestHeroCard(
                 StatusChip(status = contest.status)
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
 
             Text(
                 text = contest.name,
-                style = Typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp),
+                style = Typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp,
+                    lineHeight = 24.sp,
+                    letterSpacing = (-0.2).sp
+                ),
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -664,7 +678,7 @@ fun NextContestHeroCard(
                             text = if (contest.status == ContestStatus.LIVE) "ACTIVE ON PLATFORM" else "STARTS IN",
                             style = Typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
-                                letterSpacing = 0.8.sp,
+                                letterSpacing = 1.sp,
                                 fontSize = if (contest.status == ContestStatus.LIVE) 11.5.sp else 10.sp
                             ),
                             color = if (contest.status == ContestStatus.LIVE) Color(0xFF00F579)
@@ -672,12 +686,13 @@ fun NextContestHeroCard(
                         )
                     }
                     if (contest.status != ContestStatus.LIVE) {
-                        Spacer(Modifier.height(2.dp))
+                        Spacer(Modifier.height(3.dp))
                         Text(
                             text = countdown,
                             style = Typography.titleLarge.copy(
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 20.sp
+                                fontWeight = FontWeight.Black,
+                                fontSize = 22.sp,
+                                letterSpacing = 0.5.sp
                             ),
                             color = if (isUrgent) CountdownUrgent.copy(alpha = urgentAlpha)
                             else CountdownNormal
@@ -686,12 +701,12 @@ fun NextContestHeroCard(
                 }
 
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(12.dp),
                     color = brandColor.copy(alpha = 0.14f),
-                    border = BorderStroke(0.3.dp, brandColor.copy(alpha = 0.35f))
+                    border = BorderStroke(0.1.dp, brandColor.copy(alpha = 0.35f))
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -728,10 +743,10 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
     GlassCard(
         modifier = modifier,
         accentColor = brandColor,
-        cornerRadius = 18.dp,
+        cornerRadius = 20.dp,
         onClick = onClick
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(18.dp)) {
             // Header Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -744,12 +759,12 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                     Column {
                         Text(
                             text = stats.name ?: stats.username,
-                            style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp),
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "@${stats.username}",
-                            style = Typography.bodySmall,
+                            style = Typography.bodySmall.copy(fontSize = 11.5.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                         )
                     }
@@ -757,12 +772,12 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = Color(0xFFFF6B00).copy(alpha = 0.15f),
-                    border = BorderStroke(0.3.dp, Color(0xFFFF6B00).copy(alpha = 0.40f))
+                    border = BorderStroke(0.1.dp, Color(0xFFFF6B00).copy(alpha = 0.40f))
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.5.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
                             Icons.Rounded.LocalFireDepartment,
@@ -779,7 +794,7 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                 }
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(16.dp))
 
             // Contribution Graph Header
             Row(
@@ -789,26 +804,26 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
             ) {
                 Text(
                     text = "Contribution Graph",
-                    style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.5.sp),
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "${stats.totalContributionsThisYear} commits this year",
-                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
                     color = Color(0xFF10B981)
                 )
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
 
             // Heatmap Matrix
             LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                horizontalArrangement = Arrangement.spacedBy(3.5.dp),
                 contentPadding = PaddingValues(vertical = 2.dp)
             ) {
                 items(weeks) { week ->
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                        verticalArrangement = Arrangement.spacedBy(3.5.dp)
                     ) {
                         week.forEach { contrib ->
                             val heatColor = when (contrib.level) {
@@ -822,7 +837,7 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                                 modifier = Modifier
                                     .size(11.dp)
                                     .background(heatColor, RoundedCornerShape(2.dp))
-                                    .border(0.5.dp, Color(0x1AFFFFFF), RoundedCornerShape(2.dp))
+                                    .border(0.1.dp, Color(0x1AFFFFFF), RoundedCornerShape(2.dp))
                             )
                         }
                     }
@@ -831,9 +846,9 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
 
             // Top Public Repositories Carousel (if available)
             if (stats.repos.isNotEmpty()) {
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
                 Spacer(Modifier.height(14.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f))
-                Spacer(Modifier.height(12.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -864,7 +879,7 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                                 .width(200.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f))
-                                .border(0.8.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                                .border(0.1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
                                 .padding(10.dp)
                         ) {
                             Column {
@@ -994,22 +1009,27 @@ fun PlatformRatingCard(stat: PlatformStats, onClick: () -> Unit) {
     val brandColor = stat.platform.getBrandColor()
 
     GlassCard(
-        modifier = Modifier.width(154.dp),
+        modifier = Modifier.width(160.dp),
         accentColor = brandColor,
-        cornerRadius = 16.dp,
+        cornerRadius = 18.dp,
         onClick = onClick
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             PlatformBadge(platform = stat.platform)
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
             Text(
                 text = stat.rating?.toString() ?: "—",
-                style = Typography.headlineLarge.copy(fontWeight = FontWeight.Black),
+                style = Typography.headlineLarge.copy(
+                    fontWeight = FontWeight.Black,
+                    fontSize = 26.sp,
+                    letterSpacing = (-0.5).sp
+                ),
                 color = MaterialTheme.colorScheme.onSurface
             )
+            Spacer(Modifier.height(2.dp))
             Text(
                 text = stat.rank ?: "Unrated",
-                style = Typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                style = Typography.labelSmall.copy(fontWeight = FontWeight.Medium, fontSize = 11.5.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -1017,7 +1037,7 @@ fun PlatformRatingCard(stat: PlatformStats, onClick: () -> Unit) {
             Spacer(Modifier.height(4.dp))
             Text(
                 text = "@${stat.username}",
-                style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
                 color = brandColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -1050,19 +1070,19 @@ fun UpcomingContestRow(contest: Contest, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .border(0.5.dp, activeColor.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .border(0.1.dp, activeColor.copy(alpha = 0.40f), RoundedCornerShape(16.dp))
     ) {
         GlassCard(
             modifier = Modifier.fillMaxWidth(),
             accentColor = activeColor,
-            cornerRadius = 14.dp,
+            cornerRadius = 16.dp,
             onClick = onClick
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -1075,18 +1095,18 @@ fun UpcomingContestRow(contest: Contest, onClick: () -> Unit) {
                         if (contest.durationSeconds > 0) {
                             Text(
                                 text = "· $durationText",
-                                style = Typography.labelSmall.copy(fontSize = 11.sp),
+                                style = Typography.labelSmall.copy(fontSize = 11.5.sp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
                             )
                         }
                     }
-                    Spacer(Modifier.height(5.dp))
+                    Spacer(Modifier.height(6.dp))
                     Text(
                         text = contest.name,
                         style = Typography.titleSmall.copy(
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.5.sp,
-                            lineHeight = 18.sp
+                            fontSize = 14.sp,
+                            lineHeight = 19.sp
                         ),
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -1094,14 +1114,14 @@ fun UpcomingContestRow(contest: Contest, onClick: () -> Unit) {
                     )
                 }
 
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(14.dp))
 
                 Column(
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.Center
                 ) {
                     StatusChip(status = contest.status)
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(5.dp))
                     Text(
                         text = timeLabel,
                         style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
@@ -1119,36 +1139,50 @@ fun UpcomingContestRow(contest: Contest, onClick: () -> Unit) {
 fun FeaturedResourceCard(resource: Resource, onClick: () -> Unit, modifier: Modifier = Modifier) {
     GlassCard(
         modifier = modifier,
-        cornerRadius = 16.dp,
+        cornerRadius = 18.dp,
         onClick = onClick
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(18.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    shape = RoundedCornerShape(6.dp),
+                    shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                    border = BorderStroke(0.1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
                 ) {
                     Text(
                         resource.category,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.5.dp),
+                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
-                resource.duration?.let { Text(it, style = Typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) }
+                resource.duration?.let { Text(it, style = Typography.labelSmall.copy(fontSize = 11.sp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) }
             }
-            Spacer(Modifier.height(10.dp))
-            Text(resource.title, style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface)
+            Spacer(Modifier.height(12.dp))
+            Text(
+                resource.title,
+                style = Typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    lineHeight = 22.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface
+            )
             resource.description?.let {
-                Spacer(Modifier.height(4.dp))
-                Text(it, style = Typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    it,
+                    style = Typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 17.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(14.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1156,7 +1190,7 @@ fun FeaturedResourceCard(resource: Resource, onClick: () -> Unit, modifier: Modi
             ) {
                 Text(
                     text = "By ${resource.creator ?: "Community"}",
-                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp),
                     color = MaterialTheme.colorScheme.primary
                 )
                 Row(
@@ -1165,7 +1199,7 @@ fun FeaturedResourceCard(resource: Resource, onClick: () -> Unit, modifier: Modi
                 ) {
                     Text(
                         text = "Open Link",
-                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp),
                         color = MaterialTheme.colorScheme.primary
                     )
                     Icon(
@@ -1258,7 +1292,7 @@ fun StreakCelebrationModal(
                 Surface(
                     shape = CircleShape,
                     color = BrandPrimaryOrange.copy(alpha = 0.15f),
-                    border = BorderStroke(0.3.dp, BrandPrimaryOrange.copy(alpha = 0.45f))
+                    border = BorderStroke(0.1.dp, BrandPrimaryOrange.copy(alpha = 0.45f))
                 ) {
                     Text(
                         text = coderRank.uppercase(),

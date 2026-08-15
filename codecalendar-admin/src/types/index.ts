@@ -61,6 +61,11 @@ export interface UserAccount {
   authProvider?: string;
   connectedPlatforms?: string[];
   connectedAccountsMap?: Record<string, string>;
+  currentStreak?: number;
+  streakCount?: number;
+  highestStreak?: number;
+  activeDates?: string[];
+  lastStreakSyncAt?: any;
   lastLoginAt?: any;
   createdAt?: any;
   appVersion?: string;

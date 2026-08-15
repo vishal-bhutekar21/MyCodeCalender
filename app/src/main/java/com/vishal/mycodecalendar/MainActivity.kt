@@ -121,11 +121,11 @@ class MainActivity : ComponentActivity() {
                 var authAvatar by remember { mutableStateOf(authPrefs.getString("auth_avatar", null)) }
                 val onboardingCompleted = remember { authPrefs.getBoolean("onboarding_completed", false) }
                 val termsAccepted = remember { authPrefs.getBoolean("terms_accepted", false) }
-                val isLoggedIn = remember { authPrefs.getBoolean("is_logged_in", false) }
+                var isLoggedIn by remember { mutableStateOf(authPrefs.getBoolean("is_logged_in", false)) }
                 var showAuthRequiredModal by remember { mutableStateOf(false) }
 
-                val currentFirebaseUser = remember { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser }
-                val activeUserName = remember(authUsername, currentFirebaseUser) {
+                val currentFirebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+                val activeUserName = remember(authUsername, currentFirebaseUser?.displayName, currentFirebaseUser?.email) {
                     currentFirebaseUser?.displayName?.takeIf { it.isNotBlank() }
                         ?: currentFirebaseUser?.email?.substringBefore('@')?.takeIf { it.isNotBlank() }
                         ?: authUsername
@@ -172,30 +172,43 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(isLoggedIn, authEmail, authUsername) {
                     if (isLoggedIn && authMethod != "Guest") {
                         val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-                        // Fetch connected accounts
-                        CloudAdminSyncService.fetchConnectedAccountsFromCloud(
-                            uid = uid,
-                            onSuccess = { cloudAccounts: Map<String, String> ->
-                                for ((pName, handle) in cloudAccounts) {
-                                    val platform = runCatching { Platform.valueOf(pName.uppercase(java.util.Locale.ROOT)) }.getOrNull()
-                                    if (platform != null && handle.isNotBlank()) {
-                                        val existing = connectedAccounts.find { it.platform == platform }
-                                        if (existing == null || existing.username != handle) {
-                                            repository.addPlatformAccount(platform, handle)
+                            ?: authEmail?.replace(".", "_")
+                        if (!uid.isNullOrBlank()) {
+                            // 1. Sync User Profile in Firestore
+                            CloudAdminSyncService.syncUserProfileToCloud(
+                                uid = uid,
+                                displayName = activeUserName ?: "Developer",
+                                method = authMethod ?: "Email/Google",
+                                email = authEmail,
+                                photoUrl = authAvatar
+                            )
+
+                            // 2. Fetch and merge cloud streak
+                            CloudAdminSyncService.fetchUserStreakFromCloud(
+                                uid = uid,
+                                onSuccess = { cloudStreak, cloudDates ->
+                                    if (cloudStreak > 0 || cloudDates.isNotEmpty()) {
+                                        repository.mergeCloudStreak(cloudStreak, cloudDates)
+                                    }
+                                }
+                            )
+
+                            // 3. Fetch connected accounts
+                            CloudAdminSyncService.fetchConnectedAccountsFromCloud(
+                                uid = uid,
+                                onSuccess = { cloudAccounts: Map<String, String> ->
+                                    for ((pName, handle) in cloudAccounts) {
+                                        val platform = runCatching { Platform.valueOf(pName.uppercase(java.util.Locale.ROOT)) }.getOrNull()
+                                        if (platform != null && handle.isNotBlank()) {
+                                            val existing = connectedAccounts.find { it.platform == platform }
+                                            if (existing == null || existing.username != handle) {
+                                                repository.addPlatformAccount(platform, handle)
+                                            }
                                         }
                                     }
                                 }
-                            }
-                        )
-                        // Fetch and merge cloud streak
-                        CloudAdminSyncService.fetchUserStreakFromCloud(
-                            uid = uid,
-                            onSuccess = { cloudStreak, cloudDates ->
-                                if (cloudStreak > 0 || cloudDates.isNotEmpty()) {
-                                    repository.mergeCloudStreak(cloudStreak, cloudDates)
-                                }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
 
@@ -205,17 +218,20 @@ class MainActivity : ComponentActivity() {
                         val current = streakInfo
                         if (current != null) {
                             val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-                            CloudAdminSyncService.syncUserStreakToCloud(
-                                uid = uid,
-                                currentStreak = current.currentStreak,
-                                activeDates = current.activeDates
-                            )
+                                ?: authEmail?.replace(".", "_")
+                            if (!uid.isNullOrBlank()) {
+                                CloudAdminSyncService.syncUserStreakToCloud(
+                                    uid = uid,
+                                    currentStreak = current.currentStreak,
+                                    activeDates = current.activeDates
+                                )
+                            }
                         }
                     }
                 }
 
                 val onProtectedAddPlatform = {
-                    if (authMethod == "Guest" || authMethod == null) {
+                    if (authMethod == "Guest" || authMethod == null || !isLoggedIn) {
                         showAuthRequiredModal = true
                     } else {
                         navController.navigate("add_platform")
@@ -285,6 +301,8 @@ class MainActivity : ComponentActivity() {
                             composable("auth") {
                                 AuthScreen(
                                     onAuthSuccess = { user, method, email, photoUrl ->
+                                        repository.clearAllUserData()
+
                                         authPrefs.edit()
                                             .putBoolean("onboarding_completed", true)
                                             .putBoolean("terms_accepted", true)
@@ -294,33 +312,47 @@ class MainActivity : ComponentActivity() {
                                             .putString("auth_email", email)
                                             .putString("auth_avatar", photoUrl)
                                             .apply()
+
+                                        isLoggedIn = true
                                         authUsername = user
                                         authMethod = method
                                         authEmail = email
                                         authAvatar = photoUrl
 
-                                        // Sync profile to Firestore for Web Admin Portal
+                                        // Sync profile and restore streak/accounts to Firestore
                                         try {
                                             val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-                                            CloudAdminSyncService.syncUserProfileToCloud(
-                                                uid = currentUid,
-                                                displayName = user,
-                                                method = method,
-                                                email = email,
-                                                photoUrl = photoUrl
-                                            )
-                                            // Automatically fetch cloud accounts linked to this user
-                                            CloudAdminSyncService.fetchConnectedAccountsFromCloud(
-                                                uid = currentUid,
-                                                onSuccess = { cloudAccounts: Map<String, String> ->
-                                                    for ((pName, handle) in cloudAccounts) {
-                                                        val platform = runCatching { Platform.valueOf(pName.uppercase(java.util.Locale.ROOT)) }.getOrNull()
-                                                        if (platform != null && handle.isNotBlank()) {
-                                                            repository.addPlatformAccount(platform, handle)
+                                                ?: email?.replace(".", "_")
+                                            if (!currentUid.isNullOrBlank()) {
+                                                CloudAdminSyncService.syncUserProfileToCloud(
+                                                    uid = currentUid,
+                                                    displayName = user,
+                                                    method = method,
+                                                    email = email,
+                                                    photoUrl = photoUrl
+                                                )
+                                                // Fetch and merge user streak from cloud
+                                                CloudAdminSyncService.fetchUserStreakFromCloud(
+                                                    uid = currentUid,
+                                                    onSuccess = { cloudStreak, cloudDates ->
+                                                        if (cloudStreak > 0 || cloudDates.isNotEmpty()) {
+                                                            repository.mergeCloudStreak(cloudStreak, cloudDates)
                                                         }
                                                     }
-                                                }
-                                            )
+                                                )
+                                                // Fetch connected accounts linked to this user
+                                                CloudAdminSyncService.fetchConnectedAccountsFromCloud(
+                                                    uid = currentUid,
+                                                    onSuccess = { cloudAccounts: Map<String, String> ->
+                                                        for ((pName, handle) in cloudAccounts) {
+                                                            val platform = runCatching { Platform.valueOf(pName.uppercase(java.util.Locale.ROOT)) }.getOrNull()
+                                                            if (platform != null && handle.isNotBlank()) {
+                                                                repository.addPlatformAccount(platform, handle)
+                                                            }
+                                                        }
+                                                    }
+                                                )
+                                            }
                                         } catch (e: Exception) {
                                             // Non-blocking
                                         }
@@ -330,6 +362,8 @@ class MainActivity : ComponentActivity() {
                                         }
                                     },
                                     onGuestBypass = {
+                                        repository.clearAllUserData()
+
                                         authPrefs.edit()
                                             .putBoolean("onboarding_completed", true)
                                             .putBoolean("terms_accepted", true)
@@ -339,10 +373,13 @@ class MainActivity : ComponentActivity() {
                                             .remove("auth_email")
                                             .remove("auth_avatar")
                                             .apply()
+
+                                        isLoggedIn = true
                                         authUsername = "Guest Developer"
                                         authMethod = "Guest"
                                         authEmail = null
                                         authAvatar = null
+
                                         navController.navigate("home") {
                                             popUpTo("auth") { inclusive = true }
                                         }
@@ -514,10 +551,11 @@ class MainActivity : ComponentActivity() {
                                     onManageAccountClick = { acc ->
                                         navController.navigate("platform_detail/${acc.platform.name}")
                                     },
-                                    authUsername = authUsername,
+                                    authUsername = activeUserName,
                                     authMethod = authMethod,
                                     authEmail = authEmail,
                                     authAvatar = authAvatar,
+                                    currentStreak = homeUiState.streakInfo?.currentStreak ?: 1,
                                     onSignOutClick = {
                                         try {
                                             com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
@@ -529,6 +567,8 @@ class MainActivity : ComponentActivity() {
                                             // Ignore if already signed out
                                         }
 
+                                        repository.clearAllUserData()
+
                                         authPrefs.edit()
                                             .putBoolean("is_logged_in", false)
                                             .remove("auth_username")
@@ -537,8 +577,9 @@ class MainActivity : ComponentActivity() {
                                             .remove("auth_avatar")
                                             .apply()
 
+                                        isLoggedIn = false
                                         authUsername = null
-                                        authMethod = null
+                                        authMethod = "Guest"
                                         authEmail = null
                                         authAvatar = null
 
@@ -549,8 +590,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onDeleteAccountClick = {
                                         val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                                            ?: authEmail?.replace(".", "_")
                                         val currentEmail = authEmail
-                                        val currentName = authUsername
+                                        val currentName = activeUserName
 
                                         CloudAdminSyncService.submitAccountDeletionRequest(
                                             uid = currentUid,
@@ -567,6 +609,8 @@ class MainActivity : ComponentActivity() {
                                                 // Ignore
                                             }
 
+                                            repository.clearAllUserData()
+
                                             authPrefs.edit()
                                                 .putBoolean("is_logged_in", false)
                                                 .remove("auth_username")
@@ -575,8 +619,9 @@ class MainActivity : ComponentActivity() {
                                                 .remove("auth_avatar")
                                                 .apply()
 
+                                            isLoggedIn = false
                                             authUsername = null
-                                            authMethod = null
+                                            authMethod = "Guest"
                                             authEmail = null
                                             authAvatar = null
 

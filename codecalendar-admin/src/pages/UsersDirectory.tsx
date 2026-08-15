@@ -5,7 +5,8 @@ import {
   User as UserIcon,
   Smartphone,
   ShieldCheck,
-  Loader2
+  Loader2,
+  Flame
 } from 'lucide-react';
 import { GlassCard } from '../components/ui/GlassCard';
 import type { UserAccount } from '../types';
@@ -92,6 +93,7 @@ export const UsersDirectory: React.FC = () => {
               <thead className="border-b border-white/10 bg-black/30 text-slate-400 uppercase tracking-wider font-semibold">
                 <tr>
                   <th className="py-3.5 px-5">Developer Profile</th>
+                  <th className="py-3.5 px-5">Coding Streak</th>
                   <th className="py-3.5 px-5">Provider</th>
                   <th className="py-3.5 px-5">Connected Handles</th>
                   <th className="py-3.5 px-5">App Version</th>
@@ -126,6 +128,14 @@ export const UsersDirectory: React.FC = () => {
                           </p>
                           <p className="text-[11px] text-slate-400 font-mono">{u.email || 'No email attached'}</p>
                         </div>
+                      </div>
+                    </td>
+
+                    {/* Coding Streak */}
+                    <td className="py-4 px-5">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-orange/15 border border-brand-orange/30 text-brand-orange font-bold font-mono">
+                        <Flame className="w-3.5 h-3.5 fill-brand-orange" />
+                        <span>{u.currentStreak ?? u.streakCount ?? 0} Days</span>
                       </div>
                     </td>
 

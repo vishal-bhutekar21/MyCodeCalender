@@ -388,6 +388,8 @@ object CloudAdminSyncService {
 
         val streakData = hashMapOf(
             "currentStreak" to currentStreak,
+            "streakCount" to currentStreak,
+            "highestStreak" to currentStreak,
             "activeDates" to activeDates.toList(),
             "lastStreakSyncAt" to FieldValue.serverTimestamp()
         )
@@ -426,7 +428,9 @@ object CloudAdminSyncService {
             .get()
             .addOnSuccessListener { doc ->
                 if (doc.exists()) {
-                    val streak = doc.getLong("currentStreak")?.toInt() ?: 0
+                    val streak = doc.getLong("currentStreak")?.toInt()
+                        ?: doc.getLong("streakCount")?.toInt()
+                        ?: 0
                     @Suppress("UNCHECKED_CAST")
                     val datesList = (doc.get("activeDates") as? List<String>) ?: emptyList()
                     val datesSet = datesList.toSet()

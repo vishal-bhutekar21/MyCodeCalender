@@ -731,7 +731,7 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .border(0.3.dp, Color(0xFFEF4444).copy(alpha = 0.50f), RoundedCornerShape(16.dp))
+                    .border(0.1.dp, Color(0xFFEF4444).copy(alpha = 0.50f), RoundedCornerShape(16.dp))
             ) {
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
@@ -748,7 +748,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .size(32.dp)
                                 .background(Color(0xFFEF4444).copy(alpha = 0.12f), CircleShape)
-                                .border(0.3.dp, Color(0xFFEF4444).copy(alpha = 0.35f), CircleShape),
+                                .border(0.1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -991,7 +991,7 @@ fun SettingsScreen(
                             )
                             .border(
                                 BorderStroke(
-                                    0.3.dp,
+                                    0.1.dp,
                                     Brush.verticalGradient(
                                         if (isDark) listOf(Color(0xFFEF4444).copy(alpha = 0.55f), Color(0x22FFFFFF))
                                         else listOf(Color(0xFFEF4444).copy(alpha = 0.40f), Color(0xFFEF4444).copy(alpha = 0.15f))
@@ -1049,7 +1049,7 @@ fun SettingsScreen(
                                         .weight(1f)
                                         .height(46.dp),
                                     shape = RoundedCornerShape(12.dp),
-                                    border = BorderStroke(0.3.dp, if (isDark) Color(0x33FFFFFF) else MaterialTheme.colorScheme.outline.copy(alpha = 0.30f))
+                                    border = BorderStroke(0.1.dp, if (isDark) Color(0x33FFFFFF) else MaterialTheme.colorScheme.outline.copy(alpha = 0.30f))
                                 ) {
                                     Text(
                                         "Cancel",
@@ -1113,7 +1113,7 @@ fun SettingsScreen(
                             )
                             .border(
                                 BorderStroke(
-                                    0.3.dp,
+                                    0.1.dp,
                                     Brush.verticalGradient(
                                         if (isDark) listOf(Color(0xFFEF4444).copy(alpha = 0.65f), Color(0x22FFFFFF))
                                         else listOf(Color(0xFFEF4444).copy(alpha = 0.50f), Color(0xFFEF4444).copy(alpha = 0.20f))
@@ -1356,7 +1356,7 @@ private fun CreatorLinkTile(
         onClick = onClick,
         shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)),
+        border = BorderStroke(0.1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)),
         modifier = modifier.height(58.dp)
     ) {
         Row(

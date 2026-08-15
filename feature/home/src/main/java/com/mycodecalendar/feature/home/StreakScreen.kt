@@ -409,7 +409,7 @@ fun StreakScreen(
                                                 .clip(RoundedCornerShape(2.5.dp))
                                                 .background(heatColor)
                                                 .border(
-                                                    0.5.dp,
+                                                    0.1.dp,
                                                     if (isToday) Color(0xFF39D353).copy(alpha = 0.8f) else Color(0x1AFFFFFF),
                                                     RoundedCornerShape(2.5.dp)
                                                 )
@@ -446,7 +446,7 @@ fun StreakScreen(
                                     .size(10.dp)
                                     .clip(RoundedCornerShape(2.5.dp))
                                     .background(col)
-                                    .border(0.5.dp, Color(0x1AFFFFFF), RoundedCornerShape(2.5.dp))
+                                    .border(0.1.dp, Color(0x1AFFFFFF), RoundedCornerShape(2.5.dp))
                             )
                         }
                         Text(

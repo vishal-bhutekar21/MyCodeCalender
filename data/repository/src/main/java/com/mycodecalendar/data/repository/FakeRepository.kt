@@ -105,16 +105,28 @@ class FakeRepository(
         refreshAllData(force = true)
     }
 
+    /**
+     * Checks if a valid user session is authenticated.
+     * Prevents unauthenticated/guest sessions from loading or displaying previous user caches.
+     */
+    private fun isUserLoggedIn(): Boolean {
+        val ctx = context ?: return false
+        val authPrefs = ctx.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+        val isLoggedIn = authPrefs.getBoolean("is_logged_in", false)
+        val authMethod = authPrefs.getString("auth_method", null)
+        return isLoggedIn && authMethod != "Guest"
+    }
+
     // ── OFFLINE-FIRST CACHE SEEDING ───────────────────────────────────────────
 
     /**
      * Loads previously cached data from Room and pushes it into the in-memory flows.
-     * Called on init so the UI has data to show instantly, before the network responds.
+     * Contests are public and always seeded. User-specific data is only seeded when a valid user is logged in.
      */
     private suspend fun seedFromCache() {
         val database = db ?: return
 
-        // Seed contests
+        // Seed contests (public catalog)
         val contestList = try {
             var result: List<com.mycodecalendar.core.database.entity.ContestEntity> = emptyList()
             val job = scope.launch {
@@ -129,6 +141,16 @@ class FakeRepository(
 
         if (contestList.isNotEmpty()) {
             contestsFlow.value = contestList.map { it.toDomain() }
+        }
+
+        // Only seed user-specific platform stats, ratings, and GitHub activity if a valid user is logged in
+        if (!isUserLoggedIn()) {
+            connectedPlatforms.value = emptyList()
+            dynamicStats.value = emptyMap()
+            ratingHistoryMap.value = emptyMap()
+            ratingHistoryCache.clear()
+            gitHubStatsFlow.value = null
+            return
         }
 
         // Seed platform stats for each connected account
@@ -229,6 +251,7 @@ class FakeRepository(
     private fun accountKey(platform: Platform) = "account_${platform.name}"
 
     private fun loadSavedAccounts(): List<PlatformAccount> {
+        if (!isUserLoggedIn()) return emptyList()
         val p = prefs ?: return emptyList()
         return Platform.values().mapNotNull { platform ->
             val handle = p.getString(accountKey(platform), null)
@@ -618,7 +641,7 @@ class FakeRepository(
                 )
             )
         } else {
-            // Attempt to seed from Room cache before falling back to fake data
+            // Attempt to seed from Room cache before falling back
             val cachedGh = db?.gitHubStatsDao()?.getGitHubStats(username)
             if (cachedGh != null) {
                 gitHubStatsFlow.value = cachedGh.toDomain(jsonSerializer)
@@ -707,7 +730,12 @@ class FakeRepository(
                 )
             )
         } else {
-            fetchFallbackStats(Platform.CODEFORCES, username)
+            val cached = db?.platformStatsDao()?.getStats(Platform.CODEFORCES.name, username)
+            if (cached != null) {
+                updateStatsMap(Platform.CODEFORCES, username, cached.toDomain())
+            } else {
+                fetchFallbackStats(Platform.CODEFORCES, username)
+            }
         }
     }
 
@@ -771,18 +799,18 @@ class FakeRepository(
                 )
             )
         } else {
-            // Seed from Room cache first, then fake fallback
+            // Seed from Room cache first, then clean fallback
             val cachedHistory = db?.ratingHistoryDao()?.getHistory(Platform.ATCODER.name, username)
             if (!cachedHistory.isNullOrEmpty()) {
                 val key = statsKey(Platform.ATCODER, username)
                 val domainHistory = cachedHistory.map { it.toDomain() }
                 ratingHistoryCache[key] = domainHistory
                 ratingHistoryMap.value = ratingHistoryMap.value.toMutableMap().also { it[key] = domainHistory }
-                val cached = db?.platformStatsDao()?.getStats(Platform.ATCODER.name, username)
-                if (cached != null) {
-                    updateStatsMap(Platform.ATCODER, username, cached.toDomain())
-                    return
-                }
+            }
+            val cached = db?.platformStatsDao()?.getStats(Platform.ATCODER.name, username)
+            if (cached != null) {
+                updateStatsMap(Platform.ATCODER, username, cached.toDomain())
+                return
             }
             fetchFallbackStats(Platform.ATCODER, username)
         }
@@ -870,7 +898,12 @@ class FakeRepository(
                 )
             )
         } else {
-            fetchFallbackStats(Platform.CODECHEF, username)
+            val cached = db?.platformStatsDao()?.getStats(Platform.CODECHEF.name, username)
+            if (cached != null) {
+                updateStatsMap(Platform.CODECHEF, username, cached.toDomain())
+            } else {
+                fetchFallbackStats(Platform.CODECHEF, username)
+            }
         }
     }
 
@@ -906,7 +939,12 @@ class FakeRepository(
                 )
             )
         } else {
-            fetchFallbackStats(Platform.LEETCODE, username)
+            val cached = db?.platformStatsDao()?.getStats(Platform.LEETCODE.name, username)
+            if (cached != null) {
+                updateStatsMap(Platform.LEETCODE, username, cached.toDomain())
+            } else {
+                fetchFallbackStats(Platform.LEETCODE, username)
+            }
         }
     }
 
@@ -989,20 +1027,7 @@ class FakeRepository(
     }
 
     private fun getOrCreateStableRatingHistory(key: String): List<RatingPoint> {
-        return ratingHistoryCache.getOrPut(key) {
-            val seed = key.hashCode().toLong().let { if (it < 0) -it else it }
-            var current = 1400 + (seed % 300).toInt()
-            (7 downTo 0).map { monthsAgo ->
-                val delta = ((seed + monthsAgo * 17) % 120).toInt() - 30
-                current = (current + delta).coerceIn(1200, 3200)
-                RatingPoint(
-                    timestamp = Instant.now().minusSeconds(86400L * 30 * monthsAgo),
-                    rating = current,
-                    contestId = "round-${800 + monthsAgo * 12}",
-                    contestName = "Round ${800 + monthsAgo * 12}"
-                )
-            }
-        }
+        return ratingHistoryCache[key] ?: emptyList()
     }
 
     private fun buildInitialStatsMap(accounts: List<PlatformAccount>): Map<String, PlatformStats> {
@@ -1016,24 +1041,20 @@ class FakeRepository(
     }
 
     private fun generateFallbackStats(platform: Platform, username: String): PlatformStats {
-        val seed = username.hashCode().toLong().let { if (it < 0) -it else it }
-        val baseRating = 1200 + (seed % 1800).toInt()
-        val solved = 200 + (seed % 2000).toInt()
-
         return PlatformStats(
             platform = platform,
             username = username,
-            rating = baseRating,
-            highestRating = baseRating + (seed % 300).toInt(),
-            rank = ratingToRank(platform, baseRating),
-            globalRank = (seed % 50000).toInt() + 1,
-            solved = solved,
-            easySolved = (solved * 0.30).toInt(),
-            mediumSolved = (solved * 0.50).toInt(),
-            hardSolved = (solved * 0.20).toInt(),
-            currentStreak = (seed % 60).toInt(),
-            longestStreak = (seed % 120).toInt() + 30,
-            contestCount = (seed % 200).toInt() + 10,
+            rating = null,
+            highestRating = null,
+            rank = "Connecting...",
+            globalRank = null,
+            solved = null,
+            easySolved = null,
+            mediumSolved = null,
+            hardSolved = null,
+            currentStreak = null,
+            longestStreak = null,
+            contestCount = 0,
             badge = null,
             division = null,
             lastUpdated = Instant.now()
@@ -1041,28 +1062,25 @@ class FakeRepository(
     }
 
     private fun fetchFallbackGitHubStats(username: String) {
-        val dailyContribs = generateFallbackDailyContributions(username)
-        val fallbackRepos = listOf(
-            GitHubRepo("algorithm-visualizer", "Interactive algorithms & data structures visualizer in Kotlin", "Kotlin", 142, 38, "https://github.com/$username/algorithm-visualizer"),
-            GitHubRepo("leetcode-solutions", "Optimal clean solutions for 500+ LeetCode problems in C++ and Java", "C++", 89, 21, "https://github.com/$username/leetcode-solutions"),
-            GitHubRepo("competitive-programming-templates", "Fast I/O, Segment Trees, Fenwick, DSU, Flow algorithms", "C++", 65, 14, "https://github.com/$username/competitive-programming-templates"),
-            GitHubRepo("my-code-calendar", "Cross-platform contest tracker and developer calendar", "Kotlin", 47, 9, "https://github.com/$username/my-code-calendar"),
-            GitHubRepo("system-design-primer", "Notes and diagrams for distributed systems interview prep", "Python", 34, 6, "https://github.com/$username/system-design-primer")
-        )
+        val cachedGh = db?.gitHubStatsDao()?.getGitHubStats(username)
+        if (cachedGh != null) {
+            gitHubStatsFlow.value = cachedGh.toDomain(jsonSerializer)
+            return
+        }
         gitHubStatsFlow.value = GitHubStats(
             username = username,
             name = username,
             avatarUrl = "https://github.com/$username.png",
-            publicRepos = 24,
-            totalStars = 450,
-            totalContributionsThisYear = 680,
-            currentContributionStreak = computeStreak(dailyContribs),
-            longestContributionStreak = 45,
-            topLanguages = listOf("Kotlin", "Java", "Python", "C++"),
-            followers = 120,
-            following = 35,
-            dailyContributions = dailyContribs,
-            repos = fallbackRepos,
+            publicRepos = 0,
+            totalStars = 0,
+            totalContributionsThisYear = 0,
+            currentContributionStreak = 0,
+            longestContributionStreak = 0,
+            topLanguages = emptyList(),
+            followers = 0,
+            following = 0,
+            dailyContributions = emptyList(),
+            repos = emptyList(),
             lastUpdated = Instant.now()
         )
     }
@@ -1136,6 +1154,38 @@ class FakeRepository(
     fun getAppStreakInfo(): Flow<StreakInfo> = streakStateFlow
 
     /**
+     * Resets/clears all user-specific local data (platform accounts, dynamic stats, cached ratings, and streak).
+     * Invoked upon signing out or switching user accounts to prevent state bleeding between profiles.
+     */
+    fun clearAllUserData() {
+        prefs?.edit()?.clear()?.apply()
+        streakPrefs?.edit()?.clear()?.apply()
+        connectedPlatforms.value = emptyList()
+        gitHubStatsFlow.value = null
+        dynamicStats.value = emptyMap()
+        ratingHistoryMap.value = emptyMap()
+        ratingHistoryCache.clear()
+
+        scope.launch {
+            try {
+                db?.platformStatsDao()?.clearAll()
+                db?.ratingHistoryDao()?.clearAll()
+                db?.gitHubStatsDao()?.clearAll()
+            } catch (_: Exception) {}
+        }
+
+        val today = LocalDate.now()
+        val todayStr = today.toString()
+        val defaultStreak = StreakInfo(
+            currentStreak = 1,
+            isNewDayIncrement = false,
+            lastOpenDateText = today.format(DateTimeFormatter.ofPattern("EEE, dd MMM")),
+            activeDates = setOf(todayStr)
+        )
+        streakStateFlow.value = defaultStreak
+    }
+
+    /**
      * Merges streak and active dates fetched from Firestore with local state.
      * Keeps the maximum streak and merges active dates.
      */
@@ -1152,7 +1202,7 @@ class FakeRepository(
         activeDatesSet.add(todayStr)
         val trimmed = activeDatesSet.sortedDescending().take(365).toSet()
 
-        val finalStreak = maxOf(currentLocalStreak, cloudStreak)
+        val finalStreak = maxOf(currentLocalStreak, cloudStreak, 1)
         sp.edit()
             .putInt("current_streak", finalStreak)
             .putString("active_dates", trimmed.joinToString(","))
@@ -1207,7 +1257,9 @@ class FakeRepository(
                     Platform.GITHUB -> fetchLiveGitHubData(username)
                     Platform.CODEFORCES -> fetchLiveCodeforcesData(username)
                     Platform.LEETCODE -> fetchLiveLeetCodeData(username)
-                    else -> fetchFallbackStats(platform, username)
+                    Platform.CODECHEF -> fetchLiveCodeChefData(username)
+                    Platform.ATCODER -> fetchLiveAtCoderData(username)
+                    Platform.GEEKSFORGEEKS -> fetchLiveGeeksForGeeksData(username)
                 }
                 val updated = connectedPlatforms.value.toMutableList()
                 val i = updated.indexOfFirst { it.platform == platform }
@@ -1249,7 +1301,21 @@ class FakeRepository(
                         if (res.isFailure) "GitHub username \"$username\" not found. Check spelling."
                         else null
                     }
-                    else -> null
+                    Platform.CODECHEF -> {
+                        val res = remoteDataSource.fetchCodeChefStats(username)
+                        if (res.isFailure) "CodeChef handle \"$username\" not found. Check spelling."
+                        else null
+                    }
+                    Platform.ATCODER -> {
+                        val res = remoteDataSource.fetchAtCoderUserHistory(username)
+                        if (res.isFailure) "AtCoder handle \"$username\" not found. Check spelling."
+                        else null
+                    }
+                    Platform.GEEKSFORGEEKS -> {
+                        val res = remoteDataSource.fetchGeeksForGeeksStats(username)
+                        if (res.isFailure) "GeeksforGeeks handle \"$username\" not found. Check spelling."
+                        else null
+                    }
                 }
             } catch (e: Exception) {
                 null

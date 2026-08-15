@@ -176,7 +176,7 @@ private fun GitHubDetailContent(
                             ),
                             CircleShape
                         )
-                        .border(1.5.dp, brandColor.copy(alpha = 0.5f), CircleShape),
+                        .border(0.1.dp, brandColor.copy(alpha = 0.5f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -286,7 +286,7 @@ private fun GitHubDetailContent(
                         shape = RoundedCornerShape(12.dp),
                         color = Color(0xFFF59E0B).copy(alpha = 0.15f),
                         border = androidx.compose.foundation.BorderStroke(
-                            1.dp, Color(0xFFF59E0B).copy(alpha = 0.35f)
+                            0.1.dp, Color(0xFFF59E0B).copy(alpha = 0.35f)
                         )
                     ) {
                         Row(
@@ -403,7 +403,7 @@ private fun GitHubDetailContent(
                     shape = RoundedCornerShape(10.dp),
                     color = langColor.copy(alpha = 0.12f),
                     border = androidx.compose.foundation.BorderStroke(
-                        1.dp, langColor.copy(alpha = 0.35f)
+                        0.1.dp, langColor.copy(alpha = 0.35f)
                     )
                 ) {
                     Row(
@@ -729,7 +729,7 @@ private fun GitHubRepoDetailBottomSheet(
                             shape = RoundedCornerShape(8.dp),
                             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
                             border = androidx.compose.foundation.BorderStroke(
-                                1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                                0.1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
                             )
                         ) {
                             Text(
@@ -753,7 +753,7 @@ private fun GitHubRepoDetailBottomSheet(
                         shape = RoundedCornerShape(16.dp)
                     )
                     .border(
-                        1.dp,
+                        0.1.dp,
                         MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
                         RoundedCornerShape(16.dp)
                     )
@@ -866,7 +866,7 @@ private fun GitHubRepoDetailBottomSheet(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(14.dp),
                     border = androidx.compose.foundation.BorderStroke(
-                        1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+                        0.1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
                     )
                 ) {
                     Icon(
@@ -891,7 +891,7 @@ private fun GitHubRepoDetailBottomSheet(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(14.dp),
                     border = androidx.compose.foundation.BorderStroke(
-                        1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+                        0.1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
                     )
                 ) {
                     Icon(
@@ -989,7 +989,7 @@ private fun CpDetailContent(
                             shape = RoundedCornerShape(8.dp),
                             color = brandColor.copy(alpha = 0.15f),
                             border = androidx.compose.foundation.BorderStroke(
-                                1.dp, brandColor.copy(alpha = 0.40f)
+                                0.1.dp, brandColor.copy(alpha = 0.40f)
                             )
                         ) {
                             Text(
@@ -1124,7 +1124,7 @@ private fun CpDetailContent(
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = brandColor.copy(alpha = 0.15f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, brandColor.copy(alpha = 0.35f))
+                        border = androidx.compose.foundation.BorderStroke(0.1.dp, brandColor.copy(alpha = 0.35f))
                     ) {
                         Text(
                             text = "Now: $currR",
@@ -1325,7 +1325,7 @@ fun DifficultyCard(
     Box(
         modifier = modifier
             .background(color.copy(alpha = 0.10f), RoundedCornerShape(12.dp))
-            .border(1.dp, color.copy(alpha = 0.30f), RoundedCornerShape(12.dp))
+            .border(0.1.dp, color.copy(alpha = 0.30f), RoundedCornerShape(12.dp))
             .padding(12.dp),
         contentAlignment = Alignment.Center
     ) {

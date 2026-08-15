@@ -7,7 +7,9 @@ service cloud.firestore {
       return request.auth != null && (
         request.auth.token.email in [
           'vishal.bhutekar1@gmail.com',
-          'admin@mycodecalendar.app'
+          'vishalbhutekar33772@gmail.com',
+          'admin@mycodecalendar.app',
+          'admin@codecalendar.com'
         ] || request.auth.token.admin == true
       );
     }
@@ -44,6 +46,12 @@ service cloud.firestore {
     match /deletion_requests/{requestId} {
       allow create: if request.auth != null;
       allow read, update, delete: if isAdmin();
+    }
+
+    // 6. Admin Settings (Profile Bio, Featured Article, etc.): Public read, Admin write only
+    match /admin_settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }
