@@ -114,12 +114,16 @@ object CloudAdminSyncService {
             "photoUrl" to (photoUrl ?: ""),
             "connectedPlatforms" to connectedPlatforms,
             "connectedAccountsMap" to connectedAccountsMap,
-            "currentStreak" to currentStreak,
-            "streakCount" to currentStreak,
             "lastLoginAt" to FieldValue.serverTimestamp(),
             "updatedAt" to FieldValue.serverTimestamp(),
             "appVersion" to "1.0.0"
         )
+
+        // Only include streak if positive so we never overwrite cloud-boosted admin streak on login
+        if (currentStreak > 0) {
+            userData["currentStreak"] = currentStreak
+            userData["streakCount"] = currentStreak
+        }
 
         firestore.collection("users").document(targetUid)
             .set(userData, com.google.firebase.firestore.SetOptions.merge())
@@ -396,18 +400,102 @@ object CloudAdminSyncService {
     }
 
     /**
+     * Helper to bundle multiple Firestore snapshot listeners together.
+     */
+    class CompositeListenerRegistration(
+        private val list: List<com.google.firebase.firestore.ListenerRegistration>
+    ) : com.google.firebase.firestore.ListenerRegistration {
+        override fun remove() {
+            list.forEach { runCatching { it.remove() } }
+        }
+    }
+
+    /**
+     * Listens in real-time to user's connected coding platform handles in Firestore
+     * (e.g. when modified from Next.js Portfolio Admin CMS).
+     */
+    fun listenToConnectedAccountsFromCloud(
+        uid: String?,
+        email: String? = null,
+        onUpdate: (Map<String, String>) -> Unit
+    ): com.google.firebase.firestore.ListenerRegistration? {
+        val currentAuth = FirebaseAuth.getInstance().currentUser
+        val authUid = currentAuth?.uid
+        val authEmail = email?.ifBlank { null } ?: currentAuth?.email
+
+        val candidateIds = listOfNotNull(
+            uid?.ifBlank { null },
+            authUid?.ifBlank { null },
+            authEmail?.ifBlank { null },
+            authEmail?.replace(".", "_")
+        ).distinct()
+
+        if (candidateIds.isEmpty()) return null
+
+        val regs = mutableListOf<com.google.firebase.firestore.ListenerRegistration>()
+
+        val processDoc: (com.google.firebase.firestore.DocumentSnapshot) -> Unit = { snapshot ->
+            val combined = mutableMapOf<String, String>()
+            @Suppress("UNCHECKED_CAST")
+            val docMap = (snapshot.get("connectedAccountsMap") as? Map<String, String>) ?: emptyMap()
+            for ((k, v) in docMap) {
+                if (v.isNotBlank()) combined[k.uppercase(java.util.Locale.ROOT)] = v
+            }
+            if (combined.isNotEmpty()) {
+                Log.d(TAG, "Real-time connected accounts update: ${combined.size} platforms")
+                onUpdate(combined)
+            }
+        }
+
+        for (targetId in candidateIds) {
+            try {
+                val reg = firestore.collection("users").document(targetId)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error == null && snapshot != null && snapshot.exists()) {
+                            processDoc(snapshot)
+                        }
+                    }
+                regs.add(reg)
+            } catch (e: Exception) {
+                Log.w(TAG, "Error listening to accounts on doc $targetId: ${e.message}")
+            }
+        }
+
+        if (!authEmail.isNullOrBlank()) {
+            try {
+                val emailReg = firestore.collection("users")
+                    .whereEqualTo("email", authEmail)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error == null && snapshot != null) {
+                            for (doc in snapshot.documents) {
+                                processDoc(doc)
+                            }
+                        }
+                    }
+                regs.add(emailReg)
+            } catch (e: Exception) {
+                Log.w(TAG, "Error querying accounts by email: ${e.message}")
+            }
+        }
+
+        return if (regs.isNotEmpty()) CompositeListenerRegistration(regs) else null
+    }
+
+    /**
      * Synchronizes the user's daily coding streak and active calendar dates to Firestore.
      */
     fun syncUserStreakToCloud(
         uid: String?,
+        email: String? = null,
         currentStreak: Int,
         activeDates: Set<String>
     ) {
         val targetUid = uid?.ifBlank { null }
+            ?: email?.replace(".", "_")
             ?: FirebaseAuth.getInstance().currentUser?.uid
             ?: FirebaseAuth.getInstance().currentUser?.email?.replace(".", "_")
             ?: return
-        if (targetUid.isBlank()) return
+        if (targetUid.isBlank() || currentStreak <= 0) return
 
         val streakData = hashMapOf(
             "currentStreak" to currentStreak,
@@ -432,21 +520,27 @@ object CloudAdminSyncService {
      */
     fun fetchUserStreakFromCloud(
         uid: String?,
+        email: String? = null,
         onSuccess: (currentStreak: Int, activeDates: Set<String>) -> Unit,
         onError: (Exception) -> Unit = {}
     ) {
-        val targetUid = uid?.ifBlank { null }
-            ?: FirebaseAuth.getInstance().currentUser?.uid
-            ?: FirebaseAuth.getInstance().currentUser?.email?.replace(".", "_")
-            ?: run {
-                onSuccess(0, emptySet())
-                return
-            }
-        if (targetUid.isBlank()) {
+        val currentAuth = FirebaseAuth.getInstance().currentUser
+        val authUid = currentAuth?.uid
+        val authEmail = email?.ifBlank { null } ?: currentAuth?.email
+
+        val candidateIds = listOfNotNull(
+            uid?.ifBlank { null },
+            authUid?.ifBlank { null },
+            authEmail?.ifBlank { null },
+            authEmail?.replace(".", "_")
+        ).distinct()
+
+        if (candidateIds.isEmpty()) {
             onSuccess(0, emptySet())
             return
         }
 
+        val targetUid = candidateIds.first()
         firestore.collection("users").document(targetUid)
             .get()
             .addOnSuccessListener { doc ->
@@ -459,6 +553,24 @@ object CloudAdminSyncService {
                     val datesSet = datesList.toSet()
                     Log.d(TAG, "Fetched cloud streak: $streak days, ${datesSet.size} dates for $targetUid")
                     onSuccess(streak, datesSet)
+                } else if (!authEmail.isNullOrBlank()) {
+                    // Fallback to query by email
+                    firestore.collection("users").whereEqualTo("email", authEmail).limit(1)
+                        .get()
+                        .addOnSuccessListener { querySnap ->
+                            val emailDoc = querySnap.documents.firstOrNull()
+                            if (emailDoc != null) {
+                                val streak = emailDoc.getLong("currentStreak")?.toInt()
+                                    ?: emailDoc.getLong("streakCount")?.toInt()
+                                    ?: 0
+                                @Suppress("UNCHECKED_CAST")
+                                val datesList = (emailDoc.get("activeDates") as? List<String>) ?: emptyList()
+                                onSuccess(streak, datesList.toSet())
+                            } else {
+                                onSuccess(0, emptySet())
+                            }
+                        }
+                        .addOnFailureListener { onError(it) }
                 } else {
                     onSuccess(0, emptySet())
                 }
@@ -467,6 +579,73 @@ object CloudAdminSyncService {
                 Log.w(TAG, "Failed to fetch streak from cloud: ${e.message}")
                 onError(e)
             }
+    }
+
+    /**
+     * Listens in real-time to user streak updates in Firestore (e.g. from Portfolio Admin Dashboard).
+     */
+    fun listenToUserStreakFromCloud(
+        uid: String?,
+        email: String? = null,
+        onUpdate: (currentStreak: Int, activeDates: Set<String>) -> Unit
+    ): com.google.firebase.firestore.ListenerRegistration? {
+        val currentAuth = FirebaseAuth.getInstance().currentUser
+        val authUid = currentAuth?.uid
+        val authEmail = email?.ifBlank { null } ?: currentAuth?.email
+
+        val candidateIds = listOfNotNull(
+            uid?.ifBlank { null },
+            authUid?.ifBlank { null },
+            authEmail?.ifBlank { null },
+            authEmail?.replace(".", "_")
+        ).distinct()
+
+        if (candidateIds.isEmpty()) return null
+
+        val regs = mutableListOf<com.google.firebase.firestore.ListenerRegistration>()
+
+        val processDoc: (com.google.firebase.firestore.DocumentSnapshot) -> Unit = { snapshot ->
+            val streak = snapshot.getLong("currentStreak")?.toInt()
+                ?: snapshot.getLong("streakCount")?.toInt()
+                ?: 0
+            @Suppress("UNCHECKED_CAST")
+            val datesList = (snapshot.get("activeDates") as? List<String>) ?: emptyList()
+            Log.d(TAG, "Real-time streak update from doc ${snapshot.id}: $streak days")
+            onUpdate(streak, datesList.toSet())
+        }
+
+        for (targetId in candidateIds) {
+            try {
+                val reg = firestore.collection("users").document(targetId)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error == null && snapshot != null && snapshot.exists()) {
+                            processDoc(snapshot)
+                        }
+                    }
+                regs.add(reg)
+            } catch (e: Exception) {
+                Log.w(TAG, "Error listening to streak on doc $targetId: ${e.message}")
+            }
+        }
+
+        if (!authEmail.isNullOrBlank()) {
+            try {
+                val emailReg = firestore.collection("users")
+                    .whereEqualTo("email", authEmail)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error == null && snapshot != null) {
+                            for (doc in snapshot.documents) {
+                                processDoc(doc)
+                            }
+                        }
+                    }
+                regs.add(emailReg)
+            } catch (e: Exception) {
+                Log.w(TAG, "Error querying streak by email: ${e.message}")
+            }
+        }
+
+        return if (regs.isNotEmpty()) CompositeListenerRegistration(regs) else null
     }
 }
 

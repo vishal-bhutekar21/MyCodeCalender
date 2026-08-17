@@ -11,14 +11,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.ArrowOutward
-import androidx.compose.material.icons.rounded.EmojiEvents
-import androidx.compose.material.icons.rounded.Link
-import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,6 +40,8 @@ import com.mycodecalendar.core.designsystem.components.GlassChip
 import com.mycodecalendar.core.designsystem.components.PlatformBadge
 import com.mycodecalendar.core.designsystem.components.StatusChip
 import com.mycodecalendar.core.designsystem.components.getBrandColor
+import com.mycodecalendar.core.designsystem.components.formatToIndianShortDateTime
+import com.mycodecalendar.core.designsystem.components.formatContestDuration
 import com.mycodecalendar.domain.model.Contest
 import com.mycodecalendar.domain.model.ContestStatus
 import com.mycodecalendar.domain.model.PastContestRecord
@@ -223,6 +222,8 @@ fun ContestsScreen(
         (cloudHackathons + curatedHackathons).distinctBy { it.actionUrl.ifBlank { it.id } }
     }
 
+    var selectedHackathonTag by remember { mutableStateOf<String?>(null) }
+
     val filteredContests = remember(contests, searchQuery, selectedPlatform, selectedStatus) {
         contests.filter { contest ->
             val matchesQuery = searchQuery.isBlank() || contest.name.contains(searchQuery, ignoreCase = true)
@@ -232,13 +233,22 @@ fun ContestsScreen(
         }
     }
 
-    val filteredHackathons = remember(allHackathons, searchQuery) {
+    val filteredHackathons = remember(allHackathons, searchQuery, selectedHackathonTag) {
         allHackathons.filter { hack ->
-            searchQuery.isBlank() ||
+            val matchesQuery = searchQuery.isBlank() ||
                 hack.title.contains(searchQuery, ignoreCase = true) ||
                 hack.organizer.contains(searchQuery, ignoreCase = true) ||
                 hack.mode.contains(searchQuery, ignoreCase = true) ||
                 hack.tags.any { it.contains(searchQuery, ignoreCase = true) }
+
+            val matchesTag = selectedHackathonTag == null ||
+                hack.title.contains(selectedHackathonTag!!, ignoreCase = true) ||
+                hack.organizer.contains(selectedHackathonTag!!, ignoreCase = true) ||
+                hack.mode.contains(selectedHackathonTag!!, ignoreCase = true) ||
+                hack.prizePool.contains(selectedHackathonTag!!, ignoreCase = true) ||
+                hack.tags.any { it.contains(selectedHackathonTag!!, ignoreCase = true) }
+
+            matchesQuery && matchesTag
         }
     }
 
@@ -263,17 +273,18 @@ fun ContestsScreen(
             ) {
                 Text(
                     text = "Contests & Hackathons",
-                    style = Typography.headlineMedium.copy(fontWeight = FontWeight.Black),
+                    style = Typography.headlineMedium.copy(fontWeight = FontWeight.Black, fontSize = 23.sp),
                     color = MaterialTheme.colorScheme.onBackground
                 )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = when (selectedMainTab) {
-                        0 -> "${filteredContests.size} contests available"
-                        1 -> "${filteredHackathons.size} grand hackathons & challenges"
+                        0 -> "${filteredContests.size} contests available across platforms"
+                        1 -> "${filteredHackathons.size} active hackathons & coding events"
                         else -> if (filteredPastContests.isEmpty()) "Connect platform handles to sync records" else "${filteredPastContests.size} past records logged"
                     },
-                    style = Typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    style = Typography.bodySmall.copy(fontSize = 12.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
                 )
             }
 
@@ -294,7 +305,7 @@ fun ContestsScreen(
                     modifier = Modifier.weight(1f)
                 )
                 PrimaryTabPill(
-                    label = "🏆 Hackathons",
+                    label = "Hackathons",
                     selected = selectedMainTab == 1,
                     badgeCount = allHackathons.size,
                     onClick = { selectedMainTab = 1 },
@@ -309,7 +320,7 @@ fun ContestsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // ── 1PX BORDERED MINIMALIST SEARCH BAR ─────────────────────────────────
             Box(
@@ -371,6 +382,32 @@ fun ContestsScreen(
                     }
                 }
                 Spacer(modifier = Modifier.height(14.dp))
+            } else if (selectedMainTab == 1) {
+                val hackathonCategories = listOf(
+                    "All Tracks" to null,
+                    "AI & ML" to "AI",
+                    "Lakhs Prizes" to "Lakh",
+                    "Web3" to "Web3",
+                    "Unstop" to "Unstop",
+                    "Offline Finale" to "Offline"
+                )
+
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp)
+                ) {
+                    items(hackathonCategories) { (label, filterTag) ->
+                        GlassChip(
+                            label = label,
+                            selected = (filterTag == null && selectedHackathonTag == null) || (selectedHackathonTag == filterTag),
+                            accentColor = BrandPrimaryOrange,
+                            onClick = {
+                                selectedHackathonTag = filterTag
+                            }
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(14.dp))
             }
 
             // ── CONTENT FEED BASED ON TAB ─────────────────────────────────────────
@@ -405,122 +442,15 @@ fun ContestsScreen(
                     }
                 }
                 1 -> {
-                    // HACKATHONS & GRAND INNOVATION CHALLENGES FEED
+                    // HACKATHONS FEED
                     if (filteredHackathons.isEmpty()) {
                         EmptyState(message = "No hackathons match your search.")
                     } else {
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(14.dp),
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 100.dp)
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 100.dp)
                         ) {
-                            // ── HACKATHONS HERO HEADER ─────────────────────────────
-                            item {
-                                GlassCard(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    accentColor = BrandPrimaryOrange,
-                                    cornerRadius = 22.dp
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .background(
-                                                androidx.compose.ui.graphics.Brush.linearGradient(
-                                                    listOf(
-                                                        BrandPrimaryOrange.copy(alpha = 0.22f),
-                                                        Color(0xFF1E2235),
-                                                        Color(0xFF0F121C)
-                                                    )
-                                                )
-                                            )
-                                            .padding(18.dp)
-                                    ) {
-                                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                            ) {
-                                                Text("🏆", fontSize = 22.sp)
-                                                Column {
-                                                    Text(
-                                                        text = "Hackathons & Grand Challenges",
-                                                        style = Typography.titleLarge.copy(
-                                                            fontWeight = FontWeight.Black,
-                                                            fontSize = 18.sp,
-                                                            letterSpacing = (-0.3).sp
-                                                        ),
-                                                        color = Color.White
-                                                    )
-                                                    Text(
-                                                        text = "Innovation competitions, prize pools & more",
-                                                        style = Typography.bodySmall.copy(fontSize = 11.5.sp),
-                                                        color = Color.White.copy(alpha = 0.65f)
-                                                    )
-                                                }
-                                            }
-
-                                            // Stats row
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                            ) {
-                                                listOf(
-                                                    Triple("🔥", "${filteredHackathons.size}", "Active Events"),
-                                                    Triple("💰", "₹3L+", "Total Prizes"),
-                                                    Triple("🌐", "Hybrid", "Mode")
-                                                ).forEach { (emoji, value, label) ->
-                                                    Surface(
-                                                        shape = RoundedCornerShape(10.dp),
-                                                        color = Color.White.copy(alpha = 0.08f),
-                                                        modifier = Modifier.weight(1f),
-                                                        border = androidx.compose.foundation.BorderStroke(
-                                                            0.8.dp, Color.White.copy(alpha = 0.18f)
-                                                        )
-                                                    ) {
-                                                        Column(
-                                                            modifier = Modifier.padding(10.dp),
-                                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                                                        ) {
-                                                            Text(text = emoji, fontSize = 16.sp)
-                                                            Text(
-                                                                text = value,
-                                                                style = Typography.titleSmall.copy(fontWeight = FontWeight.Black, fontSize = 14.sp),
-                                                                color = Color.White
-                                                            )
-                                                            Text(
-                                                                text = label,
-                                                                style = Typography.labelSmall.copy(fontSize = 9.5.sp),
-                                                                color = Color.White.copy(alpha = 0.60f)
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                            }
-
-                                            // Tags row
-                                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                listOf("Applied AI", "Web3", "Offline Finale", "Unstop").forEach { tag ->
-                                                    Surface(
-                                                        shape = RoundedCornerShape(6.dp),
-                                                        color = BrandPrimaryOrange.copy(alpha = 0.20f),
-                                                        border = androidx.compose.foundation.BorderStroke(0.8.dp, BrandPrimaryOrange.copy(alpha = 0.40f))
-                                                    ) {
-                                                        Text(
-                                                            text = tag,
-                                                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                                                            style = Typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 10.sp),
-                                                            color = BrandPrimaryOrange
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // ── HACKATHON CARDS ────────────────────────────────────
-                            items(filteredHackathons) { hackathon ->
+                            items(filteredHackathons, key = { it.id }) { hackathon ->
                                 HackathonCard(
                                     hackathon = hackathon,
                                     onRegisterClick = { onPastContestClick(hackathon.actionUrl) }
@@ -831,72 +761,66 @@ fun ContestCard(
         else -> "in ${timeUntilStart / 86400}d"
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .border(0.1.dp, activeColor.copy(alpha = 0.40f), RoundedCornerShape(16.dp))
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        accentColor = if (contest.status == ContestStatus.LIVE) activeColor else null,
+        cornerRadius = 18.dp,
+        onClick = onClick
     ) {
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            accentColor = activeColor,
-            cornerRadius = 16.dp,
-            onClick = onClick
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    modifier = Modifier
-                        .width(4.dp)
-                        .fillMaxHeight()
-                        .background(
-                            color = activeColor,
-                            shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)
-                        )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                PlatformBadge(platform = contest.platform)
+                StatusChip(status = contest.status)
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = contest.name,
+                style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 14.5.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = contest.startTimeUtc.formatToIndianShortDateTime(),
+                style = Typography.labelSmall.copy(
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.Medium
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Duration: ${formatContestDuration(contest.durationSeconds)}",
+                    style = Typography.labelSmall.copy(fontSize = 11.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
                 )
-
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(14.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        PlatformBadge(platform = contest.platform)
-                        StatusChip(status = contest.status)
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(
-                        text = contest.name,
-                        style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "${contest.durationSeconds / 3600}h ${(contest.durationSeconds % 3600) / 60}m",
-                            style = Typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        )
-                        Text(
-                            text = timeLabel,
-                            style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = activeColor
-                        )
-                    }
-                }
+                Text(
+                    text = timeLabel,
+                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp),
+                    color = activeColor
+                )
             }
         }
     }
@@ -909,136 +833,136 @@ fun HackathonCard(
 ) {
     val brandOrange = BrandPrimaryOrange
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .border(1.dp, brandOrange.copy(alpha = 0.35f), RoundedCornerShape(20.dp))
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        accentColor = brandOrange,
+        cornerRadius = 20.dp,
+        onClick = onRegisterClick
     ) {
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            accentColor = brandOrange,
-            cornerRadius = 20.dp,
-            onClick = onRegisterClick
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                if (hackathon.bannerUrl.isNotBlank()) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            if (hackathon.bannerUrl.isNotBlank()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(130.dp)
+                        .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                ) {
+                    AsyncImage(
+                        model = hackathon.bannerUrl,
+                        contentDescription = hackathon.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(130.dp)
-                            .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-                    ) {
-                        AsyncImage(
-                            model = hackathon.bannerUrl,
-                            contentDescription = hackathon.title,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    androidx.compose.ui.graphics.Brush.verticalGradient(
-                                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))
-                                    )
+                            .fillMaxSize()
+                            .background(
+                                androidx.compose.ui.graphics.Brush.verticalGradient(
+                                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))
                                 )
+                            )
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = brandOrange,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = hackathon.badge,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp),
+                            style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 9.sp),
+                            color = Color.White
                         )
+                    }
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                if (hackathon.bannerUrl.isBlank()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = brandOrange,
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(12.dp)
+                            color = brandOrange.copy(alpha = 0.18f),
+                            border = BorderStroke(0.8.dp, brandOrange.copy(alpha = 0.40f))
                         ) {
                             Text(
                                 text = hackathon.badge,
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp),
-                                style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 9.sp),
-                                color = Color.White
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 9.5.sp),
+                                color = brandOrange
                             )
+                        }
+
+                        if (hackathon.prizePool.isNotBlank()) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFF59E0B).copy(alpha = 0.15f),
+                                border = BorderStroke(0.8.dp, Color(0xFFF59E0B).copy(alpha = 0.35f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.EmojiEvents,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(13.dp),
+                                        tint = Color(0xFFF59E0B)
+                                    )
+                                    Text(
+                                        text = hackathon.prizePool,
+                                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                                        color = Color(0xFFF59E0B)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else if (hackathon.prizePool.isNotBlank()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFF59E0B).copy(alpha = 0.15f),
+                            border = BorderStroke(0.8.dp, Color(0xFFF59E0B).copy(alpha = 0.35f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    Icons.Rounded.EmojiEvents,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(13.dp),
+                                    tint = Color(0xFFF59E0B)
+                                )
+                                Text(
+                                    text = hackathon.prizePool,
+                                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                                    color = Color(0xFFF59E0B)
+                                )
+                            }
                         }
                     }
                 }
 
-                Column(modifier = Modifier.padding(16.dp)) {
-                    if (hackathon.bannerUrl.isBlank()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = brandOrange.copy(alpha = 0.18f),
-                                border = BorderStroke(0.1.dp, brandOrange.copy(alpha = 0.4f))
-                            ) {
-                                Text(
-                                    text = hackathon.badge,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 9.5.sp),
-                                    color = brandOrange
-                                )
-                            }
-
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFFF59E0B).copy(alpha = 0.15f),
-                                border = BorderStroke(0.1.dp, Color(0xFFF59E0B).copy(alpha = 0.35f))
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        Icons.Rounded.EmojiEvents,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(13.dp),
-                                        tint = Color(0xFFF59E0B)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = hackathon.prizePool,
-                                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
-                                        color = Color(0xFFF59E0B)
-                                    )
-                                }
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(10.dp))
-                    } else {
-                        // Prize pool row when banner exists
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFFF59E0B).copy(alpha = 0.15f),
-                                border = BorderStroke(0.1.dp, Color(0xFFF59E0B).copy(alpha = 0.35f))
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        Icons.Rounded.EmojiEvents,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(13.dp),
-                                        tint = Color(0xFFF59E0B)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = hackathon.prizePool,
-                                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
-                                        color = Color(0xFFF59E0B)
-                                    )
-                                }
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                    }
-
+                // Title & Organizer
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(
                         text = hackathon.title,
                         style = Typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 16.sp),
@@ -1046,98 +970,134 @@ fun HackathonCard(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
+                    if (hackathon.organizer.isNotBlank()) {
+                        Text(
+                            text = hackathon.organizer,
+                            style = Typography.bodySmall.copy(fontSize = 12.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.80f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
 
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = hackathon.organizer,
-                        style = Typography.bodySmall.copy(fontSize = 12.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Mode, Team size & Timeline pills
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                // Metadata Chips (Vector Icons, No Emojis)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (hackathon.teamSize.isNotBlank()) {
                         Surface(
-                            shape = RoundedCornerShape(6.dp),
+                            shape = RoundedCornerShape(8.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
                         ) {
-                            Text(
-                                text = "👥 ${hackathon.teamSize}",
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                                style = Typography.labelSmall.copy(fontSize = 10.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-                        ) {
-                            Text(
-                                text = "📍 ${hackathon.mode.take(24)}",
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                                style = Typography.labelSmall.copy(fontSize = 10.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Groups,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(13.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = hackathon.teamSize,
+                                    style = Typography.labelSmall.copy(fontSize = 10.5.sp, fontWeight = FontWeight.Medium),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Footer: Tags + 1-Tap Register Button
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.weight(1f)
+                    if (hackathon.mode.isNotBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
                         ) {
-                            hackathon.tags.take(2).forEach { tag ->
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = brandOrange.copy(alpha = 0.1f),
-                                    border = BorderStroke(0.1.dp, brandOrange.copy(alpha = 0.25f))
-                                ) {
-                                    Text(
-                                        text = tag,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        style = Typography.labelSmall.copy(fontSize = 9.5.sp, fontWeight = FontWeight.SemiBold),
-                                        color = brandOrange
-                                    )
-                                }
+                            Row(
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    Icons.Rounded.LocationOn,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(13.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = hackathon.mode.take(24),
+                                    style = Typography.labelSmall.copy(fontSize = 10.5.sp, fontWeight = FontWeight.Medium),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1
+                                )
                             }
                         }
+                    }
+                }
 
-                        Button(
-                            onClick = onRegisterClick,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = brandOrange,
-                                contentColor = Color.White
-                            ),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                // Footer: Tags + State-of-the-Art Gradient Register Button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        hackathon.tags.take(2).forEach { tag ->
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = brandOrange.copy(alpha = 0.10f),
+                                border = BorderStroke(0.8.dp, brandOrange.copy(alpha = 0.25f))
+                            ) {
+                                Text(
+                                    text = tag,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    style = Typography.labelSmall.copy(fontSize = 9.5.sp, fontWeight = FontWeight.SemiBold),
+                                    color = brandOrange
+                                )
+                            }
+                        }
+                    }
+
+                    // ── HIGH-IMPACT REGISTER BUTTON ──
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color.Transparent,
+                        border = BorderStroke(1.dp, brandOrange.copy(alpha = 0.60f)),
+                        onClick = onRegisterClick
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                        listOf(brandOrange, Color(0xFFFF8533))
+                                    )
+                                )
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "Register",
-                                style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(
-                                Icons.AutoMirrored.Rounded.OpenInNew,
-                                contentDescription = null,
-                                modifier = Modifier.size(13.dp)
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                Text(
+                                    text = "Register Now",
+                                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 11.5.sp),
+                                    color = Color.White
+                                )
+                                Icon(
+                                    Icons.AutoMirrored.Rounded.ArrowForward,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(13.dp),
+                                    tint = Color.White
+                                )
+                            }
                         }
                     }
                 }

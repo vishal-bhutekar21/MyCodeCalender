@@ -197,7 +197,7 @@ class MainActivity : ComponentActivity() {
                                 uid = uid,
                                 onSuccess = { cloudStreak, cloudDates ->
                                     if (cloudStreak > 0 || cloudDates.isNotEmpty()) {
-                                        repository.mergeCloudStreak(cloudStreak, cloudDates)
+                                        repository.setCloudStreak(cloudStreak, cloudDates)
                                     }
                                 }
                             )
@@ -230,9 +230,33 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // ── SYNC STREAK TO CLOUD WHEN UPDATED ────────────────────────────────
-                LaunchedEffect(isLoggedIn, streakInfo?.currentStreak, streakInfo?.activeDates?.size) {
-                    if (isLoggedIn && authMethod != "Guest") {
+                // ── REAL-TIME STREAK & PLATFORMS LISTENER FROM CLOUD ADMIN ─────────────
+                DisposableEffect(isLoggedIn, authEmail) {
+                    val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                        ?: authEmail?.replace(".", "_")
+                    val streakReg = if (isLoggedIn && authMethod != "Guest") {
+                        CloudAdminSyncService.listenToUserStreakFromCloud(uid, authEmail) { cloudStreak, cloudDates ->
+                            if (cloudStreak > 0 || cloudDates.isNotEmpty()) {
+                                repository.setCloudStreak(cloudStreak, cloudDates)
+                            }
+                        }
+                    } else null
+
+                    val accountsReg = if (isLoggedIn && authMethod != "Guest") {
+                        CloudAdminSyncService.listenToConnectedAccountsFromCloud(uid, authEmail) { cloudAccounts ->
+                            repository.syncCloudConnectedAccounts(cloudAccounts)
+                        }
+                    } else null
+
+                    onDispose {
+                        streakReg?.remove()
+                        accountsReg?.remove()
+                    }
+                }
+
+                // ── SYNC STREAK TO CLOUD ONLY ON GENUINE LOCAL NEW DAY INCREMENT ──────
+                LaunchedEffect(isLoggedIn, streakInfo?.isNewDayIncrement) {
+                    if (isLoggedIn && authMethod != "Guest" && streakInfo?.isNewDayIncrement == true) {
                         val current = streakInfo
                         if (current != null) {
                             val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
@@ -240,6 +264,7 @@ class MainActivity : ComponentActivity() {
                             if (!uid.isNullOrBlank()) {
                                 CloudAdminSyncService.syncUserStreakToCloud(
                                     uid = uid,
+                                    email = authEmail,
                                     currentStreak = current.currentStreak,
                                     activeDates = current.activeDates
                                 )
@@ -442,12 +467,18 @@ class MainActivity : ComponentActivity() {
                                 NotificationsListScreen(
                                     onBackClick = { navController.popBackStack() },
                                     onNotificationClick = { appNotif ->
-                                        if (appNotif.broadcast != null) {
+                                        if (appNotif.type == com.mycodecalendar.feature.home.NotificationKind.MATERIAL_ADDED ||
+                                            appNotif.type == com.mycodecalendar.feature.home.NotificationKind.PLAYLIST) {
+                                            navController.navigate("resources")
+                                        } else if (appNotif.broadcast != null) {
                                             activeBroadcastDetail = appNotif.broadcast
                                             navController.navigate("broadcast_detail")
                                         } else if (appNotif.actionUrl.isNotBlank()) {
                                             openUrl(appNotif.actionUrl)
                                         }
+                                    },
+                                    onOpenResource = {
+                                        navController.navigate("resources")
                                     }
                                 )
                             }

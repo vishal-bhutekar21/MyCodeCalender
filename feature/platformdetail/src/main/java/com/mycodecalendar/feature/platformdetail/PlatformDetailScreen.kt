@@ -331,13 +331,14 @@ private fun GitHubDetailContent(
                                     3 -> Color(0xFF00C962)
                                     2 -> Color(0xFF006D35)
                                     1 -> Color(0xFF00381B)
-                                    else -> Color(0xFF161B22)
+                                    else -> Color.White.copy(alpha = 0.20f)
                                 }
                                 Box(
                                     modifier = Modifier
                                         .size(10.dp)
                                         .clip(RoundedCornerShape(2.dp))
                                         .background(cellColor)
+                                        .border(0.5.dp, Color.White.copy(alpha = 0.30f), RoundedCornerShape(2.dp))
                                 )
                             }
                         }
@@ -357,7 +358,7 @@ private fun GitHubDetailContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                     listOf(
-                        Color(0xFF161B22),
+                        Color.White.copy(alpha = 0.20f),
                         Color(0xFF00381B),
                         Color(0xFF006D35),
                         Color(0xFF00C962),
@@ -369,6 +370,7 @@ private fun GitHubDetailContent(
                                 .size(8.dp)
                                 .clip(RoundedCornerShape(2.dp))
                                 .background(col)
+                                .border(0.5.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(2.dp))
                         )
                     }
                     Text(

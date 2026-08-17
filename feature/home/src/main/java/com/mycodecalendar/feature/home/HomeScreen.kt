@@ -54,11 +54,11 @@ data class CloudBroadcastBanner(
     val badge: String = "NOTICE",
     val bannerImageUrl: String = "",
     val description: String = "",
-    val prizePool: String = "₹2,00,000",
-    val location: String = "VITM Indore Campus",
-    val teamSize: String = "2 - 4 Members",
-    val timeline: String = "06 Aug 2026 – 25 Aug 2026",
-    val tags: List<String> = listOf("Applied AI", "Agentic AI", "Hackathon", "₹2 Lakh Prizes", "Unstop")
+    val prizePool: String = "",
+    val location: String = "",
+    val teamSize: String = "",
+    val timeline: String = "",
+    val tags: List<String> = emptyList()
 )
 
 /**
@@ -83,8 +83,89 @@ fun HomeScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var showStreakModal by remember { mutableStateOf(false) }
-    var cloudBroadcast by remember { mutableStateOf<CloudBroadcastBanner?>(null) }
-    var isBroadcastDismissed by remember { mutableStateOf(false) }
+    var isBroadcastLoading by remember { mutableStateOf(true) }
+    var cloudBroadcast by remember {
+        mutableStateOf<CloudBroadcastBanner?>(null)
+    }
+
+    // Persisted dismissed broadcast IDs specifically for HomeScreen
+    val homePrefs = remember { context.getSharedPreferences("app_home_prefs", android.content.Context.MODE_PRIVATE) }
+    var dismissedHomeBroadcastIds by remember {
+        mutableStateOf(
+            homePrefs.getStringSet("dismissed_broadcast_ids", emptySet()) ?: emptySet()
+        )
+    }
+
+    val isCurrentBroadcastDismissedOnHome = cloudBroadcast != null && dismissedHomeBroadcastIds.contains(cloudBroadcast?.id)
+    val hasUnreadBroadcast = cloudBroadcast != null && !isCurrentBroadcastDismissedOnHome
+
+    // Real-time Firestore snapshot listener for cloud broadcasts
+    DisposableEffect(Unit) {
+        val listener = try {
+            com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("broadcasts")
+                .whereEqualTo("isActive", true)
+                .limit(1)
+                .addSnapshotListener { snapshot, error ->
+                    isBroadcastLoading = false
+                    if (error == null && snapshot != null) {
+                        val doc = snapshot.documents.firstOrNull()
+                        if (doc != null) {
+                            val expiresAtStr = doc.getString("expiresAt")
+                            val isExpired = try {
+                                if (!expiresAtStr.isNullOrBlank()) {
+                                    java.time.Instant.parse(expiresAtStr).isBefore(java.time.Instant.now())
+                                } else false
+                            } catch (_: Exception) {
+                                false
+                            }
+
+                            if (isExpired) {
+                                cloudBroadcast = null
+                                return@addSnapshotListener
+                            }
+
+                            val title = doc.getString("title") ?: ""
+                            val subtitle = doc.getString("message") ?: doc.getString("subtitle") ?: ""
+                            val actionUrl = doc.getString("actionUrl") ?: ""
+                            val badge = doc.getString("badge") ?: "NOTICE"
+                            val bannerImageUrl = doc.getString("bannerImageUrl") ?: ""
+                            val description = doc.getString("description") ?: subtitle
+                            val prizePool = doc.getString("prizePool") ?: ""
+                            val location = doc.getString("location") ?: ""
+                            val teamSize = doc.getString("teamSize") ?: ""
+                            val timeline = doc.getString("timeline") ?: ""
+                            val tags = (doc.get("tags") as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList()
+                            if (title.isNotBlank()) {
+                                cloudBroadcast = CloudBroadcastBanner(
+                                    id = doc.id,
+                                    title = title,
+                                    subtitle = subtitle,
+                                    actionUrl = actionUrl,
+                                    badge = badge,
+                                    bannerImageUrl = bannerImageUrl,
+                                    description = description,
+                                    prizePool = prizePool,
+                                    location = location,
+                                    teamSize = teamSize,
+                                    timeline = timeline,
+                                    tags = tags
+                                )
+                            }
+                        } else {
+                            cloudBroadcast = null
+                        }
+                    }
+                }
+        } catch (_: Exception) {
+            isBroadcastLoading = false
+            null
+        }
+
+        onDispose {
+            listener?.remove()
+        }
+    }
 
     // Auto-show streak modal ONLY on a genuine new-day increment, and only once per calendar day
     LaunchedEffect(uiState.streakInfo?.isNewDayIncrement) {
@@ -132,20 +213,26 @@ fun HomeScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .padding(top = 24.dp, bottom = 18.dp),
+                    .padding(horizontal = 18.dp)
+                    .padding(top = 22.dp, bottom = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f, fill = false)) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .padding(end = 8.dp)
+                ) {
                     Text(
                         text = greeting,
                         style = Typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.6.sp,
-                            fontSize = 11.5.sp
+                            fontSize = 11.sp
                         ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     if (!resolvedUserName.isNullOrBlank()) {
@@ -153,7 +240,7 @@ fun HomeScreen(
                             text = resolvedUserName,
                             style = Typography.headlineMedium.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = 26.sp,
+                                fontSize = 24.sp,
                                 letterSpacing = (-0.5).sp
                             ),
                             color = MaterialTheme.colorScheme.onBackground,
@@ -166,26 +253,28 @@ fun HomeScreen(
                                 text = "MyCode",
                                 style = Typography.headlineMedium.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 26.sp,
+                                    fontSize = 24.sp,
                                     letterSpacing = (-0.5).sp
                                 ),
-                                color = MaterialTheme.colorScheme.onBackground
+                                color = MaterialTheme.colorScheme.onBackground,
+                                maxLines = 1
                             )
                             Text(
                                 text = "Calendar",
                                 style = Typography.headlineMedium.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 26.sp,
+                                    fontSize = 24.sp,
                                     letterSpacing = (-0.5).sp
                                 ),
-                                color = BrandPrimaryOrange
+                                color = BrandPrimaryOrange,
+                                maxLines = 1
                             )
                         }
                     }
                 }
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Daily App Login Streak Pill
@@ -200,25 +289,27 @@ fun HomeScreen(
                     )
 
                     GlassCard(
-                        cornerRadius = 24.dp,
+                        cornerRadius = 20.dp,
                         accentColor = Color(0xFFF59E0B),
                         onClick = onStreakClick
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                            modifier = Modifier
+                                .height(36.dp)
+                                .padding(horizontal = 9.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 Icons.Rounded.LocalFireDepartment,
                                 contentDescription = "Daily Streak",
                                 modifier = Modifier
-                                    .size(17.dp)
+                                    .size(15.dp)
                                     .scale(fireScale),
                                 tint = Color(0xFFF59E0B)
                             )
-                            Spacer(modifier = Modifier.width(5.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
                             Text(
-                                text = "${uiState.userStreak}d streak",
+                                text = "${uiState.userStreak}d",
                                 style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -227,34 +318,34 @@ fun HomeScreen(
 
                     // ── GLASS NOTIFICATION BELL (BETWEEN STREAK AND REFRESH) ──
                     GlassCard(
-                        cornerRadius = 24.dp,
-                        accentColor = if (cloudBroadcast != null) BrandPrimaryOrange else Color.Transparent,
+                        cornerRadius = 20.dp,
+                        accentColor = if (hasUnreadBroadcast) BrandPrimaryOrange else null,
                         onClick = {
-                            // Navigate to the full Notifications List screen
                             onViewAllNotificationsClick()
                         }
                     ) {
                         Box(
-                            modifier = Modifier.size(42.dp),
+                            modifier = Modifier.size(36.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 Icons.Rounded.Notifications,
                                 contentDescription = "Notifications & Broadcasts",
-                                modifier = Modifier.size(19.dp),
-                                tint = if (cloudBroadcast != null && !isBroadcastDismissed) BrandPrimaryOrange
-                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                modifier = Modifier.size(18.dp),
+                                tint = if (hasUnreadBroadcast) BrandPrimaryOrange
+                                else MaterialTheme.colorScheme.onSurface
                             )
 
                             // Glowing notification dot
-                            if (cloudBroadcast != null) {
+                            if (hasUnreadBroadcast) {
                                 Box(
                                     modifier = Modifier
                                         .align(Alignment.TopEnd)
-                                        .padding(top = 9.dp, end = 9.dp)
+                                        .padding(top = 7.dp, end = 7.dp)
                                         .size(7.dp)
                                         .background(BrandPrimaryOrange, CircleShape)
                                         .border(1.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                                        .clip(CircleShape)
                                 )
                             }
                         }
@@ -262,79 +353,35 @@ fun HomeScreen(
 
                     // Refresh FAB
                     GlassCard(
-                        cornerRadius = 24.dp,
+                        cornerRadius = 20.dp,
                         onClick = onRefresh
                     ) {
                         Box(
-                            modifier = Modifier.size(42.dp),
+                            modifier = Modifier.size(36.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 Icons.Rounded.Refresh,
                                 contentDescription = "Refresh",
                                 modifier = Modifier
-                                    .size(18.dp)
+                                    .size(17.dp)
                                     .rotate(if (isRefreshing) refreshAngle else 0f),
                                 tint = if (isRefreshing) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
                 }
             }
 
-            // ── DYNAMIC LIVE CLOUD BROADCAST (Web Admin CMS) ───────────────────
-            LaunchedEffect(Unit) {
-                try {
-                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                        .collection("broadcasts")
-                        .whereEqualTo("isActive", true)
-                        .limit(1)
-                        .get()
-                        .addOnSuccessListener { snapshot ->
-                            val doc = snapshot.documents.firstOrNull()
-                            if (doc != null) {
-                                val title = doc.getString("title") ?: ""
-                                val subtitle = doc.getString("message") ?: doc.getString("subtitle") ?: ""
-                                val actionUrl = doc.getString("actionUrl") ?: ""
-                                val badge = doc.getString("badge") ?: "NOTICE"
-                                val bannerImageUrl = doc.getString("bannerImageUrl") ?: ""
-                                val description = doc.getString("description") ?: ""
-                                val prizePool = doc.getString("prizePool") ?: "₹ 2,00,000"
-                                val location = doc.getString("location") ?: "VITM Indore Campus"
-                                val teamSize = doc.getString("teamSize") ?: "2 - 4 Members"
-                                val timeline = doc.getString("timeline") ?: "06 Aug 2026 – 25 Aug 2026"
-                                val tags = (doc.get("tags") as? List<*>)?.mapNotNull { it?.toString() }
-                                    ?: listOf("Applied AI", "Agentic AI", "Hackathon", "₹2 Lakh Prizes", "Unstop")
-                                if (title.isNotBlank()) {
-                                    cloudBroadcast = CloudBroadcastBanner(
-                                        id = doc.id,
-                                        title = title,
-                                        subtitle = subtitle,
-                                        actionUrl = actionUrl,
-                                        badge = badge,
-                                        bannerImageUrl = bannerImageUrl,
-                                        description = description,
-                                        prizePool = prizePool,
-                                        location = location,
-                                        teamSize = teamSize,
-                                        timeline = timeline,
-                                        tags = tags
-                                    )
-                                }
-                            }
-                        }
-                } catch (e: Exception) {
-                    // Non-blocking
-                }
-            }
-
-            if (cloudBroadcast != null && !isBroadcastDismissed) {
+            if (isBroadcastLoading) {
+                BroadcastBannerSkeleton()
+            } else if (cloudBroadcast != null && !isCurrentBroadcastDismissedOnHome) {
                 val currentBroadcast = cloudBroadcast!!
                 GlassCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 6.dp),
+                        .padding(horizontal = 18.dp, vertical = 6.dp),
                     cornerRadius = 18.dp,
                     accentColor = BrandPrimaryOrange,
                     onClick = {
@@ -400,12 +447,17 @@ fun HomeScreen(
                         }
 
                         IconButton(
-                            onClick = { isBroadcastDismissed = true },
+                            onClick = {
+                                val bId = currentBroadcast.id
+                                val updated = dismissedHomeBroadcastIds + bId
+                                dismissedHomeBroadcastIds = updated
+                                homePrefs.edit().putStringSet("dismissed_broadcast_ids", updated).apply()
+                            },
                             modifier = Modifier.size(24.dp)
                         ) {
                             Icon(
                                 Icons.Rounded.Clear,
-                                contentDescription = "Dismiss",
+                                contentDescription = "Dismiss from Home",
                                 modifier = Modifier.size(15.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.50f)
                             )
@@ -727,7 +779,18 @@ fun NextContestHeroCard(
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(6.dp))
+
+            Text(
+                text = contest.startTimeUtc.formatToIndianShortDateTime(),
+                style = Typography.labelSmall.copy(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 12.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+            )
+
+            Spacer(Modifier.height(14.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -904,13 +967,13 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                                 3 -> Color(0xFF26A641)
                                 2 -> Color(0xFF006D32)
                                 1 -> Color(0xFF0E4429)
-                                else -> Color(0xFF161B22)
+                                else -> Color.White.copy(alpha = 0.20f)
                             }
                             Box(
                                 modifier = Modifier
                                     .size(11.dp)
                                     .background(heatColor, RoundedCornerShape(2.dp))
-                                    .border(0.1.dp, Color(0x1AFFFFFF), RoundedCornerShape(2.dp))
+                                    .border(0.5.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(2.dp))
                             )
                         }
                     }
@@ -1056,7 +1119,7 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                 ) {
                     Text("Less", style = Typography.labelSmall.copy(fontSize = 9.sp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f))
                     listOf(
-                        Color(0xFF161B22),
+                        Color.White.copy(alpha = 0.20f),
                         Color(0xFF0E4429),
                         Color(0xFF006D32),
                         Color(0xFF26A641),
@@ -1066,6 +1129,7 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                             modifier = Modifier
                                 .size(9.dp)
                                 .background(col, RoundedCornerShape(2.dp))
+                                .border(0.5.dp, Color.White.copy(alpha = 0.30f), RoundedCornerShape(2.dp))
                         )
                     }
                     Text("More", style = Typography.labelSmall.copy(fontSize = 9.sp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f))
@@ -1140,67 +1204,71 @@ fun UpcomingContestRow(contest: Contest, onClick: () -> Unit) {
     val durationMins = (contest.durationSeconds % 3600) / 60
     val durationText = if (durationHours > 0) "${durationHours}h${if (durationMins > 0) " ${durationMins}m" else ""}" else "${durationMins}m"
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .border(0.1.dp, activeColor.copy(alpha = 0.40f), RoundedCornerShape(16.dp))
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        accentColor = if (contest.status == ContestStatus.LIVE) activeColor else null,
+        cornerRadius = 16.dp,
+        onClick = onClick
     ) {
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            accentColor = activeColor,
-            cornerRadius = 16.dp,
-            onClick = onClick
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        PlatformBadge(platform = contest.platform)
-                        if (contest.durationSeconds > 0) {
-                            Text(
-                                text = "· $durationText",
-                                style = Typography.labelSmall.copy(fontSize = 11.5.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        text = contest.name,
-                        style = Typography.titleSmall.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp,
-                            lineHeight = 19.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                Spacer(Modifier.width(14.dp))
-
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.Center
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    StatusChip(status = contest.status)
-                    Spacer(Modifier.height(5.dp))
-                    Text(
-                        text = timeLabel,
-                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
-                        color = activeColor
-                    )
+                    PlatformBadge(platform = contest.platform)
+                    if (contest.durationSeconds > 0) {
+                        Text(
+                            text = "· $durationText",
+                            style = Typography.labelSmall.copy(fontSize = 11.5.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+                        )
+                    }
                 }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = contest.name,
+                    style = Typography.titleSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        lineHeight = 19.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    text = contest.startTimeUtc.formatToIndianShortDateTime(),
+                    style = Typography.labelSmall.copy(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(Modifier.width(14.dp))
+
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.Center
+            ) {
+                StatusChip(status = contest.status)
+                Spacer(Modifier.height(5.dp))
+                Text(
+                    text = timeLabel,
+                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                    color = activeColor
+                )
             }
         }
     }

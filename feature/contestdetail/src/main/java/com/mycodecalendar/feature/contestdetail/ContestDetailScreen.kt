@@ -35,6 +35,8 @@ import com.mycodecalendar.core.designsystem.components.GlassBackButton
 import com.mycodecalendar.core.designsystem.components.GlassCard
 import com.mycodecalendar.core.designsystem.components.PlatformBadge
 import com.mycodecalendar.core.designsystem.components.StatusChip
+import com.mycodecalendar.core.designsystem.components.formatToIndianDateTime
+import com.mycodecalendar.core.designsystem.components.formatContestDuration
 import com.mycodecalendar.domain.model.Contest
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -115,17 +117,17 @@ fun ContestDetailScreen(
                 cornerRadius = 20.dp
             ) {
                 Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 6.dp)) {
-                    DetailRow(label = "Start Time", value = formatter.format(contest.startTimeUtc))
+                    DetailRow(label = "Start Time (IST)", value = contest.startTimeUtc.formatToIndianDateTime())
                     HorizontalDivider(
                         color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
                     )
-                    DetailRow(label = "End Time", value = formatter.format(contest.endTimeUtc))
+                    DetailRow(label = "End Time (IST)", value = contest.endTimeUtc.formatToIndianDateTime())
                     HorizontalDivider(
                         color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
                     )
                     DetailRow(
                         label = "Duration",
-                        value = "${contest.durationSeconds / 3600}h ${(contest.durationSeconds % 3600) / 60}m"
+                        value = formatContestDuration(contest.durationSeconds)
                     )
                     HorizontalDivider(
                         color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
@@ -258,7 +260,7 @@ fun ContestDetailScreen(
             CalendarConfirmationModal(
                 title = "Added to System Calendar",
                 subtitle = contest.name,
-                timeText = formatter.format(contest.startTimeUtc),
+                timeText = contest.startTimeUtc.formatToIndianDateTime(),
                 onDismiss = { showCalendarModal = false }
             )
         }
@@ -268,7 +270,7 @@ fun ContestDetailScreen(
             CalendarConfirmationModal(
                 title = "Reminder Activated",
                 subtitle = "You will be notified 15 minutes before ${contest.name} starts.",
-                timeText = formatter.format(contest.startTimeUtc),
+                timeText = contest.startTimeUtc.formatToIndianDateTime(),
                 isReminder = true,
                 onDismiss = { showReminderModal = false }
             )

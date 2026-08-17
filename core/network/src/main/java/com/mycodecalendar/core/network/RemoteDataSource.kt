@@ -45,8 +45,7 @@ class RemoteDataSource(
     // ── LIVE CONTESTS ─────────────────────────────────────────────────────────
 
     /**
-     * Fetches all upcoming/live contests from the Kontests.net aggregator API.
-     * Returns contests from Codeforces, LeetCode, CodeChef, AtCoder, and more.
+     * Fetches all upcoming/live contests from the Kontests.net aggregator API if reachable.
      * Endpoint: GET https://kontests.net/api/v1/all
      */
     suspend fun fetchKontestsContests(): Result<List<KontestApiDto>> {
@@ -58,8 +57,42 @@ class RemoteDataSource(
     }
 
     /**
+     * Fetches real contest list directly from LeetCode official GraphQL API.
+     * Endpoint: POST https://leetcode.com/graphql
+     */
+    suspend fun fetchLeetCodeContests(): Result<List<LeetCodeContestDto>> {
+        return runCatching {
+            val requestBody = LeetCodeAllContestsQueryRequest(
+                query = "query { allContests { title titleSlug startTime duration originStartTime isVirtual } }"
+            )
+            val response: LeetCodeAllContestsResponse = client.post("https://leetcode.com/graphql") {
+                contentType(ContentType.Application.Json)
+                header("User-Agent", "Mozilla/5.0 (Android; MyCodeCalendar)")
+                header("Referer", "https://leetcode.com/")
+                header("Origin", "https://leetcode.com")
+                setBody(requestBody)
+            }.body()
+            response.data?.allContests ?: emptyList()
+        }
+    }
+
+    /**
+     * Fetches real contests list directly from Kenkoooo AtCoder API.
+     * Endpoint: GET https://kenkoooo.com/atcoder/resources/contests.json
+     */
+    suspend fun fetchAtCoderContests(): Result<List<AtCoderContestItemDto>> {
+        return runCatching {
+            val response: List<AtCoderContestItemDto> =
+                client.get("https://kenkoooo.com/atcoder/resources/contests.json") {
+                    header("User-Agent", "MyCodeCalendar-Android/1.0")
+                    header("Accept", "application/json")
+                }.body()
+            response
+        }
+    }
+
+    /**
      * Fetches contest list directly from Codeforces official API.
-     * Used as a secondary source to supplement Kontests data.
      * Endpoint: GET https://codeforces.com/api/contest.list?gym=false
      */
     suspend fun fetchCodeforcesContests(): Result<List<CodeforcesContestDto>> {

@@ -404,4 +404,76 @@ fun SettingsScreenSkeleton() {
     }
 }
 
+/**
+ * BroadcastBannerSkeleton — Glassmorphic shimmer placeholder for Home Screen announcement banner.
+ */
+@Composable
+fun BroadcastBannerSkeleton() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 6.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.45f))
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f), RoundedCornerShape(18.dp))
+            .padding(14.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ShimmerBox(modifier = Modifier.size(42.dp), cornerRadius = 12.dp)
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                ShimmerBox(modifier = Modifier.width(72.dp).height(16.dp), cornerRadius = 4.dp)
+                ShimmerBox(modifier = Modifier.fillMaxWidth(0.85f).height(16.dp), cornerRadius = 4.dp)
+                ShimmerBox(modifier = Modifier.fillMaxWidth(0.6f).height(12.dp), cornerRadius = 4.dp)
+            }
+        }
+    }
+}
+
+/**
+ * NotificationsListSkeleton — Full screen shimmering notification cards placeholder.
+ */
+@Composable
+fun NotificationsListSkeleton() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 18.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        repeat(5) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.45f))
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f), RoundedCornerShape(18.dp))
+                    .padding(14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ShimmerBox(modifier = Modifier.size(44.dp), cornerRadius = 12.dp)
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            ShimmerBox(modifier = Modifier.width(80.dp).height(18.dp), cornerRadius = 6.dp)
+                            ShimmerBox(modifier = Modifier.width(50.dp).height(14.dp), cornerRadius = 4.dp)
+                        }
+                        ShimmerBox(modifier = Modifier.fillMaxWidth(0.9f).height(16.dp), cornerRadius = 4.dp)
+                        ShimmerBox(modifier = Modifier.fillMaxWidth(0.7f).height(12.dp), cornerRadius = 4.dp)
+                    }
+                }
+            }
+        }
+    }
+}
+
 

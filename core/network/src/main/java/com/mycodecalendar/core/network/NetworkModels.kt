@@ -293,6 +293,44 @@ data class LeetCodeGraphQLError(
     val message: String = ""
 )
 
+// ── LEETCODE CONTESTS GRAPHQL DTOS ───────────────────────────────────────────
+
+@Serializable
+data class LeetCodeAllContestsQueryRequest(
+    val query: String
+)
+
+@Serializable
+data class LeetCodeAllContestsResponse(
+    val data: LeetCodeAllContestsData? = null
+)
+
+@Serializable
+data class LeetCodeAllContestsData(
+    val allContests: List<LeetCodeContestDto> = emptyList()
+)
+
+@Serializable
+data class LeetCodeContestDto(
+    val title: String = "",
+    val titleSlug: String = "",
+    val startTime: Long = 0L,
+    val duration: Long = 0L,
+    val originStartTime: Long = 0L,
+    val isVirtual: Boolean = false
+)
+
+// ── ATCODER CONTEST ITEM DTO (Kenkoooo API) ──────────────────────────────────
+
+@Serializable
+data class AtCoderContestItemDto(
+    val id: String = "",
+    @SerialName("start_epoch_second") val startEpochSecond: Long = 0L,
+    @SerialName("duration_second") val durationSecond: Long = 0L,
+    val title: String = "",
+    @SerialName("rate_change") val rateChange: String = ""
+)
+
 // Parsed summary model for convenience
 data class LeetCodeStatsSummary(
     val totalSolved: Int,

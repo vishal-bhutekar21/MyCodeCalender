@@ -1,18 +1,18 @@
 package com.mycodecalendar.feature.home
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,10 +22,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,7 +36,12 @@ import com.mycodecalendar.core.designsystem.Typography
 import com.mycodecalendar.core.designsystem.components.GlassCard
 
 /**
- * Dedicated, state-of-the-art Activity & Announcement detail page for Hackathons & Broadcasts.
+ * Dedicated, adaptive Announcement & Broadcast Detail Screen.
+ * Automatically tailors its layout depending on whether the item is:
+ * - General Announcement / Message from Admin
+ * - Welcome / Thank You for Installing Notice
+ * - System & Feature Release Update
+ * - Hackathon / Coding Contest with Stages & Deadlines
  */
 @Composable
 fun BroadcastDetailScreen(
@@ -48,27 +53,84 @@ fun BroadcastDetailScreen(
     val scrollState = rememberScrollState()
 
     val item = broadcast ?: CloudBroadcastBanner(
-        title = "Innovik 6.0 – International Hackathon 2026",
-        subtitle = "₹2,00,000 Prizes · Vikrant Institute of Technology and Management, Indore",
-        actionUrl = "https://unstop.com",
-        badge = "HACKATHON",
-        bannerImageUrl = "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1000&auto=format&fit=crop",
-        description = "Welcome to INNOVIK 6.0 – International Hackathon 2026!\n\nOrganized by Vikrant Institute of Technology and Management (VITM), Indore. This flagship international coding competition brings together brilliant student developers, problem solvers, and innovators across Applied AI, Agentic AI, Web3, Smart Cities, and Open Innovation.",
-        prizePool = "₹ 2,00,000",
-        location = "VITM Campus, Indore (A.B. Road)",
-        teamSize = "2 - 4 Members",
-        timeline = "06 Aug 2026 – 25 Aug 2026",
-        tags = listOf("Applied AI", "Agentic AI", "Hackathon", "₹2,00,000 Prizes", "Unstop", "Offline Finale")
+        id = "default_broadcast",
+        title = "Welcome to MyCodeCalendar!",
+        subtitle = "Thank you for installing the ultimate competitive programming companion.",
+        badge = "WELCOME",
+        description = "MyCodeCalendar empowers you to track live and upcoming contests across LeetCode, Codeforces, AtCoder, CodeChef, and more.\n\nMaintain your daily coding streak, explore top-tier curated DSA sheets, and receive timely alerts before your favorite contests begin."
     )
 
+    val isHackathon = (item.badge.contains("HACKATHON", ignoreCase = true) ||
+            item.badge.contains("CONTEST", ignoreCase = true) ||
+            item.title.contains("Hackathon", ignoreCase = true)) &&
+            item.prizePool.isNotBlank()
+
+    val isWelcome = item.badge.contains("WELCOME", ignoreCase = true) ||
+            item.title.contains("Welcome", ignoreCase = true) ||
+            item.title.contains("Thank you", ignoreCase = true) ||
+            item.title.contains("Thanks", ignoreCase = true)
+
+    val isUpdate = item.badge.contains("UPDATE", ignoreCase = true) ||
+            item.badge.contains("RELEASE", ignoreCase = true) ||
+            item.badge.contains("FEATURE", ignoreCase = true) ||
+            item.badge.contains("VERSION", ignoreCase = true)
+
+    val isWarning = item.badge.contains("WARNING", ignoreCase = true) ||
+            item.badge.contains("ALERT", ignoreCase = true) ||
+            item.badge.contains("URGENT", ignoreCase = true)
+
+    val themeColor: Color = when {
+        isHackathon -> BrandPrimaryOrange
+        isWelcome -> Color(0xFF10B981) // Emerald Green
+        isUpdate -> Color(0xFF3B82F6)  // Electric Blue
+        isWarning -> Color(0xFFF59E0B) // Amber
+        item.badge.contains("TIPS", ignoreCase = true) -> Color(0xFF8B5CF6) // Purple
+        else -> BrandPrimaryOrange
+    }
+
+    val heroIcon: ImageVector = when {
+        isHackathon -> Icons.Rounded.EmojiEvents
+        isWelcome -> Icons.Rounded.Celebration
+        isUpdate -> Icons.Rounded.NewReleases
+        isWarning -> Icons.Rounded.Warning
+        item.badge.contains("TIPS", ignoreCase = true) -> Icons.Rounded.Lightbulb
+        else -> Icons.Rounded.Campaign
+    }
+
+    val screenTitle: String = when {
+        isHackathon -> "Event & Hackathon"
+        isWelcome -> "Welcome to MyCodeCalendar"
+        isUpdate -> "Release & What's New"
+        isWarning -> "Important Notice"
+        else -> "Announcement & News"
+    }
+
     val onShareClick = {
+        val shareBody = buildString {
+            append("📢 ${item.title}\n\n")
+            if (item.subtitle.isNotBlank()) {
+                append("${item.subtitle}\n\n")
+            }
+            if (item.description.isNotBlank() && item.description != item.subtitle) {
+                append("${item.description}\n\n")
+            }
+            if (isHackathon && item.prizePool.isNotBlank()) {
+                append("🏆 Prizes: ${item.prizePool}\n")
+            }
+            if (item.location.isNotBlank()) {
+                append("📍 Location: ${item.location}\n")
+            }
+            if (item.timeline.isNotBlank()) {
+                append("📅 Timeline: ${item.timeline}\n")
+            }
+            if (item.actionUrl.isNotBlank() && item.actionUrl != "#") {
+                append("\n🔗 Learn more: ${item.actionUrl}")
+            }
+        }
         val shareIntent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_SUBJECT, item.title)
-            putExtra(
-                Intent.EXTRA_TEXT,
-                "🚀 ${item.title}\n\n${item.subtitle}\n\n🏆 Prizes: ${item.prizePool}\n📍 Location: ${item.location}\n📅 Timeline: ${item.timeline}\n\nRegister here: ${item.actionUrl.ifBlank { "https://unstop.com" }}"
-            )
+            putExtra(Intent.EXTRA_TEXT, shareBody)
         }
         context.startActivity(Intent.createChooser(shareIntent, "Share Announcement"))
     }
@@ -79,7 +141,7 @@ fun BroadcastDetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
-                    .padding(bottom = 90.dp)
+                    .padding(bottom = 96.dp)
             ) {
                 // ── TOP APP BAR ──────────────────────────────────────────────────────
                 Row(
@@ -99,7 +161,7 @@ fun BroadcastDetailScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                Icons.Rounded.ArrowBack,
+                                Icons.AutoMirrored.Rounded.ArrowBack,
                                 contentDescription = "Back",
                                 modifier = Modifier.size(20.dp),
                                 tint = MaterialTheme.colorScheme.onSurface
@@ -108,10 +170,10 @@ fun BroadcastDetailScreen(
                     }
 
                     Text(
-                        text = "Event & Broadcast",
+                        text = screenTitle,
                         style = Typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
+                            fontSize = 15.5.sp
                         ),
                         color = MaterialTheme.colorScheme.onBackground
                     )
@@ -148,10 +210,10 @@ fun BroadcastDetailScreen(
                                 .clip(RoundedCornerShape(26.dp))
                                 .border(
                                     1.2.dp,
-                                    BrandPrimaryOrange.copy(alpha = 0.35f),
+                                    themeColor.copy(alpha = 0.35f),
                                     RoundedCornerShape(26.dp)
                                 )
-                                .shadow(16.dp, RoundedCornerShape(26.dp), spotColor = BrandPrimaryOrange.copy(alpha = 0.25f))
+                                .shadow(16.dp, RoundedCornerShape(26.dp), spotColor = themeColor.copy(alpha = 0.25f))
                         ) {
                             AsyncImage(
                                 model = item.bannerImageUrl,
@@ -169,7 +231,7 @@ fun BroadcastDetailScreen(
                                         )
                                     )
                             )
-                            // Live Badge in Banner
+                            // Badge in Banner
                             Row(
                                 modifier = Modifier
                                     .align(Alignment.BottomStart)
@@ -179,7 +241,7 @@ fun BroadcastDetailScreen(
                             ) {
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
-                                    color = BrandPrimaryOrange
+                                    color = themeColor
                                 ) {
                                     Text(
                                         text = item.badge.uppercase(),
@@ -200,10 +262,10 @@ fun BroadcastDetailScreen(
                                         Box(
                                             modifier = Modifier
                                                 .size(6.dp)
-                                                .background(Color(0xFF10B981), CircleShape)
+                                                .background(themeColor, CircleShape)
                                         )
                                         Text(
-                                            text = "LIVE ANNOUNCEMENT",
+                                            text = "OFFICIAL BROADCAST",
                                             style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.5.sp),
                                             color = Color.White
                                         )
@@ -212,46 +274,71 @@ fun BroadcastDetailScreen(
                             }
                         }
                     } else {
-                        // Cyberpunk Neon Fallback Hero Card
+                        // Neon Frosted Hero Card with Ambient Icon
                         GlassCard(
                             modifier = Modifier.fillMaxWidth(),
-                            cornerRadius = 26.dp,
-                            accentColor = BrandPrimaryOrange
+                            cornerRadius = 24.dp,
+                            accentColor = themeColor
                         ) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(180.dp)
                                     .background(
-                                        Brush.linearGradient(
-                                            listOf(
-                                                BrandPrimaryOrange.copy(alpha = 0.18f),
-                                                Color(0xFF1E2235),
-                                                Color(0xFF0F121C)
-                                            )
+                                        Brush.radialGradient(
+                                            colors = listOf(
+                                                themeColor.copy(alpha = 0.22f),
+                                                themeColor.copy(alpha = 0.05f),
+                                                Color.Transparent
+                                            ),
+                                            radius = 500f
                                         )
                                     )
-                                    .padding(20.dp),
-                                contentAlignment = Alignment.CenterStart
+                                    .padding(22.dp)
                             ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = BrandPrimaryOrange
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            text = item.badge.uppercase(),
-                                            style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 10.sp),
-                                            color = Color.White,
-                                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
-                                        )
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = themeColor.copy(alpha = 0.20f),
+                                            border = BorderStroke(1.dp, themeColor.copy(alpha = 0.40f))
+                                        ) {
+                                            Text(
+                                                text = item.badge.uppercase(),
+                                                style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 10.sp),
+                                                color = themeColor,
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                            )
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .size(46.dp)
+                                                .background(themeColor.copy(alpha = 0.15f), CircleShape)
+                                                .border(1.dp, themeColor.copy(alpha = 0.35f), CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = heroIcon,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(24.dp),
+                                                tint = themeColor
+                                            )
+                                        }
                                     }
+
                                     Text(
                                         text = item.title,
-                                        style = Typography.headlineSmall.copy(fontWeight = FontWeight.Black, fontSize = 20.sp),
-                                        color = Color.White,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis
+                                        style = Typography.headlineSmall.copy(
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 21.sp,
+                                            lineHeight = 27.sp,
+                                            letterSpacing = (-0.3).sp
+                                        ),
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                             }
@@ -261,274 +348,452 @@ fun BroadcastDetailScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // ── TITLE & SUBTITLE SECTION ─────────────────────────────────────────
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                ) {
-                    Text(
-                        text = item.title,
-                        style = Typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = 23.sp,
-                            letterSpacing = (-0.4).sp
-                        ),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
+                // ── TITLE & SUBTITLE SECTION (IF BANNER IMAGE USED) ──────────────────
+                if (item.bannerImageUrl.isNotBlank()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                    ) {
+                        Text(
+                            text = item.title,
+                            style = Typography.headlineMedium.copy(
+                                fontWeight = FontWeight.Black,
+                                fontSize = 22.sp,
+                                letterSpacing = (-0.4).sp
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
 
-                    if (item.subtitle.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(6.dp))
+                        if (item.subtitle.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = item.subtitle,
+                                style = Typography.bodyMedium.copy(
+                                    fontSize = 13.5.sp,
+                                    lineHeight = 19.sp
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
+                } else if (item.subtitle.isNotBlank()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                    ) {
                         Text(
                             text = item.subtitle,
                             style = Typography.bodyMedium.copy(
                                 fontSize = 13.5.sp,
-                                lineHeight = 19.sp
+                                lineHeight = 19.sp,
+                                fontWeight = FontWeight.Medium
                             ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
                         )
                     }
+                    Spacer(modifier = Modifier.height(14.dp))
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                // ══════════════════════════════════════════════════════════════════════
+                // ── CONDITIONAL LAYOUT: HACKATHON VS GENERAL ANNOUNCEMENT ─────────────
+                // ══════════════════════════════════════════════════════════════════════
 
-                // ── QUICK HIGHLIGHT METRICS GRID ─────────────────────────────────────
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 18.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    // Prize Pool Card
-                    GlassCard(
-                        modifier = Modifier.weight(1f),
-                        cornerRadius = 18.dp,
-                        accentColor = Color(0xFFF59E0B)
+                if (isHackathon) {
+                    // ── HACKATHON METRICS GRID ─────────────────────────────────────────
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 18.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                Icons.Rounded.EmojiEvents,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = Color(0xFFF59E0B)
-                            )
-                            Text(
-                                text = "Prizes Worth",
-                                style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                            Text(
-                                text = item.prizePool.ifBlank { "₹2,00,000" },
-                                style = Typography.titleSmall.copy(fontWeight = FontWeight.Black, fontSize = 14.sp),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+                        if (item.prizePool.isNotBlank()) {
+                            GlassCard(
+                                modifier = Modifier.weight(1f),
+                                cornerRadius = 18.dp,
+                                accentColor = Color(0xFFF59E0B)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.EmojiEvents,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = Color(0xFFF59E0B)
+                                    )
+                                    Text(
+                                        text = "Prizes Worth",
+                                        style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    )
+                                    Text(
+                                        text = item.prizePool,
+                                        style = Typography.titleSmall.copy(fontWeight = FontWeight.Black, fontSize = 14.sp),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+
+                        if (item.teamSize.isNotBlank()) {
+                            GlassCard(
+                                modifier = Modifier.weight(1f),
+                                cornerRadius = 18.dp,
+                                accentColor = Color(0xFF3B82F6)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.Groups,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = Color(0xFF3B82F6)
+                                    )
+                                    Text(
+                                        text = "Team Size",
+                                        style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    )
+                                    Text(
+                                        text = item.teamSize,
+                                        style = Typography.titleSmall.copy(fontWeight = FontWeight.Black, fontSize = 14.sp),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
                         }
                     }
 
-                    // Team Size Card
-                    GlassCard(
-                        modifier = Modifier.weight(1f),
-                        cornerRadius = 18.dp,
-                        accentColor = Color(0xFF3B82F6)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                Icons.Rounded.Groups,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = Color(0xFF3B82F6)
-                            )
-                            Text(
-                                text = "Team Size",
-                                style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                            Text(
-                                text = item.teamSize.ifBlank { "2 - 4 Members" },
-                                style = Typography.titleSmall.copy(fontWeight = FontWeight.Black, fontSize = 14.sp),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 18.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    // Timeline Card
-                    GlassCard(
-                        modifier = Modifier.weight(1f),
-                        cornerRadius = 18.dp,
-                        accentColor = BrandPrimaryOrange
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                Icons.Rounded.DateRange,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = BrandPrimaryOrange
-                            )
-                            Text(
-                                text = "Key Dates",
-                                style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                            Text(
-                                text = item.timeline.ifBlank { "Aug 2026" },
-                                style = Typography.titleSmall.copy(fontWeight = FontWeight.Black, fontSize = 12.5.sp),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-
-                    // Location Card
-                    GlassCard(
-                        modifier = Modifier.weight(1f),
-                        cornerRadius = 18.dp,
-                        accentColor = Color(0xFF10B981)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                Icons.Rounded.LocationOn,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = Color(0xFF10B981)
-                            )
-                            Text(
-                                text = "Location / Mode",
-                                style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                            Text(
-                                text = item.location.ifBlank { "Online + Campus" },
-                                style = Typography.titleSmall.copy(fontWeight = FontWeight.Black, fontSize = 12.5.sp),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // ── DETAILED DESCRIPTION CARD ────────────────────────────────────────
-                GlassCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 18.dp),
-                    cornerRadius = 22.dp
-                ) {
-                    Column(
-                        modifier = Modifier.padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
+                    if (item.timeline.isNotBlank() || item.location.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(10.dp))
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 18.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Icon(
-                                Icons.Rounded.Info,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                                tint = BrandPrimaryOrange
-                            )
-                            Text(
-                                text = "About & Guidelines",
-                                style = Typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+                            if (item.timeline.isNotBlank()) {
+                                GlassCard(
+                                    modifier = Modifier.weight(1f),
+                                    cornerRadius = 18.dp,
+                                    accentColor = BrandPrimaryOrange
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(14.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.DateRange,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp),
+                                            tint = BrandPrimaryOrange
+                                        )
+                                        Text(
+                                            text = "Timeline",
+                                            style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                        )
+                                        Text(
+                                            text = item.timeline,
+                                            style = Typography.titleSmall.copy(fontWeight = FontWeight.Black, fontSize = 12.5.sp),
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (item.location.isNotBlank()) {
+                                GlassCard(
+                                    modifier = Modifier.weight(1f),
+                                    cornerRadius = 18.dp,
+                                    accentColor = Color(0xFF10B981)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(14.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.LocationOn,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp),
+                                            tint = Color(0xFF10B981)
+                                        )
+                                        Text(
+                                            text = "Venue / Mode",
+                                            style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                        )
+                                        Text(
+                                            text = item.location,
+                                            style = Typography.titleSmall.copy(fontWeight = FontWeight.Black, fontSize = 12.5.sp),
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
                         }
-
-                        Text(
-                            text = item.description.ifBlank {
-                                "Innovik 6.0 is an International Hackathon organized by Vikrant Group of Institutions (VITM), Indore. Teams will submit a 10-slide solution PPT tackling real-world problems before heading into the grand finale."
-                            },
-                            style = Typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 20.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                     }
-                }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                // ── STAGES & TIMELINE BREAKDOWN ──────────────────────────────────────
-                GlassCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 18.dp),
-                    cornerRadius = 22.dp
-                ) {
-                    Column(
-                        modifier = Modifier.padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    // ── HACKATHON ABOUT & GUIDELINES ───────────────────────────────────
+                    val descriptionText = item.description.ifBlank { item.subtitle }
+                    if (descriptionText.isNotBlank()) {
+                        GlassCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 18.dp),
+                            cornerRadius = 22.dp
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(18.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.Info,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = BrandPrimaryOrange
+                                    )
+                                    Text(
+                                        text = "About & Guidelines",
+                                        style = Typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+
+                                Text(
+                                    text = descriptionText,
+                                    style = Typography.bodyMedium.copy(fontSize = 13.5.sp, lineHeight = 21.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                } else {
+                    // ══════════════════════════════════════════════════════════════════
+                    // ── GENERAL ANNOUNCEMENT / NEWS / WELCOME / NOTICE LAYOUT ─────────
+                    // ══════════════════════════════════════════════════════════════════
+
+                    val messageBody = item.description.ifBlank { item.subtitle }
+
+                    // ── MAIN MESSAGE CONTENT CARD ──────────────────────────────────────
+                    GlassCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 18.dp),
+                        cornerRadius = 22.dp,
+                        accentColor = themeColor
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Icon(
-                                Icons.Rounded.Timeline,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                                tint = BrandPrimaryOrange
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .background(themeColor.copy(alpha = 0.15f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = heroIcon,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = themeColor
+                                    )
+                                }
+
+                                Text(
+                                    text = when {
+                                        isWelcome -> "Welcome Message"
+                                        isUpdate -> "Release Highlights"
+                                        isWarning -> "Important Notification"
+                                        else -> "Announcement Details"
+                                    },
+                                    style = Typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
                             )
-                            Text(
-                                text = "Stages & Deadlines",
-                                style = Typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+
+                            // Render message with paragraphs
+                            val paragraphs = messageBody.split("\n\n").filter { it.isNotBlank() }
+                            if (paragraphs.isNotEmpty()) {
+                                paragraphs.forEach { para ->
+                                    Text(
+                                        text = para.trim(),
+                                        style = Typography.bodyMedium.copy(
+                                            fontSize = 14.sp,
+                                            lineHeight = 22.sp
+                                        ),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.90f)
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    text = messageBody,
+                                    style = Typography.bodyMedium.copy(
+                                        fontSize = 14.sp,
+                                        lineHeight = 22.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.90f)
+                                )
+                            }
                         }
+                    }
 
-                        // Round 1
-                        TimelineStageItem(
-                            stepNumber = "1",
-                            title = "Team Registration & Idea PPT Submission",
-                            timeline = "06 Aug 2026, 02:40 AM IST – 25 Aug 2026, 02:40 AM IST",
-                            desc = "Online screening round on Unstop. Pick a theme statement and submit a 10-slide presentation."
-                        )
+                    // ── WELCOME ONBOARDING HIGHLIGHTS BOX ──────────────────────────────
+                    if (isWelcome) {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        GlassCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 18.dp),
+                            cornerRadius = 22.dp
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(18.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text(
+                                    text = "Key Features at a Glance",
+                                    style = Typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
 
-                        // Round 2
-                        TimelineStageItem(
-                            stepNumber = "2",
-                            title = "Shortlisting & Mentorship Round",
-                            timeline = "August – September 2026",
-                            desc = "Jury evaluation of submitted solutions and announcement of finalist teams."
-                        )
+                                FeatureHighlightRow(
+                                    icon = Icons.Rounded.Radar,
+                                    iconColor = BrandPrimaryOrange,
+                                    title = "Live Contest Radar",
+                                    desc = "Track upcoming and ongoing challenges from LeetCode, Codeforces, AtCoder & CodeChef."
+                                )
 
-                        // Round 3
-                        TimelineStageItem(
-                            stepNumber = "3",
-                            title = "Grand Finale Offline Hackathon",
-                            timeline = "VITM Indore Campus",
-                            desc = "24-36 Hour intense prototyping, coding, prototype demo and live pitching for ₹2,00,000 prizes."
-                        )
+                                FeatureHighlightRow(
+                                    icon = Icons.Rounded.LocalFireDepartment,
+                                    iconColor = Color(0xFFF59E0B),
+                                    title = "Daily Coding Streak",
+                                    desc = "Stay disciplined and build daily problem-solving momentum with real-time sync."
+                                )
+
+                                FeatureHighlightRow(
+                                    icon = Icons.Rounded.MenuBook,
+                                    iconColor = Color(0xFF10B981),
+                                    title = "Curated DSA Materials",
+                                    desc = "Explore blind 75/150 patterns, Striver sheets, and interview roadmaps."
+                                )
+
+                                FeatureHighlightRow(
+                                    icon = Icons.Rounded.NotificationsActive,
+                                    iconColor = Color(0xFF3B82F6),
+                                    title = "Smart Calendar Reminders",
+                                    desc = "Add contests to system calendar and set 15-minute start reminders."
+                                )
+                            }
+                        }
+                    }
+
+                    // ── CONDITIONAL METADATA (TIMELINE / LOCATION) ────────────────────
+                    if (item.timeline.isNotBlank() || item.location.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 18.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            if (item.timeline.isNotBlank()) {
+                                GlassCard(
+                                    modifier = Modifier.weight(1f),
+                                    cornerRadius = 18.dp
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(14.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.DateRange,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp),
+                                            tint = themeColor
+                                        )
+                                        Text(
+                                            text = "Date / Timeline",
+                                            style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                        )
+                                        Text(
+                                            text = item.timeline,
+                                            style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (item.location.isNotBlank()) {
+                                GlassCard(
+                                    modifier = Modifier.weight(1f),
+                                    cornerRadius = 18.dp
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(14.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.LocationOn,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp),
+                                            tint = themeColor
+                                        )
+                                        Text(
+                                            text = "Location / Mode",
+                                            style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                        )
+                                        Text(
+                                            text = item.location,
+                                            style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // ── TAGS / DOMAINS CLOUD ─────────────────────────────────────────────
+                // ── TAGS / TOPIC PILLS (ONLY IF PRESENT) ─────────────────────────────
                 if (item.tags.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(14.dp))
                     GlassCard(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -540,14 +805,12 @@ fun BroadcastDetailScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Text(
-                                text = "Eligible Tracks & Themes",
-                                style = Typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
+                                text = if (isHackathon) "Eligible Tracks & Themes" else "Topic Tags",
+                                style = Typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 14.5.sp),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
 
-                            OptInFlowRow(
-                                tags = item.tags
-                            )
+                            OptInFlowRow(tags = item.tags, accentColor = themeColor)
                         }
                     }
                 }
@@ -561,31 +824,56 @@ fun BroadcastDetailScreen(
                     .navigationBarsPadding()
                     .padding(horizontal = 18.dp, vertical = 14.dp)
             ) {
-                Button(
-                    onClick = {
-                        val targetUrl = item.actionUrl.ifBlank { "https://unstop.com" }
-                        onOpenUrl(targetUrl)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = BrandPrimaryOrange.copy(alpha = 0.4f)),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = BrandPrimaryOrange,
-                        contentColor = Color.White
-                    )
-                ) {
-                    Icon(
-                        Icons.Rounded.OpenInNew,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Register / Open Official Portal",
-                        style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    )
+                if (item.actionUrl.isNotBlank() && item.actionUrl != "#") {
+                    Button(
+                        onClick = {
+                            onOpenUrl(item.actionUrl)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = themeColor.copy(alpha = 0.4f)),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = themeColor,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Rounded.OpenInNew,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isHackathon) "Register / Open Official Portal" else "Explore Link / Learn More",
+                            style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        )
+                    }
+                } else {
+                    Button(
+                        onClick = onBackClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = themeColor.copy(alpha = 0.35f)),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = themeColor,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(
+                            Icons.Rounded.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Got It",
+                            style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        )
+                    }
                 }
             }
         }
@@ -593,28 +881,29 @@ fun BroadcastDetailScreen(
 }
 
 @Composable
-private fun TimelineStageItem(
-    stepNumber: String,
+private fun FeatureHighlightRow(
+    icon: ImageVector,
+    iconColor: Color,
     title: String,
-    timeline: String,
     desc: String
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Top
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(28.dp)
-                .background(BrandPrimaryOrange.copy(alpha = 0.18f), CircleShape)
-                .border(1.dp, BrandPrimaryOrange.copy(alpha = 0.45f), CircleShape),
+                .size(36.dp)
+                .background(iconColor.copy(alpha = 0.16f), CircleShape)
+                .border(1.dp, iconColor.copy(alpha = 0.35f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = stepNumber,
-                style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 12.sp),
-                color = BrandPrimaryOrange
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = iconColor
             )
         }
 
@@ -625,14 +914,8 @@ private fun TimelineStageItem(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = timeline,
-                style = Typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
-                color = BrandPrimaryOrange
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
                 text = desc,
-                style = Typography.bodySmall.copy(fontSize = 12.sp),
+                style = Typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
             )
         }
@@ -640,7 +923,7 @@ private fun TimelineStageItem(
 }
 
 @Composable
-private fun OptInFlowRow(tags: List<String>) {
+private fun OptInFlowRow(tags: List<String>, accentColor: Color = BrandPrimaryOrange) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -650,13 +933,13 @@ private fun OptInFlowRow(tags: List<String>) {
                 tags.take(3).forEach { tag ->
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = BrandPrimaryOrange.copy(alpha = 0.12f),
-                        border = BorderStroke(0.8.dp, BrandPrimaryOrange.copy(alpha = 0.3f))
+                        color = accentColor.copy(alpha = 0.12f),
+                        border = BorderStroke(0.8.dp, accentColor.copy(alpha = 0.35f))
                     ) {
                         Text(
                             text = tag,
                             style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
-                            color = BrandPrimaryOrange,
+                            color = accentColor,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }

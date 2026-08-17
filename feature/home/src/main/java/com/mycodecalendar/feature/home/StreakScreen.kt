@@ -401,7 +401,7 @@ fun StreakScreen(
                                         val heatColor = when {
                                             isActive && isToday -> Color(0xFF39D353)
                                             isActive            -> Color(0xFF26A641)
-                                            else                -> Color(0xFF161B22)
+                                            else                -> Color.White.copy(alpha = 0.20f)
                                         }
                                         Box(
                                             modifier = Modifier
@@ -409,8 +409,10 @@ fun StreakScreen(
                                                 .clip(RoundedCornerShape(2.5.dp))
                                                 .background(heatColor)
                                                 .border(
-                                                    0.1.dp,
-                                                    if (isToday) Color(0xFF39D353).copy(alpha = 0.8f) else Color(0x1AFFFFFF),
+                                                    0.5.dp,
+                                                    if (isToday) Color(0xFF39D353).copy(alpha = 0.90f)
+                                                    else if (isActive) Color(0xFF26A641).copy(alpha = 0.60f)
+                                                    else Color.White.copy(alpha = 0.35f),
                                                     RoundedCornerShape(2.5.dp)
                                                 )
                                         )
@@ -434,7 +436,7 @@ fun StreakScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
                         )
                         listOf(
-                            Color(0xFF161B22),
+                            Color.White.copy(alpha = 0.20f),
                             Color(0xFF0E4429),
                             Color(0xFF006D32),
                             Color(0xFF26A641),
@@ -446,7 +448,7 @@ fun StreakScreen(
                                     .size(10.dp)
                                     .clip(RoundedCornerShape(2.5.dp))
                                     .background(col)
-                                    .border(0.1.dp, Color(0x1AFFFFFF), RoundedCornerShape(2.5.dp))
+                                    .border(0.5.dp, Color.White.copy(alpha = 0.30f), RoundedCornerShape(2.5.dp))
                             )
                         }
                         Text(
