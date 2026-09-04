@@ -17,5 +17,6 @@
         <domain includeSubdomains="true">geeksforgeeks.org</domain>
         <domain includeSubdomains="true">codechef.com</domain>
         <domain includeSubdomains="true">atcoder.jp</domain>
+        <domain includeSubdomains="true">kenkoooo.com</domain>
     </domain-config>
 </network-security-config>

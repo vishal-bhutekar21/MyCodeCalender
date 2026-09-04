@@ -66,8 +66,17 @@ class MainActivity : ComponentActivity() {
     private lateinit var homeViewModel: HomeViewModel
     private var networkMonitor: NetworkMonitor? = null
 
+    private val pendingDeepLink = mutableStateOf<Uri?>(null)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        intent.data?.let { pendingDeepLink.value = it }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        intent?.data?.let { pendingDeepLink.value = it }
 
         database = Room.databaseBuilder(
             applicationContext,
@@ -136,6 +145,13 @@ class MainActivity : ComponentActivity() {
                 }
 
                 val navController = rememberNavController()
+                val currentDeepLink by pendingDeepLink
+                LaunchedEffect(currentDeepLink) {
+                    currentDeepLink?.let { uri ->
+                        handleDeepLink(uri, navController)
+                        pendingDeepLink.value = null
+                    }
+                }
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
 
@@ -494,11 +510,23 @@ class MainActivity : ComponentActivity() {
                             composable("contests") {
                                 val pastContests by repository.getPastContestHistory()
                                     .collectAsState(initial = emptyList())
+                                val watchedContestIds by repository.getWatchedContestIds()
+                                    .collectAsState(initial = emptySet())
                                 ContestsScreen(
                                     contests = contests,
                                     pastContests = pastContests,
+                                    watchedContestIds = watchedContestIds,
+                                    onToggleWatch = { id -> repository.toggleWatchContest(id) },
                                     onContestClick = { id ->
                                         navController.navigate("contest_detail/$id")
+                                    },
+                                    onShareContest = { contest -> shareContest(contest) },
+                                    onSetReminderClick = { contest ->
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "✓ Reminder set 15 min before ${contest.name}",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     },
                                     onAddPlatformClick = onProtectedAddPlatform,
                                     onPastContestClick = { url -> openUrl(url) }
@@ -764,6 +792,20 @@ class MainActivity : ComponentActivity() {
                                         } catch (e: Exception) {
                                             Toast.makeText(this@MainActivity, "Could not open link", Toast.LENGTH_SHORT).show()
                                         }
+                                    },
+                                    onSubmitFeedback = { type, title, description, email ->
+                                        val currentName = activeUserName ?: "Developer"
+                                        CloudAdminSyncService.submitFeedbackOrBugReport(
+                                            type = type,
+                                            title = title,
+                                            description = description,
+                                            email = email.ifBlank { authEmail },
+                                            displayName = currentName
+                                        ) { success ->
+                                            if (success) {
+                                                Toast.makeText(this@MainActivity, "✓ Report recorded in cloud! Thanks for improving Code Calendar.", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
                                     }
                                 )
                             }
@@ -843,6 +885,64 @@ class MainActivity : ComponentActivity() {
             startActivity(intent)
         }.onFailure {
             Toast.makeText(this, "Calendar app not found", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun shareContest(contest: Contest) {
+        runCatching {
+            val platName = contest.platform.name.lowercase().replaceFirstChar { it.uppercase() }
+            val shareText = "⚡ Check out this coding contest on $platName!\n\n" +
+                "🏆 ${contest.name}\n" +
+                "⏰ Starts: ${contest.startTimeUtc}\n" +
+                "🔗 ${contest.officialUrl}"
+            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                putExtra(Intent.EXTRA_TEXT, shareText)
+                type = "text/plain"
+            }
+            startActivity(Intent.createChooser(sendIntent, "Share Contest"))
+        }.onFailure {
+            Toast.makeText(this, "Could not share contest", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun handleDeepLink(uri: Uri, navController: androidx.navigation.NavController) {
+        if (uri.scheme == "codecalendar") {
+            val host = uri.host?.lowercase()
+            val pathSegments = uri.pathSegments
+            when (host) {
+                "contest" -> {
+                    val contestId = pathSegments.firstOrNull()
+                    if (!contestId.isNullOrBlank()) {
+                        navController.navigate("contest_detail/$contestId")
+                    }
+                }
+                "tab" -> {
+                    val tab = pathSegments.firstOrNull()?.lowercase() ?: "home"
+                    when (tab) {
+                        "contests" -> navController.navigate("contests")
+                        "resources" -> navController.navigate("resources")
+                        "settings" -> navController.navigate("settings")
+                        "notifications", "notifications_list" -> navController.navigate("notifications_list")
+                        "streak" -> navController.navigate("streak")
+                        else -> navController.navigate("home")
+                    }
+                }
+                "notifications", "notifications_list" -> navController.navigate("notifications_list")
+                "streak" -> navController.navigate("streak")
+                "contests" -> navController.navigate("contests")
+                "resources" -> navController.navigate("resources")
+                "settings" -> navController.navigate("settings")
+                "broadcast" -> {
+                    navController.navigate("notifications_list")
+                }
+                else -> {
+                    try {
+                        navController.navigate(host ?: "home")
+                    } catch (_: Exception) {
+                        navController.navigate("home")
+                    }
+                }
+            }
         }
     }
 }

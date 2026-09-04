@@ -19,9 +19,9 @@ import androidx.compose.ui.graphics.luminance
 // DARK SCHEME — Deep Obsidian Midnight with Electric Orange & Indigo Accents
 // ─────────────────────────────────────────────────────────────────────────────
 private val DarkColorScheme = darkColorScheme(
-    primary              = Color(0xFFFF6B00),   // signature electric orange (#FF6B00)
+    primary              = Color(0xFFFF6F00),   // signature electric orange (#FF6F00)
     onPrimary            = Color(0xFFFFFFFF),
-    primaryContainer     = Color(0x28FF6B00),   // glowing translucent orange
+    primaryContainer     = Color(0x28FF6F00),   // glowing translucent orange
     onPrimaryContainer   = Color(0xFFFFD8BF),
 
     secondary            = Color(0xFF818CF8),   // modern slate indigo (#818CF8)
@@ -34,42 +34,42 @@ private val DarkColorScheme = darkColorScheme(
     tertiaryContainer    = Color(0xFF075985),
     onTertiaryContainer  = Color(0xFFBAE6FD),
 
-    background    = Color(0xFF080A0F),   // pure deep obsidian black
+    background    = Color(0xFF07090E),   // pure deep obsidian black
     onBackground  = Color(0xFFFFFFFF),   // pure snow white heading
 
-    surface       = Color(0xFF0F131C),   // elevated dark slate
+    surface       = Color(0xFF0E131F),   // elevated dark slate
     onSurface     = Color(0xFFF8FAFC),   // crisp bright snow slate
 
-    surfaceVariant    = Color(0xFF151B28),   // slate card container
+    surfaceVariant    = Color(0xFF141A29),   // slate card container
     onSurfaceVariant  = Color(0xFF94A3B8),   // luminous modern slate-400 body text
 
-    outline        = Color(0xFF1E2536),   // fine 1px border
-    outlineVariant = Color(0xFF161C2A),
+    outline        = Color(0xFF1E2638),   // fine 1px border
+    outlineVariant = Color(0xFF161D2B),
 
-    error   = Color(0xFFFB7185),
-    onError = Color(0xFF4C0519)
+    error   = Color(0xFFFF1744),
+    onError = Color(0xFFFFFFFF)
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LIGHT SCHEME — Crisp off-white with vibrant orange highlights
 // ─────────────────────────────────────────────────────────────────────────────
 private val LightColorScheme = lightColorScheme(
-    primary              = Color(0xFFFF6B00),   // signature electric orange
+    primary              = Color(0xFFFF6F00),   // signature electric orange
     onPrimary            = Color(0xFFFFFFFF),
     primaryContainer     = Color(0xFFFFF0E6),
     onPrimaryContainer   = Color(0xFF7A2E00),
 
-    secondary            = Color(0xFF6C5CE7),   // slate purple
+    secondary            = Color(0xFF6366F1),   // electric indigo
     onSecondary          = Color(0xFFFFFFFF),
-    secondaryContainer   = Color(0xFFF0EDFD),
-    onSecondaryContainer = Color(0xFF291E6A),
+    secondaryContainer   = Color(0xFFEEF2FF),
+    onSecondaryContainer = Color(0xFF1E1B4B),
 
     tertiary             = Color(0xFF0284C7),   // sky-600
     onTertiary           = Color(0xFFFFFFFF),
     tertiaryContainer    = Color(0xFFF0F9FF),
     onTertiaryContainer  = Color(0xFF0C4A6E),
 
-    background    = Color(0xFFF9FAFB),   // clean off-white
+    background    = Color(0xFFF8FAFC),   // clean off-white
     onBackground  = Color(0xFF0F172A),   // deep charcoal heading
 
     surface       = Color(0xFFFFFFFF),   // pure white card surface

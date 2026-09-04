@@ -98,6 +98,34 @@ data class CodeChefSolvedCountDto(
     val count: Int = 0
 )
 
+@Serializable
+data class CodeChefAllContestsApiResponse(
+    val status: String = "",
+    val message: String = "",
+    @SerialName("future_contests") val futureContests: List<CodeChefOfficialContestDto> = emptyList(),
+    @SerialName("present_contests") val presentContests: List<CodeChefOfficialContestDto> = emptyList()
+)
+
+@Serializable
+data class CodeChefOfficialContestDto(
+    @SerialName("contest_id") val contestId: String = "",
+    @SerialName("contest_code") val contestCode: String = "",
+    @SerialName("contest_name") val contestName: String = "",
+    @SerialName("contest_start_date_iso") val contestStartDateIso: String = "",
+    @SerialName("contest_end_date_iso") val contestEndDateIso: String = "",
+    @SerialName("contest_duration") val contestDuration: String = "120"
+)
+
+data class CodeChefParsedProfile(
+    val username: String,
+    val rating: Int,
+    val highestRating: Int,
+    val stars: Int,
+    val totalSolved: Int,
+    val globalRank: Int? = null
+)
+
+
 // ── GITHUB API DTOS ───────────────────────────────────────────────────────────
 
 @Serializable
@@ -218,6 +246,16 @@ data class GfgDifficultyCountDto(
     val questions: List<String> = emptyList()
 )
 
+data class GfgParsedProfile(
+    val username: String,
+    val name: String,
+    val score: Int,
+    val totalSolved: Int,
+    val currentStreak: Int,
+    val longestStreak: Int,
+    val instituteRank: String? = null
+)
+
 // ── LEETCODE GRAPHQL DTOS ────────────────────────────────────────────────────
 // Uses the official LeetCode GraphQL endpoint at https://leetcode.com/graphql
 // No API key required; standard browser headers are sufficient.
@@ -242,7 +280,22 @@ data class LeetCodeGraphQLResponse(
 @Serializable
 data class LeetCodeGraphQLData(
     val matchedUser: LeetCodeMatchedUser? = null,
-    val userContestRanking: LeetCodeContestRanking? = null
+    val userContestRanking: LeetCodeContestRanking? = null,
+    val userContestRankingHistory: List<LeetCodeContestRankingHistoryItem>? = null
+)
+
+@Serializable
+data class LeetCodeContestRankingHistoryItem(
+    val attended: Boolean = false,
+    val rating: Double? = null,
+    val ranking: Int? = null,
+    val contest: LeetCodeContestInfo? = null
+)
+
+@Serializable
+data class LeetCodeContestInfo(
+    val title: String = "",
+    val startTime: Long = 0L
 )
 
 @Serializable
@@ -320,6 +373,39 @@ data class LeetCodeContestDto(
     val isVirtual: Boolean = false
 )
 
+// ── LEETCODE DAILY QUESTION (POTD) DTOS ──────────────────────────────────────
+
+@Serializable
+data class LeetCodeDailyQuestionRequest(
+    val query: String = "query questionOfToday { activeDailyCodingChallengeQuestion { date link question { questionId questionFrontendId title titleSlug difficulty } } }"
+)
+
+@Serializable
+data class LeetCodeDailyQuestionResponse(
+    val data: LeetCodeDailyQuestionData? = null
+)
+
+@Serializable
+data class LeetCodeDailyQuestionData(
+    val activeDailyCodingChallengeQuestion: LeetCodeActiveDailyQuestion? = null
+)
+
+@Serializable
+data class LeetCodeActiveDailyQuestion(
+    val date: String = "",
+    val link: String = "",
+    val question: LeetCodeDailyQuestionDetail? = null
+)
+
+@Serializable
+data class LeetCodeDailyQuestionDetail(
+    val questionId: String = "",
+    val questionFrontendId: String = "",
+    val title: String = "",
+    val titleSlug: String = "",
+    val difficulty: String = "Medium"
+)
+
 // ── ATCODER CONTEST ITEM DTO (Kenkoooo API) ──────────────────────────────────
 
 @Serializable
@@ -340,8 +426,10 @@ data class LeetCodeStatsSummary(
     val ranking: Int,
     val contestRating: Double?,
     val contestsAttended: Int,
-    val contestGlobalRank: Int?
+    val contestGlobalRank: Int?,
+    val ratingHistory: List<LeetCodeContestRankingHistoryItem> = emptyList()
 )
+
 
 // ── EXISTING DTOS (for backward compatibility with ContestRepositoryImpl) ─────
 

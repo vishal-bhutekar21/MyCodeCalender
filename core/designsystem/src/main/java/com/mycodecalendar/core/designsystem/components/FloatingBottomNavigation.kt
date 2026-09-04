@@ -9,11 +9,11 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.EmojiEvents
@@ -62,17 +62,8 @@ fun FloatingBottomNavigation(
 ) {
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
-    val baseBg      = if (isDark) Color(0xFF0D111A) else Color(0xFFFFFFFF)
-    val glassFill   = if (isDark) Color(0xFF151B28) else Color(0xFFF8FAFC)
-    val glassBorder = if (isDark) Color(0xFF1E2536) else Color(0xFFE2E8F0)
-
-    val borderBrush = Brush.linearGradient(
-        colors = listOf(
-            if (isDark) Color(0x28FFFFFF) else Color(0xE6FFFFFF),
-            glassBorder,
-            if (isDark) Color(0x0CFFFFFF) else Color(0x40FFFFFF)
-        )
-    )
+    val baseBg    = if (isDark) Color(0xFF0D111A) else Color(0xFFFFFFFF)
+    val glassFill = if (isDark) Color(0xFF151B28) else Color(0xFFF8FAFC)
 
     Box(
         modifier = modifier
@@ -81,31 +72,26 @@ fun FloatingBottomNavigation(
             .padding(horizontal = 18.dp, vertical = 14.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Floating pill glass dock (68dp height)
+        // Floating pill glass dock (72dp height)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(68.dp)
+                .height(72.dp)
                 .shadow(
-                    elevation = 24.dp,
+                    elevation = 28.dp,
                     shape = CircleShape,
-                    spotColor = if (isDark) BrandPrimaryOrange.copy(alpha = 0.22f) else Color(0x18000000),
-                    ambientColor = Color.Black.copy(alpha = if (isDark) 0.40f else 0.08f)
+                    spotColor = if (isDark) BrandPrimaryOrange.copy(alpha = 0.18f) else Color(0x14000000),
+                    ambientColor = Color.Black.copy(alpha = if (isDark) 0.38f else 0.06f)
                 )
                 .clip(CircleShape)
-                .background(baseBg.copy(alpha = if (isDark) 0.88f else 0.92f))
+                .background(baseBg.copy(alpha = if (isDark) 0.90f else 0.94f))
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            glassFill.copy(alpha = if (isDark) 0.35f else 0.70f),
-                            glassFill.copy(alpha = if (isDark) 0.15f else 0.45f)
+                            glassFill.copy(alpha = if (isDark) 0.38f else 0.72f),
+                            glassFill.copy(alpha = if (isDark) 0.14f else 0.40f)
                         )
                     )
-                )
-                .border(
-                    width = 0.1.dp,
-                    brush = borderBrush,
-                    shape = CircleShape
                 )
         ) {
             Row(
@@ -138,29 +124,13 @@ private fun NavTabItem(
 ) {
     val itemColor by animateColorAsState(
         targetValue = if (isSelected) BrandPrimaryOrange
-        else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+        else if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
         animationSpec = spring(stiffness = Spring.StiffnessMedium),
         label = "navColor_${tab.name}"
     )
 
-    val pillBg by animateColorAsState(
-        targetValue = if (isSelected)
-            BrandPrimaryOrange.copy(alpha = if (isDark) 0.18f else 0.12f)
-        else Color.Transparent,
-        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        label = "navBg_${tab.name}"
-    )
-
-    val pillBorder by animateColorAsState(
-        targetValue = if (isSelected)
-            BrandPrimaryOrange.copy(alpha = if (isDark) 0.45f else 0.30f)
-        else Color.Transparent,
-        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        label = "navBorder_${tab.name}"
-    )
-
     val iconScale by animateFloatAsState(
-        targetValue = if (isSelected) 1.10f else 1.0f,
+        targetValue = if (isSelected) 1.12f else 1.0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium
@@ -169,23 +139,22 @@ private fun NavTabItem(
     )
 
     val horizontalPadding by animateDpAsState(
-        targetValue = if (isSelected) 16.dp else 10.dp,
+        targetValue = if (isSelected) 18.dp else 12.dp,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "hPad_${tab.name}"
     )
 
-    Box(
+    Column(
         modifier = Modifier
-            .clip(CircleShape)
-            .background(pillBg)
-            .border(0.1.dp, pillBorder, CircleShape)
+            .clip(RoundedCornerShape(16.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = horizontalPadding, vertical = 9.dp),
-        contentAlignment = Alignment.Center
+            .padding(horizontal = horizontalPadding, vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -217,5 +186,16 @@ private fun NavTabItem(
                 }
             }
         }
+
+        // Active dot indicator — a clean minimal dot below the icon/label
+        Box(
+            modifier = Modifier
+                .size(width = if (isSelected) 16.dp else 4.dp, height = 3.dp)
+                .clip(CircleShape)
+                .background(
+                    if (isSelected) BrandPrimaryOrange
+                    else Color.Transparent
+                )
+        )
     }
 }

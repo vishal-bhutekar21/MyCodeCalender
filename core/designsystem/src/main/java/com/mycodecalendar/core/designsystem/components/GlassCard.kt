@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,54 +40,52 @@ import com.mycodecalendar.core.designsystem.isAppInDarkTheme
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
-    accentColor: Color? = null,
     cornerRadius: Dp = 16.dp,
+    shape: RoundedCornerShape? = null,
     elevation: Dp = 4.dp,
+    accentColor: Color? = null,
+    borderWidth: Dp = 0.dp,
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val isDark = isAppInDarkTheme
+    val cardShape = shape ?: RoundedCornerShape(cornerRadius)
 
-    val glassFill   = if (isDark) Color(0xFF131822) else GlassSurfaceLight
-    val glassBorder = if (isDark) Color(0xFF222B3D) else GlassBorderLight
-    val highlight   = if (isDark) Color(0x22FFFFFF) else GlassHighlightLight
-    val baseBg      = if (isDark) Color(0xFF0A0D14) else Color(0xFFFFFFFF)
-
-    val shape = RoundedCornerShape(cornerRadius)
+    val glassFill = if (isDark) GlassSurfaceDark else GlassSurfaceLight
+    val baseBg = MaterialTheme.colorScheme.surface
 
     val borderBrush = if (accentColor != null) {
-        Brush.linearGradient(
+        Brush.verticalGradient(
             colors = listOf(
-                accentColor.copy(alpha = if (isDark) 0.60f else 0.40f),
-                glassBorder,
-                accentColor.copy(alpha = if (isDark) 0.22f else 0.15f)
+                accentColor.copy(alpha = if (isDark) 0.65f else 0.50f),
+                accentColor.copy(alpha = if (isDark) 0.15f else 0.10f)
             )
         )
     } else {
-        Brush.linearGradient(
+        Brush.verticalGradient(
             colors = listOf(
-                if (isDark) Color(0x33FFFFFF) else Color(0xCCFFFFFF),
-                glassBorder,
-                if (isDark) Color(0x10FFFFFF) else Color(0x40FFFFFF)
+                if (isDark) GlassBorderDark.copy(alpha = 0.55f) else GlassBorderLight.copy(alpha = 0.85f),
+                if (isDark) GlassBorderDark.copy(alpha = 0.15f) else GlassBorderLight.copy(alpha = 0.25f)
             )
         )
     }
 
-    val highlightBrush = Brush.verticalGradient(
-        colors = listOf(highlight, Color.Transparent),
-        startY = 0f,
-        endY = 32f
+    val highlightBrush = Brush.linearGradient(
+        colors = listOf(
+            (if (isDark) GlassHighlightDark else GlassHighlightLight).copy(alpha = if (isDark) 0.18f else 0.35f),
+            Color.Transparent
+        )
     )
 
     val containerModifier = modifier
         .shadow(
             elevation = elevation,
-            shape = shape,
+            shape = cardShape,
             spotColor = accentColor?.copy(alpha = 0.22f)
                 ?: (if (isDark) Color.Black.copy(alpha = 0.65f) else Color(0x1A000000)),
             ambientColor = Color.Black.copy(alpha = if (isDark) 0.45f else 0.08f)
         )
-        .clip(shape)
+        .clip(cardShape)
         .background(baseBg.copy(alpha = if (isDark) 0.94f else 0.90f))
         .background(
             brush = Brush.verticalGradient(
@@ -99,10 +98,14 @@ fun GlassCard(
         .drawBehind {
             drawRect(brush = highlightBrush)
         }
-        .border(
-            width = 0.1.dp,
-            brush = borderBrush,
-            shape = shape
+        .then(
+            if (borderWidth > 0.dp) {
+                Modifier.border(
+                    width = borderWidth,
+                    brush = borderBrush,
+                    shape = cardShape
+                )
+            } else Modifier
         )
         .then(
             if (onClick != null) {
@@ -124,7 +127,7 @@ fun GlassCard(
 }
 
 /**
- * GlassChip — Modern, minimalist glassmorphism chip/badge with dot indicators.
+ * GlassChip — Modern, minimalist glassmorphism chip/badge with vector icons or dot indicators.
  */
 @Composable
 fun GlassChip(
@@ -132,7 +135,8 @@ fun GlassChip(
     selected: Boolean,
     accentColor: Color,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null
 ) {
     val isDark = isAppInDarkTheme
 
@@ -150,7 +154,7 @@ fun GlassChip(
         modifier = modifier
             .clip(CircleShape)
             .background(bgColor)
-            .border(0.1.dp, borderColor, CircleShape)
+            .border(1.dp, borderColor, CircleShape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = rememberRipple(bounded = true, color = accentColor),
@@ -159,7 +163,15 @@ fun GlassChip(
             .padding(horizontal = 14.dp, vertical = 7.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (selected) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(13.dp),
+                    tint = textColor
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+            } else if (selected) {
                 Box(
                     modifier = Modifier
                         .size(6.dp)

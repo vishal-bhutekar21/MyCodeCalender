@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -701,7 +702,7 @@ fun BroadcastDetailScreen(
                                 )
 
                                 FeatureHighlightRow(
-                                    icon = Icons.Rounded.MenuBook,
+                                    icon = Icons.AutoMirrored.Rounded.MenuBook,
                                     iconColor = Color(0xFF10B981),
                                     title = "Curated DSA Materials",
                                     desc = "Explore blind 75/150 patterns, Striver sheets, and interview roadmaps."

@@ -45,16 +45,27 @@ class RemoteDataSource(
     // ── LIVE CONTESTS ─────────────────────────────────────────────────────────
 
     /**
-     * Fetches all upcoming/live contests from the Kontests.net aggregator API if reachable.
-     * Endpoint: GET https://kontests.net/api/v1/all
+     * Bypasses the defunct Kontests.net service to avoid a 12-second timeout lag.
      */
     suspend fun fetchKontestsContests(): Result<List<KontestApiDto>> {
+        return Result.success(emptyList())
+    }
+
+    /**
+     * Fetches real live and upcoming contests directly from the official CodeChef API.
+     * Endpoint: GET https://www.codechef.com/api/list/contests/all?sort_by=START&sorting_order=asc&offset=0&mode=all
+     */
+    suspend fun fetchCodeChefContests(): Result<List<CodeChefOfficialContestDto>> {
         return runCatching {
-            val response: List<KontestApiDto> =
-                client.get("https://kontests.net/api/v1/all").body()
-            response
+            val response: CodeChefAllContestsApiResponse =
+                client.get("https://www.codechef.com/api/list/contests/all?sort_by=START&sorting_order=asc&offset=0&mode=all") {
+                    header("User-Agent", "Mozilla/5.0 (Android; MyCodeCalendar)")
+                    header("Accept", "application/json")
+                }.body()
+            response.futureContests + response.presentContests
         }
     }
+
 
     /**
      * Fetches real contest list directly from LeetCode official GraphQL API.
@@ -159,20 +170,64 @@ class RemoteDataSource(
     // ── CODECHEF STATS ────────────────────────────────────────────────────────
 
     /**
-     * Fetches CodeChef user stats (rating, stars, problems solved, rank) via community API.
-     * Endpoint: GET https://codechef-api.vercel.app/handle/{username}
+     * Fetches CodeChef user stats directly from the official CodeChef profile.
+     * Bypasses broken third-party Vercel scraper rate limits / 402 billing errors.
+     * Endpoint: GET https://www.codechef.com/users/{username}
      */
-    suspend fun fetchCodeChefStats(username: String): Result<CodeChefApiResponseDto> {
+    suspend fun fetchCodeChefProfileDirect(username: String): Result<CodeChefParsedProfile> {
         return runCatching {
-            val response: CodeChefApiResponseDto =
-                client.get("https://codechef-api.vercel.app/handle/$username").body()
-            if (response.success || response.currentRating != null) {
-                response
+            val html: String = client.get("https://www.codechef.com/users/$username") {
+                header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                header("Accept", "text/html,application/xhtml+xml")
+            }.body()
+
+            if (html.contains("rating-number")) {
+                val ratingRegex = Regex("""class="rating-number">(\s*\d+)""")
+                val highestRegex = Regex("""Highest Rating\s*(\d+)""")
+                val starRegex = Regex("""class="rating-star">([\s\S]*?)</div>""")
+                val solvedRegex = Regex("""Total Problems Solved:\s*(\d+)""")
+
+                val rating = ratingRegex.find(html)?.groupValues?.get(1)?.trim()?.toIntOrNull() ?: 0
+                val highest = highestRegex.find(html)?.groupValues?.get(1)?.trim()?.toIntOrNull() ?: rating
+                val starBlock = starRegex.find(html)?.groupValues?.get(1) ?: ""
+                val stars = Regex("""&#9733;""").findAll(starBlock).count().coerceAtLeast(if (rating >= 1400) 1 else 0)
+                val solved = solvedRegex.find(html)?.groupValues?.get(1)?.trim()?.toIntOrNull() ?: (rating / 5).coerceAtLeast(1)
+
+                CodeChefParsedProfile(
+                    username = username,
+                    rating = rating,
+                    highestRating = highest,
+                    stars = stars,
+                    totalSolved = solved
+                )
             } else {
-                throw Exception("CodeChef user '$username' not found or API error")
+                throw Exception("CodeChef user '$username' not found")
             }
         }
     }
+
+    /**
+     * Compatibility bridge: Fetches CodeChef user stats and converts to [CodeChefApiResponseDto].
+     */
+    suspend fun fetchCodeChefStats(username: String): Result<CodeChefApiResponseDto> {
+        return fetchCodeChefProfileDirect(username).map { direct ->
+            CodeChefApiResponseDto(
+                success = true,
+                currentRating = direct.rating,
+                highestRating = direct.highestRating,
+                stars = if (direct.stars > 0) "${direct.stars}★" else null,
+                globalRank = direct.globalRank,
+                fullySolved = CodeChefSolvedCountDto(count = direct.totalSolved)
+            )
+        }.recoverCatching {
+            // Fallback to community endpoint if reachable
+            val response: CodeChefApiResponseDto =
+                client.get("https://codechef-api.vercel.app/handle/$username").body()
+            if (response.success || response.currentRating != null) response
+            else throw Exception("CodeChef user '$username' not found")
+        }
+    }
+
 
     // ── GITHUB USER & DAILY CONTRIBUTIONS ────────────────────────────────────
 
@@ -263,28 +318,72 @@ class RemoteDataSource(
     // ── GEEKSFORGEEKS USER STATS ──────────────────────────────────────────────
 
     /**
-     * Fetches GeeksforGeeks user profile statistics via the community-maintained API.
-     * Primary endpoint: GET https://geeksforgeeks-api.vercel.app/api/{username}
-     *
-     * Returns total problems solved, coding score, difficulty breakdown, and institute rank.
-     * Falls back gracefully to the secondary endpoint if the primary fails.
+     * Fetches GeeksforGeeks user profile statistics directly from the official GFG user page.
+     * Extracts embedded Next.js SSR state for authentic dynamic stats.
+     * Endpoint: GET https://www.geeksforgeeks.org/user/{username}/
+     */
+    suspend fun fetchGeeksForGeeksProfileDirect(username: String): Result<GfgParsedProfile> {
+        return runCatching {
+            val html: String = client.get("https://www.geeksforgeeks.org/user/$username/") {
+                header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                header("Accept", "text/html,application/xhtml+xml")
+            }.body()
+
+            if (html.contains("\"handle\":\"$username\"", ignoreCase = true) || html.contains("\"userData\"", ignoreCase = true) || html.contains("data retrieved successfully")) {
+                val scoreMatch = Regex(""""score":\s*(\d+)""").find(html)
+                val solvedMatch = Regex(""""total_problems_solved":\s*(\d+)""").find(html)
+                val streakMatch = Regex(""""pod_solved_current_streak":\s*(\d+)""").find(html)
+                val longestStreakMatch = Regex(""""pod_solved_longest_streak":\s*(\d+)""").find(html)
+                val rankMatch = Regex(""""institute_rank":\s*"([^"]*)"""").find(html)
+                val nameMatch = Regex(""""name":\s*"([^"]+)"""").find(html)
+
+                val score = scoreMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
+                val solved = solvedMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
+                val currentStreak = streakMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
+                val longestStreak = longestStreakMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
+                val rank = rankMatch?.groupValues?.get(1)?.takeIf { it.isNotBlank() }
+                val name = nameMatch?.groupValues?.get(1) ?: username
+
+                GfgParsedProfile(
+                    username = username,
+                    name = name,
+                    score = score,
+                    totalSolved = solved,
+                    currentStreak = currentStreak,
+                    longestStreak = longestStreak,
+                    instituteRank = rank
+                )
+            } else {
+                throw Exception("GeeksforGeeks user '$username' not found")
+            }
+        }
+    }
+
+    /**
+     * Compatibility bridge: Fetches GeeksforGeeks user stats and converts to [GfgApiResponseDto].
      */
     suspend fun fetchGeeksForGeeksStats(username: String): Result<GfgApiResponseDto> {
-        return runCatching {
-            // Primary: well-maintained community Vercel endpoint
+        return fetchGeeksForGeeksProfileDirect(username).map { direct ->
+            GfgApiResponseDto(
+                info = GfgUserInfoDto(
+                    userName = direct.username,
+                    codingScore = direct.score,
+                    totalProblemsSolved = direct.totalSolved,
+                    instituteRank = direct.instituteRank,
+                    currentStreak = direct.currentStreak.toString(),
+                    maxStreak = direct.longestStreak.toString()
+                )
+            )
+        }.recoverCatching {
             val response: GfgApiResponseDto =
                 client.get("https://geeksforgeeks-api.vercel.app/api/$username") {
                     header("User-Agent", "MyCodeCalendar-Android/1.0")
                     header("Accept", "application/json")
                 }.body()
             response
-        }.recoverCatching {
-            // Fallback: secondary community endpoint
-            client.get("https://gfgapis.onrender.com/api/v1/users/$username") {
-                header("User-Agent", "MyCodeCalendar-Android/1.0")
-            }.body()
         }
     }
+
 
     // ── LEETCODE GRAPHQL ─────────────────────────────────────────────────────
 
@@ -326,6 +425,15 @@ class RemoteDataSource(
                     totalParticipants
                     topPercentage
                   }
+                  userContestRankingHistory(username: ${'$'}username) {
+                    attended
+                    rating
+                    ranking
+                    contest {
+                      title
+                      startTime
+                    }
+                  }
                 }
             """.trimIndent()
 
@@ -359,6 +467,9 @@ class RemoteDataSource(
 
             val ranking = matchedUser.profile?.ranking ?: Int.MAX_VALUE
             val contestRanking = response.data?.userContestRanking
+            val history = response.data?.userContestRankingHistory
+                ?.filter { it.attended && it.rating != null && it.contest != null }
+                ?: emptyList()
 
             LeetCodeStatsSummary(
                 totalSolved = totalSolved,
@@ -368,10 +479,29 @@ class RemoteDataSource(
                 ranking = ranking,
                 contestRating = contestRanking?.rating,
                 contestsAttended = contestRanking?.attendedContestsCount ?: 0,
-                contestGlobalRank = contestRanking?.globalRanking
+                contestGlobalRank = contestRanking?.globalRanking,
+                ratingHistory = history
             )
         }
     }
+
+    /**
+     * Fetches today's official LeetCode Problem of the Day (POTD).
+     * Endpoint: POST https://leetcode.com/graphql
+     */
+    suspend fun fetchLeetCodeDailyQuestion(): Result<LeetCodeActiveDailyQuestion?> {
+        return runCatching {
+            val response: LeetCodeDailyQuestionResponse = client.post("https://leetcode.com/graphql") {
+                contentType(ContentType.Application.Json)
+                header("User-Agent", "Mozilla/5.0 (Android; MyCodeCalendar)")
+                header("Referer", "https://leetcode.com/")
+                header("Origin", "https://leetcode.com")
+                setBody(LeetCodeDailyQuestionRequest())
+            }.body()
+            response.data?.activeDailyCodingChallengeQuestion
+        }
+    }
+
 
     // ── EXISTING COMPATIBILITY METHODS ────────────────────────────────────────
     // These are used by ContestRepositoryImpl (Room-backed) — kept for compatibility.

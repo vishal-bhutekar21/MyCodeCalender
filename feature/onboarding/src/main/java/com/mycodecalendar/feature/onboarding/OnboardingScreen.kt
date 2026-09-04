@@ -709,7 +709,7 @@ private fun ContestRadarInfographic(accentColor: Color) {
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                PlatformTagPill("● LIVE", Color(0xFF00F579))
+                PlatformTagPill("● LIVE", Color(0xFFFF2A55))
                 PlatformTagPill("CC", Color(0xFF8B5CF6))
             }
         }

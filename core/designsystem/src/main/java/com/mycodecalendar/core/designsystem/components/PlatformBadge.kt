@@ -71,7 +71,6 @@ fun PlatformBadge(
         )
     }
 
-    val borderColor = brandColor.copy(alpha = if (isDark) 0.35f else 0.25f)
     val textColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     val dotSize: Dp = if (compact) 5.dp else 6.dp
@@ -83,7 +82,6 @@ fun PlatformBadge(
         modifier = modifier
             .clip(CircleShape)
             .background(bgFill)
-            .border(0.1.dp, borderColor, CircleShape)
             .padding(horizontal = hPad, vertical = vPad),
         verticalAlignment = Alignment.CenterVertically
     ) {

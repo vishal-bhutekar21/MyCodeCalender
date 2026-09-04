@@ -169,6 +169,43 @@ object CloudAdminSyncService {
     }
 
     /**
+     * Submits a user bug report, feature suggestion, or general feedback directly to Firestore.
+     */
+    fun submitFeedbackOrBugReport(
+        type: String,
+        title: String,
+        description: String,
+        email: String?,
+        displayName: String?,
+        deviceInfo: String = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} (Android ${android.os.Build.VERSION.RELEASE})",
+        appVersion: String = "1.1.0",
+        onComplete: (Boolean) -> Unit
+    ) {
+        val feedbackData = hashMapOf(
+            "type" to type,
+            "title" to title,
+            "description" to description,
+            "email" to (email ?: "Not provided"),
+            "displayName" to (displayName ?: "Developer"),
+            "deviceInfo" to deviceInfo,
+            "appVersion" to appVersion,
+            "status" to "NEW",
+            "submittedAt" to FieldValue.serverTimestamp()
+        )
+
+        firestore.collection("feedback")
+            .add(feedbackData)
+            .addOnSuccessListener {
+                Log.d(TAG, "Feedback / Bug report created successfully in Firestore.")
+                onComplete(true)
+            }
+            .addOnFailureListener { e ->
+                Log.w(TAG, "Error submitting feedback to cloud: ${e.message}")
+                onComplete(false)
+            }
+    }
+
+    /**
      * Fetches priority-ranked featured study materials and roadmap items from Firestore.
      */
     fun fetchCloudFeaturedMaterials(

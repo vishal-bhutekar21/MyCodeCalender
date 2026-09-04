@@ -24,11 +24,10 @@ import com.mycodecalendar.domain.model.ContestStatus
 
 // ── Premium Status Color Tokens ───────────────────────────────────────────────
 
-// LIVE — Electric Neon Green
-private val LiveGreen   = Color(0xFF00F579)
-private val LiveGreen2  = Color(0xFF00D166)
-private val LiveDarkBg  = Color(0xFF00180C)
-private val LiveLightBg = Color(0xFFE0FFF0)
+// LIVE — Electric Ruby Crimson (Ultra-visible, universally recognized)
+private val LiveRubyPrimary = Color(0xFFFF2A55)
+private val LiveRubyDarkBg  = Color(0xFF280B12)
+private val LiveRubyLightBg = Color(0xFFFFECEF)
 
 // UPCOMING — Electric Indigo-Violet
 private val UpcomingPrimary = Color(0xFF818CF8)  // indigo-400
@@ -44,7 +43,7 @@ private val EndedLightBg  = Color(0xFFF1F5F9)
 /**
  * StatusChip — Premium contest status pill with vivid, high-contrast glass colors.
  *
- * - LIVE:     Neon electric green with animated pulsing glow
+ * - LIVE:     Ultra-visible Electric Ruby Crimson with animated pulsing beacon and pure-white text
  * - UPCOMING: Deep indigo-violet gradient badge
  * - ENDED:    Subtle warm slate — unobtrusive but readable
  */
@@ -60,7 +59,7 @@ fun StatusChip(
     val infiniteTransition = rememberInfiniteTransition(label = "livePulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 0.8f,
-        targetValue  = 1.5f,
+        targetValue  = 1.6f,
         animationSpec = infiniteRepeatable(
             tween(1000, easing = FastOutSlowInEasing),
             RepeatMode.Reverse
@@ -68,8 +67,8 @@ fun StatusChip(
         label = "pulseScale"
     )
     val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.6f,
-        targetValue  = 0.15f,
+        initialValue = 0.65f,
+        targetValue  = 0.12f,
         animationSpec = infiniteRepeatable(
             tween(1000, easing = FastOutSlowInEasing),
             RepeatMode.Reverse
@@ -78,12 +77,14 @@ fun StatusChip(
     )
 
     if (isLive) {
-        // Minimal, ultra-clean premium glowing green dot indicator
+        // High-contrast, ultra-visible Electric Ruby Crimson pill
         Row(
             modifier = modifier
                 .clip(CircleShape)
-                .background(Color(0xFF00F579).copy(alpha = if (isDark) 0.12f else 0.16f))
-                .border(1.dp, Color(0xFF00F579).copy(alpha = if (isDark) 0.35f else 0.45f), CircleShape)
+                .background(
+                    if (isDark) Color(0xFFFF2A55).copy(alpha = 0.18f)
+                    else Color(0xFFFF2A55).copy(alpha = 0.12f)
+                )
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(5.dp)
@@ -97,20 +98,21 @@ fun StatusChip(
                     modifier = Modifier
                         .size(10.dp)
                         .scale(pulseScale)
-                        .background(Color(0xFF00F579).copy(alpha = pulseAlpha), CircleShape)
+                        .background(Color(0xFFFF2A55).copy(alpha = pulseAlpha), CircleShape)
                 )
-                // Center core neon green dot
+                // Center core neon ruby beacon
                 Box(
                     modifier = Modifier
                         .size(6.5.dp)
-                        .background(Color(0xFF00F579), CircleShape)
+                        .background(Color(0xFFFF2A55), CircleShape)
                 )
             }
             Text(
-                text = "Live",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isDark) Color(0xFF00F579) else Color(0xFF009647)
+                text = "LIVE",
+                fontSize = 10.5.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 0.4.sp,
+                color = if (isDark) Color.White else Color(0xFFDC2626)
             )
         }
     } else {
@@ -129,15 +131,12 @@ fun StatusChip(
                 else listOf(EndedLightBg, Color(0xFFE2E8F0))
             )
         }
-        val borderColor = if (isUpcoming) UpcomingPrimary.copy(alpha = if (isDark) 0.45f else 0.30f)
-                          else EndedColor.copy(alpha = if (isDark) 0.20f else 0.25f)
         val label = if (isUpcoming) "Upcoming" else "Ended"
 
         Row(
             modifier = modifier
                 .clip(CircleShape)
                 .background(bgBrush)
-                .border(1.dp, borderColor, CircleShape)
                 .padding(horizontal = 9.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(5.dp)

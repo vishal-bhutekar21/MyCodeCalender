@@ -1,5 +1,10 @@
 package com.mycodecalendar.feature.contests
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -12,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
@@ -24,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,6 +55,10 @@ import com.mycodecalendar.domain.model.PastContestRecord
 import com.mycodecalendar.domain.model.Platform
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 /**
  * Data model for Hackathons and Grand Innovation Challenges.
@@ -121,35 +132,6 @@ val curatedHackathons = listOf(
     )
 )
 
-private val samplePastContests = listOf(
-    PastContestRecord(
-        id = "past-cf-920",
-        platform = Platform.CODEFORCES,
-        contestName = "Codeforces Round 920 (Div. 2)",
-        dateText = "3 days ago",
-        oldRating = 1684,
-        newRating = 1738,
-        ratingDelta = 54,
-        solvedCount = 4,
-        totalProblems = 5,
-        rankText = "Rank #1,240 / 18,500",
-        contestUrl = "https://codeforces.com/contest/1921"
-    ),
-    PastContestRecord(
-        id = "past-lc-384",
-        platform = Platform.LEETCODE,
-        contestName = "LeetCode Weekly Contest 384",
-        dateText = "5 days ago",
-        oldRating = 1810,
-        newRating = 1845,
-        ratingDelta = 35,
-        solvedCount = 3,
-        totalProblems = 4,
-        rankText = "Rank #890 / 22,000",
-        contestUrl = "https://leetcode.com/contest/weekly-contest-384/"
-    )
-)
-
 /**
  * ContestsScreen — Contest discovery, search, live filters, and past contest performance records.
  *
@@ -161,7 +143,11 @@ private val samplePastContests = listOf(
 @Composable
 fun ContestsScreen(
     contests: List<Contest>,
-    pastContests: List<PastContestRecord> = samplePastContests,
+    pastContests: List<PastContestRecord> = emptyList(),
+    watchedContestIds: Set<String> = emptySet(),
+    onToggleWatch: (String) -> Unit = {},
+    onShareContest: (Contest) -> Unit = {},
+    onSetReminderClick: (Contest) -> Unit = {},
     onContestClick: (String) -> Unit,
     onAddPlatformClick: () -> Unit = {},
     onPastContestClick: (String) -> Unit = {}
@@ -170,6 +156,9 @@ fun ContestsScreen(
     var searchQuery by remember { mutableStateOf("") }
     var selectedPlatform by remember { mutableStateOf<Platform?>(null) }
     var selectedStatus by remember { mutableStateOf<ContestStatus?>(null) }
+    var isWatchlistOnly by remember { mutableStateOf(false) }
+    var isCalendarView by remember { mutableStateOf(false) }
+    var selectedCalendarDate by remember { mutableStateOf<LocalDate?>(null) }
     var cloudHackathons by remember { mutableStateOf<List<HackathonItem>>(emptyList()) }
 
     // Fetch dynamic hackathons from Firestore
@@ -223,13 +212,29 @@ fun ContestsScreen(
     }
 
     var selectedHackathonTag by remember { mutableStateOf<String?>(null) }
+    var selectedQuickFilter by remember { mutableStateOf<String>("all") }
 
-    val filteredContests = remember(contests, searchQuery, selectedPlatform, selectedStatus) {
+    val filteredContests = remember(contests, searchQuery, selectedPlatform, selectedStatus, isWatchlistOnly, watchedContestIds, selectedCalendarDate, selectedQuickFilter) {
         contests.filter { contest ->
             val matchesQuery = searchQuery.isBlank() || contest.name.contains(searchQuery, ignoreCase = true)
             val matchesPlatform = selectedPlatform == null || contest.platform == selectedPlatform
             val matchesStatus = selectedStatus == null || contest.status == selectedStatus
-            matchesQuery && matchesPlatform && matchesStatus
+            val matchesWatchlist = !isWatchlistOnly || watchedContestIds.contains(contest.id)
+            val matchesDate = selectedCalendarDate == null ||
+                try {
+                    contest.startTimeUtc.atZone(ZoneId.systemDefault()).toLocalDate() == selectedCalendarDate
+                } catch (_: Exception) { false }
+            val matchesQuick = when (selectedQuickFilter) {
+                "live" -> contest.status == ContestStatus.LIVE
+                "24h" -> {
+                    val until = Duration.between(Instant.now(), contest.startTimeUtc).seconds
+                    until in 0..86400 || contest.status == ContestStatus.LIVE
+                }
+                "short" -> contest.durationSeconds in 1..10800
+                "long" -> contest.durationSeconds > 10800
+                else -> true
+            }
+            matchesQuery && matchesPlatform && matchesStatus && matchesWatchlist && matchesDate && matchesQuick
         }
     }
 
@@ -343,29 +348,166 @@ fun ContestsScreen(
 
             // ── CONSOLIDATED PLATFORM & LIVE FILTER BAR (For Contests Tab) ──────────
             if (selectedMainTab == 0) {
+                // View Mode Toggle (List vs Calendar Grid)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (isCalendarView) "Calendar Schedule" else "Contests Stream",
+                        style = Typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp,
+                            fontSize = 12.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
+                    )
+
+                    // View Mode Pill Toggle
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.30f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(3.dp),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = if (!isCalendarView) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                modifier = Modifier.clickable {
+                                    isCalendarView = false
+                                    selectedCalendarDate = null
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Rounded.FormatListBulleted,
+                                        contentDescription = "List View",
+                                        tint = if (!isCalendarView) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Text(
+                                        text = "List",
+                                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = if (!isCalendarView) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = if (isCalendarView) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                modifier = Modifier.clickable {
+                                    isCalendarView = true
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.CalendarMonth,
+                                        contentDescription = "Calendar Grid",
+                                        tint = if (isCalendarView) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Text(
+                                        text = "Calendar",
+                                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = if (isCalendarView) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp)
                 ) {
                     item {
                         GlassChip(
-                            label = "All Platforms",
-                            selected = selectedPlatform == null && selectedStatus == null,
+                            label = "All",
+                            selected = selectedQuickFilter == "all" && !isWatchlistOnly && selectedStatus == null && selectedPlatform == null,
                             accentColor = MaterialTheme.colorScheme.primary,
                             onClick = {
-                                selectedPlatform = null
+                                selectedQuickFilter = "all"
+                                isWatchlistOnly = false
                                 selectedStatus = null
+                                selectedPlatform = null
                             }
                         )
                     }
 
                     item {
                         GlassChip(
-                            label = "● Live Now",
-                            selected = selectedStatus == ContestStatus.LIVE,
-                            accentColor = Color(0xFF00F579),
+                            label = "Saved",
+                            icon = Icons.Rounded.Bookmark,
+                            selected = isWatchlistOnly,
+                            accentColor = BrandPrimaryOrange,
                             onClick = {
-                                selectedStatus = if (selectedStatus == ContestStatus.LIVE) null else ContestStatus.LIVE
+                                isWatchlistOnly = !isWatchlistOnly
+                            }
+                        )
+                    }
+
+                    item {
+                        GlassChip(
+                            label = "Live Now",
+                            icon = Icons.Rounded.FiberManualRecord,
+                            selected = selectedQuickFilter == "live" || selectedStatus == ContestStatus.LIVE,
+                            accentColor = Color(0xFFFF1744),
+                            onClick = {
+                                selectedQuickFilter = if (selectedQuickFilter == "live") "all" else "live"
+                                selectedStatus = if (selectedQuickFilter == "live") ContestStatus.LIVE else null
+                            }
+                        )
+                    }
+
+                    item {
+                        GlassChip(
+                            label = "Next 24h",
+                            icon = Icons.Rounded.FlashOn,
+                            selected = selectedQuickFilter == "24h",
+                            accentColor = Color(0xFF38BDF8),
+                            onClick = {
+                                selectedQuickFilter = if (selectedQuickFilter == "24h") "all" else "24h"
+                            }
+                        )
+                    }
+
+                    item {
+                        GlassChip(
+                            label = "< 3 Hours",
+                            icon = Icons.Rounded.Timer,
+                            selected = selectedQuickFilter == "short",
+                            accentColor = Color(0xFFA855F7),
+                            onClick = {
+                                selectedQuickFilter = if (selectedQuickFilter == "short") "all" else "short"
+                            }
+                        )
+                    }
+
+                    item {
+                        GlassChip(
+                            label = "Long Sprints",
+                            icon = Icons.Rounded.Flag,
+                            selected = selectedQuickFilter == "long",
+                            accentColor = Color(0xFFEC4899),
+                            onClick = {
+                                selectedQuickFilter = if (selectedQuickFilter == "long") "all" else "long"
                             }
                         )
                     }
@@ -413,30 +555,107 @@ fun ContestsScreen(
             // ── CONTENT FEED BASED ON TAB ─────────────────────────────────────────
             when (selectedMainTab) {
                 0 -> {
-                    // CONTESTS FEED
-                    if (contests.isEmpty()) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            repeat(5) {
-                                ContestCardSkeleton()
-                            }
-                        }
-                    } else if (filteredContests.isEmpty()) {
-                        EmptyState(message = "No contests match your filters.")
-                    } else {
+                    // CONTESTS FEED (List View or Interactive Calendar Grid)
+                    if (isCalendarView) {
                         LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
                             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 100.dp)
                         ) {
-                            items(filteredContests) { contest ->
-                                ContestCard(
-                                    contest = contest,
-                                    onClick = { onContestClick(contest.id) }
+                            item {
+                                ContestCalendarGridView(
+                                    contests = contests,
+                                    selectedDate = selectedCalendarDate,
+                                    onSelectDate = { selectedCalendarDate = it }
                                 )
+                            }
+
+                            if (filteredContests.isEmpty()) {
+                                item {
+                                    EmptyState(
+                                        title = if (selectedCalendarDate != null) "No Contests On Date" else "No Contests Found",
+                                        message = if (selectedCalendarDate != null)
+                                            "No contests scheduled on $selectedCalendarDate. Choose another date or reset filters."
+                                        else "No contests match your active platform and status filters.",
+                                        icon = Icons.Rounded.EventBusy,
+                                        actionLabel = if (selectedCalendarDate != null) "Clear Date Filter" else "Reset Filters",
+                                        onActionClick = {
+                                            selectedCalendarDate = null
+                                            searchQuery = ""
+                                            selectedPlatform = null
+                                            selectedStatus = null
+                                        }
+                                    )
+                                }
+                            } else {
+                                item {
+                                    Text(
+                                        text = if (selectedCalendarDate != null)
+                                            "Scheduled on Date (${filteredContests.size})"
+                                        else "Upcoming Contests (${filteredContests.size})",
+                                        style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+                                    )
+                                }
+
+                                items(filteredContests, key = { it.id }) { contest ->
+                                    ContestCard(
+                                        contest = contest,
+                                        isWatched = watchedContestIds.contains(contest.id),
+                                        onToggleWatch = { onToggleWatch(contest.id) },
+                                        onShareContest = { onShareContest(contest) },
+                                        onSetReminderClick = { onSetReminderClick(contest) },
+                                        onClick = { onContestClick(contest.id) }
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        // Standard List View
+                        if (contests.isEmpty()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                repeat(5) {
+                                    ContestCardSkeleton()
+                                }
+                            }
+                        } else if (filteredContests.isEmpty()) {
+                            EmptyState(
+                                title = if (isWatchlistOnly) "Watchlist is Empty" else "No Contests Found",
+                                message = if (isWatchlistOnly)
+                                    "No contests saved to your watchlist yet. Tap the bookmark icon on any contest to keep track of it here!"
+                                else "No contests match your current search and platform filters.",
+                                icon = if (isWatchlistOnly) Icons.Rounded.BookmarkBorder else Icons.Rounded.SearchOff,
+                                actionLabel = if (isWatchlistOnly) "Browse All Contests" else "Reset Filters",
+                                onActionClick = {
+                                    if (isWatchlistOnly) {
+                                        isWatchlistOnly = false
+                                    } else {
+                                        searchQuery = ""
+                                        selectedPlatform = null
+                                        selectedStatus = null
+                                    }
+                                }
+                            )
+                        } else {
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 100.dp)
+                            ) {
+                                items(filteredContests, key = { it.id }) { contest ->
+                                    ContestCard(
+                                        contest = contest,
+                                        isWatched = watchedContestIds.contains(contest.id),
+                                        onToggleWatch = { onToggleWatch(contest.id) },
+                                        onShareContest = { onShareContest(contest) },
+                                        onSetReminderClick = { onSetReminderClick(contest) },
+                                        onClick = { onContestClick(contest.id) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -444,7 +663,13 @@ fun ContestsScreen(
                 1 -> {
                     // HACKATHONS FEED
                     if (filteredHackathons.isEmpty()) {
-                        EmptyState(message = "No hackathons match your search.")
+                        EmptyState(
+                            title = "No Hackathons Found",
+                            message = "No upcoming hackathons match your search criteria.",
+                            icon = Icons.Rounded.EmojiEvents,
+                            actionLabel = "Clear Search",
+                            onActionClick = { searchQuery = "" }
+                        )
                     } else {
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -494,9 +719,10 @@ fun NoPlatformsConnectedCard(
 ) {
     GlassCard(
         modifier = modifier.fillMaxWidth(),
-        accentColor = MaterialTheme.colorScheme.primary,
+        accentColor = null,
         cornerRadius = 20.dp,
-        elevation = 6.dp
+        elevation = 4.dp,
+        borderWidth = 0.dp
     ) {
         Column(
             modifier = Modifier
@@ -507,7 +733,6 @@ fun NoPlatformsConnectedCard(
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.40f)),
                 modifier = Modifier.size(64.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -574,16 +799,12 @@ fun PrimaryTabPill(
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.1f
     val accentColor = MaterialTheme.colorScheme.primary
 
-    val bgColor = if (selected) accentColor.copy(alpha = if (isDark) 0.22f else 0.12f)
-    else (if (isDark) Color(0x1AFFFFFF) else Color(0x70FFFFFF))
-
-    val borderColor = if (selected) accentColor.copy(alpha = if (isDark) 0.60f else 0.45f)
-    else (if (isDark) Color(0x33FFFFFF) else Color(0x99FFFFFF))
+    val bgColor = if (selected) accentColor.copy(alpha = if (isDark) 0.20f else 0.12f)
+    else (if (isDark) Color(0x12FFFFFF) else Color(0x55FFFFFF))
 
     Box(
         modifier = modifier
             .background(bgColor, RoundedCornerShape(14.dp))
-            .border(1.dp, borderColor, RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
             .padding(vertical = 12.dp, horizontal = 12.dp),
         contentAlignment = Alignment.Center
@@ -592,29 +813,32 @@ fun PrimaryTabPill(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
+            if (selected) {
+                Box(
+                    modifier = Modifier
+                        .size(5.dp)
+                        .clip(CircleShape)
+                        .background(accentColor)
+                )
+                Spacer(Modifier.width(5.dp))
+            }
             Text(
                 text = label,
                 style = Typography.labelMedium.copy(
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                     fontSize = 12.5.sp
                 ),
-                color = if (selected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                color = if (selected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             if (badgeCount > 0) {
-                Spacer(modifier = Modifier.width(6.dp))
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = if (selected) accentColor else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                ) {
-                    Text(
-                        text = badgeCount.toString(),
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 10.sp),
-                        color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    text = badgeCount.toString(),
+                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 9.5.sp),
+                    color = if (selected) accentColor.copy(alpha = 0.80f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.40f)
+                )
             }
         }
     }
@@ -633,8 +857,10 @@ fun PastContestHistoryCard(
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        accentColor = brandColor,
-        cornerRadius = 16.dp,
+        accentColor = null,
+        cornerRadius = 18.dp,
+        elevation = 3.dp,
+        borderWidth = 0.dp,
         onClick = onClick
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -653,28 +879,21 @@ fun PastContestHistoryCard(
                     )
                 }
 
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = deltaColor.copy(alpha = 0.14f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, deltaColor.copy(alpha = 0.35f))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = if (isPositive) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = deltaColor
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "${record.newRating} (${if (isPositive) "+" else ""}${record.ratingDelta})",
-                            style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = deltaColor
-                        )
-                    }
+                    Icon(
+                        imageVector = if (isPositive) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = deltaColor
+                    )
+                    Text(
+                        text = "${record.newRating} (${if (isPositive) "+" else ""}${record.ratingDelta})",
+                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = deltaColor
+                    )
                 }
             }
 
@@ -726,14 +945,14 @@ fun PastContestHistoryCard(
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                    border = androidx.compose.foundation.BorderStroke(0.1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = record.rankText,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -746,25 +965,40 @@ fun PastContestHistoryCard(
 @Composable
 fun ContestCard(
     contest: Contest,
+    isWatched: Boolean = false,
+    onToggleWatch: () -> Unit = {},
+    onShareContest: () -> Unit = {},
+    onSetReminderClick: () -> Unit = {},
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val brandColor = contest.platform.getBrandColor()
-    val activeColor = if (contest.status == ContestStatus.LIVE) Color(0xFF22C55E) else brandColor
+    val isLive = contest.status == ContestStatus.LIVE
+    val activeColor = if (isLive) Color(0xFFFF1744) else brandColor
     val timeUntilStart = remember(contest.startTimeUtc) {
         Duration.between(Instant.now(), contest.startTimeUtc).seconds.coerceAtLeast(0)
     }
     val timeLabel = when {
-        contest.status == ContestStatus.LIVE -> "Live now"
+        isLive -> "Live now"
         contest.status == ContestStatus.ENDED -> "Ended"
         timeUntilStart < 3600 -> "in ${timeUntilStart / 60}m"
         timeUntilStart < 86400 -> "in ${timeUntilStart / 3600}h ${(timeUntilStart % 3600) / 60}m"
         else -> "in ${timeUntilStart / 86400}d"
     }
 
+    val livePulseAlpha by rememberInfiniteTransition(label = "livePulse").animateFloat(
+        initialValue = 0.5f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(tween(800, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "liveAlpha"
+    )
+
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        accentColor = if (contest.status == ContestStatus.LIVE) activeColor else null,
+        accentColor = if (isLive) Color(0xFFFF1744) else if (isWatched) BrandPrimaryOrange else null,
         cornerRadius = 18.dp,
+        elevation = if (isLive) 6.dp else 2.dp,
+        borderWidth = 0.dp,
         onClick = onClick
     ) {
         Column(
@@ -772,55 +1006,219 @@ fun ContestCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
+            // Header Row: Platform Badge + Dynamic Status Beacon + Subtle Actions
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                PlatformBadge(platform = contest.platform)
-                StatusChip(status = contest.status)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    PlatformBadge(platform = contest.platform)
+                    if (isLive) {
+                        // Clean borderless LIVE indicator
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(7.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFF1744).copy(alpha = livePulseAlpha))
+                            )
+                            Text(
+                                text = "LIVE NOW",
+                                style = Typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 9.sp,
+                                    letterSpacing = 0.6.sp
+                                ),
+                                color = Color(0xFFFF1744)
+                            )
+                        }
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Schedule,
+                                contentDescription = null,
+                                modifier = Modifier.size(12.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+                            )
+                            Text(
+                                text = timeLabel,
+                                style = Typography.labelSmall.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 11.sp
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                            )
+                        }
+                    }
+                }
+
+                // Sleek, minimal action buttons
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    IconButton(
+                        onClick = onShareContest,
+                        modifier = Modifier.size(30.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Share,
+                            contentDescription = "Share",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    IconButton(
+                        onClick = onToggleWatch,
+                        modifier = Modifier.size(30.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isWatched) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
+                            contentDescription = if (isWatched) "Saved" else "Save",
+                            tint = if (isWatched) BrandPrimaryOrange else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            // Contest Title
             Text(
                 text = contest.name,
-                style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 14.5.sp),
+                style = Typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    lineHeight = 21.sp,
+                    letterSpacing = (-0.3).sp
+                ),
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = contest.startTimeUtc.formatToIndianShortDateTime(),
-                style = Typography.labelSmall.copy(
-                    fontSize = 11.5.sp,
-                    fontWeight = FontWeight.Medium
-                ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            // Inline Metadata (Date + Duration)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Event,
+                    contentDescription = null,
+                    modifier = Modifier.size(13.dp),
+                    tint = brandColor
+                )
+                Text(
+                    text = contest.startTimeUtc.formatToIndianShortDateTime(),
+                    style = Typography.labelSmall.copy(
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "·",
+                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.40f)
+                )
+                Icon(
+                    imageVector = Icons.Rounded.Timer,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f)
+                )
+                Text(
+                    text = formatContestDuration(contest.durationSeconds),
+                    style = Typography.labelSmall.copy(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                )
+            }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
+            // Footer Row: Quick Reminder Button + Clean Primary CTA
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Duration: ${formatContestDuration(contest.durationSeconds)}",
-                    style = Typography.labelSmall.copy(fontSize = 11.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
-                )
-                Text(
-                    text = timeLabel,
-                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp),
-                    color = activeColor
-                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.30f))
+                        .clickable { onSetReminderClick() }
+                        .padding(horizontal = 9.dp, vertical = 5.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.NotificationsNone,
+                            contentDescription = "Reminder",
+                            modifier = Modifier.size(13.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
+                        )
+                        Text(
+                            text = "Reminder",
+                            style = Typography.labelSmall.copy(
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 11.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.80f)
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            if (isLive) Color(0xFFFF1744).copy(alpha = 0.14f)
+                            else brandColor.copy(alpha = 0.12f)
+                        )
+                        .clickable { onClick() }
+                        .padding(horizontal = 11.dp, vertical = 5.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = if (isLive) "Compete Live" else "Details",
+                            style = Typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.5.sp
+                            ),
+                            color = if (isLive) Color(0xFFFF1744) else brandColor
+                        )
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp),
+                            tint = if (isLive) Color(0xFFFF1744) else brandColor
+                        )
+                    }
+                }
             }
         }
     }
@@ -837,6 +1235,8 @@ fun HackathonCard(
         modifier = Modifier.fillMaxWidth(),
         accentColor = brandOrange,
         cornerRadius = 20.dp,
+        elevation = 4.dp,
+        borderWidth = 0.dp,
         onClick = onRegisterClick
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -891,57 +1291,26 @@ fun HackathonCard(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = brandOrange.copy(alpha = 0.18f),
-                            border = BorderStroke(0.8.dp, brandOrange.copy(alpha = 0.40f))
+                        // Badge — borderless dot+text
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
                         ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(brandOrange)
+                            )
                             Text(
                                 text = hackathon.badge,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 9.5.sp),
+                                style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 9.5.sp, letterSpacing = 0.4.sp),
                                 color = brandOrange
                             )
                         }
 
                         if (hackathon.prizePool.isNotBlank()) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFFF59E0B).copy(alpha = 0.15f),
-                                border = BorderStroke(0.8.dp, Color(0xFFF59E0B).copy(alpha = 0.35f))
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.5.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Rounded.EmojiEvents,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(13.dp),
-                                        tint = Color(0xFFF59E0B)
-                                    )
-                                    Text(
-                                        text = hackathon.prizePool,
-                                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
-                                        color = Color(0xFFF59E0B)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                } else if (hackathon.prizePool.isNotBlank()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFF59E0B).copy(alpha = 0.15f),
-                            border = BorderStroke(0.8.dp, Color(0xFFF59E0B).copy(alpha = 0.35f))
-                        ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.5.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
@@ -957,6 +1326,28 @@ fun HackathonCard(
                                     color = Color(0xFFF59E0B)
                                 )
                             }
+                        }
+                    }
+                } else if (hackathon.prizePool.isNotBlank()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.EmojiEvents,
+                                contentDescription = null,
+                                modifier = Modifier.size(13.dp),
+                                tint = Color(0xFFF59E0B)
+                            )
+                            Text(
+                                text = hackathon.prizePool,
+                                style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                                color = Color(0xFFF59E0B)
+                            )
                         }
                     }
                 }
@@ -1039,65 +1430,67 @@ fun HackathonCard(
                     }
                 }
 
-                // Footer: Tags + State-of-the-Art Gradient Register Button
+                // Footer: Tags + Gradient Register Button
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Dot+text tags
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.weight(1f)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         hackathon.tags.take(2).forEach { tag ->
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = brandOrange.copy(alpha = 0.10f),
-                                border = BorderStroke(0.8.dp, brandOrange.copy(alpha = 0.25f))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(4.dp)
+                                        .clip(CircleShape)
+                                        .background(brandOrange.copy(alpha = 0.70f))
+                                )
                                 Text(
                                     text = tag,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    style = Typography.labelSmall.copy(fontSize = 9.5.sp, fontWeight = FontWeight.SemiBold),
-                                    color = brandOrange
+                                    style = Typography.labelSmall.copy(fontSize = 9.5.sp, fontWeight = FontWeight.Medium),
+                                    color = brandOrange.copy(alpha = 0.85f),
+                                    maxLines = 1
                                 )
                             }
                         }
                     }
 
-                    // ── HIGH-IMPACT REGISTER BUTTON ──
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color.Transparent,
-                        border = BorderStroke(1.dp, brandOrange.copy(alpha = 0.60f)),
-                        onClick = onRegisterClick
+                    // Gradient Register button — keep the bold gradient, remove the border wrapping
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                    listOf(brandOrange, Color(0xFFFF8533))
+                                )
+                            )
+                            .clickable(onClick = onRegisterClick)
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    androidx.compose.ui.graphics.Brush.horizontalGradient(
-                                        listOf(brandOrange, Color(0xFFFF8533))
-                                    )
-                                )
-                                .padding(horizontal = 14.dp, vertical = 8.dp),
-                            contentAlignment = Alignment.Center
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp)
-                            ) {
-                                Text(
-                                    text = "Register Now",
-                                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 11.5.sp),
-                                    color = Color.White
-                                )
-                                Icon(
-                                    Icons.AutoMirrored.Rounded.ArrowForward,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(13.dp),
-                                    tint = Color.White
-                                )
-                            }
+                            Text(
+                                text = "Register Now",
+                                style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 11.5.sp),
+                                color = Color.White
+                            )
+                            Icon(
+                                Icons.AutoMirrored.Rounded.ArrowForward,
+                                contentDescription = null,
+                                modifier = Modifier.size(13.dp),
+                                tint = Color.White
+                            )
                         }
                     }
                 }
@@ -1105,3 +1498,259 @@ fun HackathonCard(
         }
     }
 }
+
+// ── INTERACTIVE CONTEST CALENDAR GRID VIEW ──────────────────────────────────
+
+@Composable
+fun ContestCalendarGridView(
+    contests: List<Contest>,
+    selectedDate: LocalDate?,
+    onSelectDate: (LocalDate?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var displayedMonth by remember { mutableStateOf(YearMonth.now()) }
+    val today = remember { LocalDate.now() }
+
+    // Map each date to contests occurring on that date
+    val contestsByDate = remember(contests, displayedMonth) {
+        val map = mutableMapOf<LocalDate, MutableList<Contest>>()
+        contests.forEach { contest ->
+            try {
+                val date = contest.startTimeUtc.atZone(ZoneId.systemDefault()).toLocalDate()
+                map.getOrPut(date) { mutableListOf() }.add(contest)
+            } catch (_: Exception) {}
+        }
+        map
+    }
+
+    val daysInMonth = displayedMonth.lengthOfMonth()
+    val firstDayOfMonth = displayedMonth.atDay(1)
+    // Sunday = 0, Monday = 1, ..., Saturday = 6
+    val firstDayOfWeek = (firstDayOfMonth.dayOfWeek.value % 7)
+    val monthTitle = remember(displayedMonth) {
+        val formatter = DateTimeFormatter.ofPattern("MMMM yyyy")
+        displayedMonth.format(formatter)
+    }
+
+    GlassCard(
+        modifier = modifier.fillMaxWidth(),
+        cornerRadius = 20.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Month Switcher Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = monthTitle,
+                    style = Typography.titleMedium.copy(
+                        fontWeight = FontWeight.Black,
+                        fontSize = 16.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = { displayedMonth = displayedMonth.minusMonths(1) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.ChevronLeft,
+                            contentDescription = "Previous Month",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        modifier = Modifier.clickable {
+                            displayedMonth = YearMonth.now()
+                            onSelectDate(today)
+                        }
+                    ) {
+                        Text(
+                            text = "Today",
+                            style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { displayedMonth = displayedMonth.plusMonths(1) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.ChevronRight,
+                            contentDescription = "Next Month",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Day of Week Header Row: S M T W T F S
+            val dayHeaders = listOf("S", "M", "T", "W", "T", "F", "S")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceAround
+            ) {
+                dayHeaders.forEach { dayName ->
+                    Text(
+                        text = dayName,
+                        style = Typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.width(36.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Calendar Days Matrix
+            val totalSlots = firstDayOfWeek + daysInMonth
+            val totalRows = (totalSlots + 6) / 7
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                for (rowIndex in 0 until totalRows) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround
+                    ) {
+                        for (colIndex in 0 until 7) {
+                            val slotIndex = rowIndex * 7 + colIndex
+                            val dayNumber = slotIndex - firstDayOfWeek + 1
+
+                            if (dayNumber in 1..daysInMonth) {
+                                val date = displayedMonth.atDay(dayNumber)
+                                val isToday = date == today
+                                val isSelected = date == selectedDate
+                                val dayContests = contestsByDate[date] ?: emptyList()
+                                val hasContests = dayContests.isNotEmpty()
+
+                                val cellBorder = when {
+                                    isSelected -> BorderStroke(1.5.dp, BrandPrimaryOrange)
+                                    isToday -> BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                                    else -> null
+                                }
+
+                                val cellBg = when {
+                                    isSelected -> BrandPrimaryOrange.copy(alpha = 0.20f)
+                                    isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                                    hasContests -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+                                    else -> Color.Transparent
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(cellBg)
+                                        .then(if (cellBorder != null) Modifier.border(cellBorder, RoundedCornerShape(10.dp)) else Modifier)
+                                        .clickable {
+                                            if (isSelected) {
+                                                onSelectDate(null)
+                                            } else {
+                                                onSelectDate(date)
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(
+                                            text = "$dayNumber",
+                                            style = Typography.labelMedium.copy(
+                                                fontWeight = if (isToday || isSelected || hasContests) FontWeight.Bold else FontWeight.Normal,
+                                                fontSize = 12.sp
+                                            ),
+                                            color = when {
+                                                isSelected -> BrandPrimaryOrange
+                                                isToday -> MaterialTheme.colorScheme.primary
+                                                hasContests -> MaterialTheme.colorScheme.onSurface
+                                                else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                                            }
+                                        )
+
+                                        // Mini Contest Dots Row (up to 3 platform dots)
+                                        if (hasContests) {
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                val platforms = dayContests.map { it.platform }.distinct().take(3)
+                                                platforms.forEach { platform ->
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(4.dp)
+                                                            .clip(CircleShape)
+                                                            .background(platform.getBrandColor())
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                Box(modifier = Modifier.size(38.dp))
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (selectedDate != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val dateFormatted = remember(selectedDate) {
+                        val fmt = DateTimeFormatter.ofPattern("EEEE, MMM d")
+                        selectedDate.format(fmt)
+                    }
+                    Text(
+                        text = "Filtered for $dateFormatted",
+                        style = Typography.labelSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = BrandPrimaryOrange
+                        )
+                    )
+                    Text(
+                        text = "Clear Filter",
+                        style = Typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        ),
+                        modifier = Modifier.clickable { onSelectDate(null) }
+                    )
+                }
+            }
+        }
+    }
+}
+

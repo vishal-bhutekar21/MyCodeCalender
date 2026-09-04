@@ -85,7 +85,15 @@ class FakeRepository(
 
     private val ratingHistoryCache = mutableMapOf<String, List<RatingPoint>>()
 
-    private val contestsFlow = MutableStateFlow<List<Contest>>(fallbackContests)
+    private val contestsFlow = MutableStateFlow<List<Contest>>(emptyList())
+
+    private val watchlistPrefs: SharedPreferences? = context?.getSharedPreferences(
+        "contest_watchlist_prefs", Context.MODE_PRIVATE
+    )
+
+    private val watchedContestIdsFlow = MutableStateFlow<Set<String>>(loadWatchedContestIds())
+
+    private val dailyProblemFlow = MutableStateFlow<DailyProblem?>(null)
 
     val fetchError = MutableStateFlow<String?>(null)
 
@@ -93,6 +101,7 @@ class FakeRepository(
 
     /** True when the last refresh attempt failed due to no internet connection. */
     val isOffline = MutableStateFlow(false)
+
 
     private var lastRefreshTimestamp: Long = 0L
     private val minRefreshIntervalMs: Long = 5 * 60 * 1000L // 5 minutes
@@ -126,21 +135,48 @@ class FakeRepository(
     private suspend fun seedFromCache() {
         val database = db ?: return
 
-        // Seed contests (public catalog)
+        // 1. Purge any stale synthetic or tutorial tracks from Room
+        try {
+            database.contestDao().purgeInvalidContests()
+        } catch (_: Exception) {}
+
+        // 2. Seed contests (public catalog)
         val contestList = try {
-            var result: List<com.mycodecalendar.core.database.entity.ContestEntity> = emptyList()
-            val job = scope.launch {
-                database.contestDao().getAllContests().collect {
-                    result = it
-                }
-            }
-            kotlinx.coroutines.delay(50)
-            job.cancel()
-            result
+            database.contestDao().getAllContestsList()
         } catch (_: Exception) { emptyList() }
 
         if (contestList.isNotEmpty()) {
-            contestsFlow.value = contestList.map { it.toDomain() }
+            val minValidTime = Instant.parse("2025-01-01T00:00:00Z")
+            val cleanList = contestList.filterNot { entity ->
+                entity.id.contains("fallback", ignoreCase = true) ||
+                entity.id.contains("abc472", ignoreCase = true) ||
+                entity.id.contains("starters-252", ignoreCase = true) ||
+                entity.id.contains("weekly-515", ignoreCase = true) ||
+                entity.id.startsWith("innovik-6", ignoreCase = true) ||
+                entity.id.contains("APG4b", ignoreCase = true) ||
+                entity.id.contains("abs", ignoreCase = true) ||
+                entity.id.contains("adt", ignoreCase = true) ||
+                entity.durationSeconds >= 2592000L ||
+                entity.durationSeconds <= 0L ||
+                entity.startTimeUtc.isBefore(minValidTime) ||
+                entity.name.contains("Programming Guide", ignoreCase = true) ||
+                entity.name.contains("Beginners Selection", ignoreCase = true) ||
+                entity.name.contains("Daily Training", ignoreCase = true) ||
+                entity.name.contains("Practice", ignoreCase = true) ||
+                entity.name.contains("Tutorial", ignoreCase = true) ||
+                entity.name.contains("入門")
+            }
+            if (cleanList.size != contestList.size) {
+                try {
+                    database.contestDao().deleteAllContests()
+                    if (cleanList.isNotEmpty()) {
+                        database.contestDao().insertContests(cleanList)
+                    }
+                } catch (_: Exception) {}
+            }
+            contestsFlow.value = cleanList.map { it.toDomain() }
+        } else {
+            contestsFlow.value = emptyList()
         }
 
         // Only seed user-specific platform stats, ratings, and GitHub activity if a valid user is logged in
@@ -295,6 +331,7 @@ class FakeRepository(
             fetchError.value = null
             try {
                 fetchLiveContests()
+                fetchDailyProblemOfTheDay()
                 connectedPlatforms.value.forEach { acc ->
                     when (acc.platform) {
                         Platform.GITHUB -> fetchLiveGitHubData(acc.username)
@@ -424,15 +461,30 @@ class FakeRepository(
             val atcResult = remoteDataSource.fetchAtCoderContests()
             if (atcResult.isSuccess) {
                 val atcList = atcResult.getOrDefault(emptyList())
+                val minValidEpoch = nowEpoch - 86400L * 14 // Must have started at most 14 days ago if currently live
                 atcList.filter { 
-                    (it.startEpochSecond + it.durationSecond >= nowEpoch - 7200) &&
+                    it.durationSecond in 600..2592000 && // real contest duration: between 10 mins and 30 days
+                    it.startEpochSecond >= minValidEpoch && // NOT 1970! Must be recent or upcoming
+                    (it.startEpochSecond + it.durationSecond >= nowEpoch) && // not ended yet
+                    !it.title.contains("Programming Guide", ignoreCase = true) &&
+                    !it.title.contains("Beginners Selection", ignoreCase = true) &&
+                    !it.title.contains("Daily Training", ignoreCase = true) &&
+                    !it.title.contains("Practice", ignoreCase = true) &&
+                    !it.title.contains("Tutorial", ignoreCase = true) &&
+                    !it.title.contains("Typical", ignoreCase = true) &&
+                    !it.id.startsWith("APG4b", ignoreCase = true) &&
+                    !it.id.startsWith("abs", ignoreCase = true) &&
+                    !it.id.startsWith("adt", ignoreCase = true) &&
                     (it.title.contains("AtCoder", ignoreCase = true) || it.title.startsWith("abc", ignoreCase = true) || it.title.startsWith("arc", ignoreCase = true) || it.title.startsWith("agc", ignoreCase = true) || it.title.startsWith("ahc", ignoreCase = true))
-                }.take(6).forEach { atc ->
+                }
+                .sortedBy { it.startEpochSecond }
+                .take(15)
+                .forEach { atc ->
                     val start = Instant.ofEpochSecond(atc.startEpochSecond)
                     val end = start.plusSeconds(atc.durationSecond)
                     val status = computeStatus(start, end)
                     val id = "atc-${atc.id}"
-                    if (liveContests.none { it.id == id || it.name == atc.title }) {
+                    if (liveContests.none { it.id == id || it.name.equals(atc.title, ignoreCase = true) }) {
                         liveContests.add(
                             Contest(
                                 id = id,
@@ -455,44 +507,33 @@ class FakeRepository(
             }
         } catch (_: Exception) {}
 
-        // 4. Try Kontests aggregator as secondary backup
+        // 4. Fetch Real CodeChef Contests via Official CodeChef API
         try {
-            val kontestsResult = remoteDataSource.fetchKontestsContests()
-            if (kontestsResult.isSuccess) {
-                val kontestDtos = kontestsResult.getOrDefault(emptyList())
-                kontestDtos.forEachIndexed { idx, dto ->
-                    val platform = parsePlatform(dto.site)
-                    val startInstant = parseIsoInstant(dto.startTime)
-                    val endInstant = parseIsoInstant(dto.endTime)
-
-                    if (platform != null && startInstant != null) {
-                        val duration = parseDuration(dto.duration, startInstant, endInstant)
-                        val actualEnd = endInstant ?: startInstant.plusSeconds(duration)
-                        val status = computeStatus(startInstant, actualEnd)
+            val ccResult = remoteDataSource.fetchCodeChefContests()
+            if (ccResult.isSuccess) {
+                val ccList = ccResult.getOrDefault(emptyList())
+                ccList.forEach { cc ->
+                    val start = parseIsoInstant(cc.contestStartDateIso)
+                    val end = parseIsoInstant(cc.contestEndDateIso)
+                    if (start != null) {
+                        val durationSec = cc.contestDuration.toLongOrNull()?.times(60) ?: 7200L
+                        val actualEnd = end ?: start.plusSeconds(durationSec)
+                        val status = computeStatus(start, actualEnd)
                         if (status != ContestStatus.ENDED) {
-                            val officialUrl = when {
-                                dto.url.isNotBlank() && dto.url.startsWith("http") -> dto.url
-                                platform == Platform.CODEFORCES -> "https://codeforces.com/contests"
-                                platform == Platform.LEETCODE -> "https://leetcode.com/contest/"
-                                platform == Platform.CODECHEF -> "https://www.codechef.com/contests"
-                                platform == Platform.ATCODER -> "https://atcoder.jp/contests/"
-                                platform == Platform.GEEKSFORGEEKS -> "https://www.geeksforgeeks.org/events/"
-                                else -> "https://${dto.site.lowercase()}.com"
-                            }
-                            val id = "kontest-$idx-${dto.name.hashCode()}"
-                            if (liveContests.none { it.id == id || it.name.equals(dto.name, ignoreCase = true) }) {
+                            val id = "cc-${cc.contestCode}"
+                            if (liveContests.none { it.id == id || it.name.equals(cc.contestName, ignoreCase = true) }) {
                                 liveContests.add(
                                     Contest(
                                         id = id,
-                                        providerContestId = dto.name,
-                                        platform = platform,
-                                        name = dto.name,
-                                        officialUrl = officialUrl,
-                                        registrationUrl = officialUrl,
-                                        startTimeUtc = startInstant,
+                                        providerContestId = cc.contestCode,
+                                        platform = Platform.CODECHEF,
+                                        name = cc.contestName,
+                                        officialUrl = "https://www.codechef.com/${cc.contestCode}",
+                                        registrationUrl = "https://www.codechef.com/${cc.contestCode}",
+                                        startTimeUtc = start,
                                         endTimeUtc = actualEnd,
-                                        durationSeconds = duration,
-                                        contestType = dto.site,
+                                        durationSeconds = durationSec,
+                                        contestType = "Official",
                                         ratingType = "Rated",
                                         status = status,
                                         lastFetchedAt = Instant.now()
@@ -505,16 +546,19 @@ class FakeRepository(
             }
         } catch (_: Exception) {}
 
-        // 5. Ensure complete cross-platform coverage with dynamically calculated upcoming schedules if missing
-        val upcomingGenerated = generateRealUpcomingContests()
-        upcomingGenerated.forEach { contest ->
-            if (liveContests.none { it.platform == contest.platform && it.name.equals(contest.name, ignoreCase = true) }) {
-                liveContests.add(contest)
-            }
-        }
 
         if (liveContests.isNotEmpty()) {
-            val sorted = liveContests.sortedBy { it.startTimeUtc }
+            val minValidTime = Instant.parse("2024-01-01T00:00:00Z")
+            val filteredLive = liveContests.filter {
+                it.startTimeUtc.isAfter(minValidTime) &&
+                it.durationSeconds in 600..2592000 &&
+                !it.name.contains("Programming Guide", ignoreCase = true) &&
+                !it.name.contains("Beginners Selection", ignoreCase = true) &&
+                !it.name.contains("Daily Training", ignoreCase = true) &&
+                !it.name.contains("Practice", ignoreCase = true) &&
+                !it.name.contains("Tutorial", ignoreCase = true)
+            }
+            val sorted = filteredLive.sortedBy { it.startTimeUtc }
             contestsFlow.value = sorted
 
             // Persist to Room for offline access
@@ -532,184 +576,6 @@ class FakeRepository(
                 )
             )
         }
-    }
-
-    /**
-     * Dynamically calculates authentic upcoming contests across all platforms
-     * (LeetCode, CodeChef, AtCoder, Codeforces, GeeksforGeeks) based on exact calendar cadences.
-     */
-    private fun generateRealUpcomingContests(): List<Contest> {
-        val now = ZonedDateTime.now(ZoneId.of("UTC"))
-        val contests = mutableListOf<Contest>()
-
-        // 1. LeetCode Weekly: Sunday 02:30 UTC
-        var nextSunday = now.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
-            .withHour(2).withMinute(30).withSecond(0).withNano(0)
-        if (nextSunday.isBefore(now)) {
-            nextSunday = nextSunday.plusWeeks(1)
-        }
-        val lcWeeklyBenchmark = ZonedDateTime.of(2026, 8, 16, 2, 30, 0, 0, ZoneId.of("UTC"))
-        val weeksDiff = ChronoUnit.WEEKS.between(lcWeeklyBenchmark, nextSunday).toInt()
-        val weeklyNum1 = 515 + weeksDiff.coerceAtLeast(0)
-        val weeklyNum2 = weeklyNum1 + 1
-
-        val weekly1Start = nextSunday.toInstant()
-        val weekly1End = weekly1Start.plusSeconds(5400)
-        contests.add(
-            Contest(
-                id = "lc-weekly-$weeklyNum1",
-                providerContestId = "weekly-contest-$weeklyNum1",
-                platform = Platform.LEETCODE,
-                name = "LeetCode Weekly Contest $weeklyNum1",
-                officialUrl = "https://leetcode.com/contest/weekly-contest-$weeklyNum1/",
-                registrationUrl = "https://leetcode.com/contest/weekly-contest-$weeklyNum1/",
-                startTimeUtc = weekly1Start,
-                endTimeUtc = weekly1End,
-                durationSeconds = 5400L,
-                contestType = "LeetCode Weekly",
-                ratingType = "Rated",
-                status = computeStatus(weekly1Start, weekly1End),
-                lastFetchedAt = Instant.now()
-            )
-        )
-
-        val weekly2Start = nextSunday.plusWeeks(1).toInstant()
-        val weekly2End = weekly2Start.plusSeconds(5400)
-        contests.add(
-            Contest(
-                id = "lc-weekly-$weeklyNum2",
-                providerContestId = "weekly-contest-$weeklyNum2",
-                platform = Platform.LEETCODE,
-                name = "LeetCode Weekly Contest $weeklyNum2",
-                officialUrl = "https://leetcode.com/contest/weekly-contest-$weeklyNum2/",
-                registrationUrl = "https://leetcode.com/contest/weekly-contest-$weeklyNum2/",
-                startTimeUtc = weekly2Start,
-                endTimeUtc = weekly2End,
-                durationSeconds = 5400L,
-                contestType = "LeetCode Weekly",
-                ratingType = "Rated",
-                status = computeStatus(weekly2Start, weekly2End),
-                lastFetchedAt = Instant.now()
-            )
-        )
-
-        // 2. LeetCode Biweekly: Alternate Saturdays 14:30 UTC
-        var nextSaturday = now.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
-            .withHour(14).withMinute(30).withSecond(0).withNano(0)
-        if (nextSaturday.isBefore(now)) {
-            nextSaturday = nextSaturday.plusWeeks(1)
-        }
-        val biweeklyBenchmark = ZonedDateTime.of(2026, 8, 15, 14, 30, 0, 0, ZoneId.of("UTC"))
-        val biweeksDiff = (ChronoUnit.WEEKS.between(biweeklyBenchmark, nextSaturday) / 2).toInt()
-        val biweeklyNum = 189 + biweeksDiff.coerceAtLeast(0)
-
-        val biweeklyStart = nextSaturday.toInstant()
-        val biweeklyEnd = biweeklyStart.plusSeconds(5400)
-        contests.add(
-            Contest(
-                id = "lc-biweekly-$biweeklyNum",
-                providerContestId = "biweekly-contest-$biweeklyNum",
-                platform = Platform.LEETCODE,
-                name = "LeetCode Biweekly Contest $biweeklyNum",
-                officialUrl = "https://leetcode.com/contest/biweekly-contest-$biweeklyNum/",
-                registrationUrl = "https://leetcode.com/contest/biweekly-contest-$biweeklyNum/",
-                startTimeUtc = biweeklyStart,
-                endTimeUtc = biweeklyEnd,
-                durationSeconds = 5400L,
-                contestType = "LeetCode Biweekly",
-                ratingType = "Rated",
-                status = computeStatus(biweeklyStart, biweeklyEnd),
-                lastFetchedAt = Instant.now()
-            )
-        )
-
-        // 3. CodeChef Starters: Every Wednesday at 14:30 UTC (20:00 IST)
-        var nextWed = now.with(TemporalAdjusters.nextOrSame(DayOfWeek.WEDNESDAY))
-            .withHour(14).withMinute(30).withSecond(0).withNano(0)
-        if (nextWed.isBefore(now)) {
-            nextWed = nextWed.plusWeeks(1)
-        }
-        val ccBenchmark = ZonedDateTime.of(2026, 8, 19, 14, 30, 0, 0, ZoneId.of("UTC"))
-        val ccDiff = ChronoUnit.WEEKS.between(ccBenchmark, nextWed).toInt()
-        val ccNum = 252 + ccDiff.coerceAtLeast(0)
-
-        val ccStart = nextWed.toInstant()
-        val ccEnd = ccStart.plusSeconds(7200)
-        contests.add(
-            Contest(
-                id = "cc-starters-$ccNum",
-                providerContestId = "START$ccNum",
-                platform = Platform.CODECHEF,
-                name = "CodeChef Starters $ccNum (Rated)",
-                officialUrl = "https://www.codechef.com/START$ccNum",
-                registrationUrl = "https://www.codechef.com/START$ccNum",
-                startTimeUtc = ccStart,
-                endTimeUtc = ccEnd,
-                durationSeconds = 7200L,
-                contestType = "Starters",
-                ratingType = "Rated for All",
-                status = computeStatus(ccStart, ccEnd),
-                lastFetchedAt = Instant.now()
-            )
-        )
-
-        // 4. AtCoder Beginner Contest: Every Saturday at 12:00 UTC (21:00 JST)
-        var nextAtcSat = now.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
-            .withHour(12).withMinute(0).withSecond(0).withNano(0)
-        if (nextAtcSat.isBefore(now)) {
-            nextAtcSat = nextAtcSat.plusWeeks(1)
-        }
-        val abcBenchmark = ZonedDateTime.of(2026, 8, 22, 12, 0, 0, 0, ZoneId.of("UTC"))
-        val abcDiff = ChronoUnit.WEEKS.between(abcBenchmark, nextAtcSat).toInt()
-        val abcNum = 472 + abcDiff.coerceAtLeast(0)
-
-        val abcStart = nextAtcSat.toInstant()
-        val abcEnd = abcStart.plusSeconds(6000)
-        contests.add(
-            Contest(
-                id = "atc-abc$abcNum",
-                providerContestId = "abc$abcNum",
-                platform = Platform.ATCODER,
-                name = "AtCoder Beginner Contest $abcNum",
-                officialUrl = "https://atcoder.jp/contests/abc$abcNum",
-                registrationUrl = "https://atcoder.jp/contests/abc$abcNum",
-                startTimeUtc = abcStart,
-                endTimeUtc = abcEnd,
-                durationSeconds = 6000L,
-                contestType = "Algorithm",
-                ratingType = "Rated for ~1999",
-                status = computeStatus(abcStart, abcEnd),
-                lastFetchedAt = Instant.now()
-            )
-        )
-
-        // 5. GeeksforGeeks Weekly: Every Sunday at 13:30 UTC (19:00 IST)
-        var nextGfgSun = now.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
-            .withHour(13).withMinute(30).withSecond(0).withNano(0)
-        if (nextGfgSun.isBefore(now)) {
-            nextGfgSun = nextGfgSun.plusWeeks(1)
-        }
-        val gfgStart = nextGfgSun.toInstant()
-        val gfgEnd = gfgStart.plusSeconds(5400)
-        contests.add(
-            Contest(
-                id = "gfg-weekly-${gfgStart.epochSecond}",
-                providerContestId = "gfg-weekly",
-                platform = Platform.GEEKSFORGEEKS,
-                name = "GFG Weekly Coding Contest",
-                officialUrl = "https://practice.geeksforgeeks.org/events/",
-                registrationUrl = "https://practice.geeksforgeeks.org/events/",
-                startTimeUtc = gfgStart,
-                endTimeUtc = gfgEnd,
-                durationSeconds = 5400L,
-                contestType = "Mixed DSA",
-                ratingType = "Rated",
-                status = computeStatus(gfgStart, gfgEnd),
-                lastFetchedAt = Instant.now()
-            )
-        )
-
-        return contests
     }
 
     private suspend fun fetchLiveGitHubData(username: String) {
@@ -1072,11 +938,35 @@ class FakeRepository(
         if (lcRes.isSuccess) {
             val lc: LeetCodeStatsSummary = lcRes.getOrNull()!!
 
+            val domainPoints = lc.ratingHistory.mapIndexed { idx, item ->
+                val startEpoch = item.contest?.startTime ?: (System.currentTimeMillis() / 1000 - (lc.ratingHistory.size - idx) * 7 * 86400L)
+                val contestTitle = item.contest?.title?.ifBlank { "LeetCode Contest #$idx" } ?: "LeetCode Contest"
+                val contestSlug = contestTitle.lowercase().replace(" ", "-")
+                RatingPoint(
+                    timestamp = Instant.ofEpochSecond(startEpoch),
+                    rating = item.rating?.toInt() ?: 1500,
+                    contestId = "lc-$contestSlug",
+                    contestName = contestTitle
+                )
+            }
+
+            if (domainPoints.isNotEmpty()) {
+                val key = statsKey(Platform.LEETCODE, username)
+                ratingHistoryCache[key] = domainPoints
+                ratingHistoryMap.value = ratingHistoryMap.value.toMutableMap().also { it[key] = domainPoints }
+                db?.ratingHistoryDao()?.let { dao ->
+                    dao.deleteHistory(Platform.LEETCODE.name, username)
+                    dao.insertHistory(domainPoints.map { it.toEntity(Platform.LEETCODE.name, username) })
+                }
+            }
+
             val rating = lc.contestRating?.toInt()
+                ?: domainPoints.lastOrNull()?.rating
                 ?: (3000 - (lc.ranking / 50)).coerceIn(1200, 3200)
+            val maxRating = domainPoints.maxOfOrNull { it.rating } ?: (rating + 50)
             val rank = when {
-                (lc.contestRating ?: 0.0) >= 2200 -> "Guardian"
-                (lc.contestRating ?: 0.0) >= 1800 -> "Knight"
+                (lc.contestRating ?: rating.toDouble()) >= 2200 -> "Guardian"
+                (lc.contestRating ?: rating.toDouble()) >= 1800 -> "Knight"
                 else -> "Competitor"
             }
 
@@ -1085,7 +975,7 @@ class FakeRepository(
                     platform = Platform.LEETCODE,
                     username = username,
                     rating = rating,
-                    highestRating = rating + 50,
+                    highestRating = maxRating,
                     rank = rank,
                     globalRank = lc.contestGlobalRank ?: lc.ranking,
                     solved = lc.totalSolved,
@@ -1094,11 +984,18 @@ class FakeRepository(
                     hardSolved = lc.hardSolved,
                     currentStreak = null,
                     longestStreak = null,
-                    contestCount = lc.contestsAttended,
+                    contestCount = if (domainPoints.isNotEmpty()) domainPoints.size else lc.contestsAttended,
                     lastUpdated = Instant.now()
                 )
             )
         } else {
+            val cachedHistory = db?.ratingHistoryDao()?.getHistory(Platform.LEETCODE.name, username)
+            if (!cachedHistory.isNullOrEmpty()) {
+                val key = statsKey(Platform.LEETCODE, username)
+                val domainHistory = cachedHistory.map { it.toDomain() }
+                ratingHistoryCache[key] = domainHistory
+                ratingHistoryMap.value = ratingHistoryMap.value.toMutableMap().also { it[key] = domainHistory }
+            }
             val cached = db?.platformStatsDao()?.getStats(Platform.LEETCODE.name, username)
             if (cached != null) {
                 updateStatsMap(Platform.LEETCODE, username, cached.toDomain())
@@ -1107,6 +1004,7 @@ class FakeRepository(
             }
         }
     }
+
 
     // ── HELPER UTILITIES ──────────────────────────────────────────────────────
 
@@ -1149,7 +1047,9 @@ class FakeRepository(
 
     private fun computeStatus(start: Instant, end: Instant): ContestStatus {
         val now = Instant.now()
+        val minValid = Instant.parse("2024-01-01T00:00:00Z")
         return when {
+            start.isBefore(minValid) -> ContestStatus.ENDED
             now.isAfter(end) -> ContestStatus.ENDED
             now.isAfter(start) || now == start -> ContestStatus.LIVE
             else -> ContestStatus.UPCOMING
@@ -1507,7 +1407,7 @@ class FakeRepository(
                         else null
                     }
                     Platform.CODECHEF -> {
-                        val res = remoteDataSource.fetchCodeChefStats(username)
+                        val res = remoteDataSource.fetchCodeChefProfileDirect(username)
                         if (res.isFailure) "CodeChef handle \"$username\" not found. Check spelling."
                         else null
                     }
@@ -1517,7 +1417,7 @@ class FakeRepository(
                         else null
                     }
                     Platform.GEEKSFORGEEKS -> {
-                        val res = remoteDataSource.fetchGeeksForGeeksStats(username)
+                        val res = remoteDataSource.fetchGeeksForGeeksProfileDirect(username)
                         if (res.isFailure) "GeeksforGeeks handle \"$username\" not found. Check spelling."
                         else null
                     }
@@ -1526,6 +1426,47 @@ class FakeRepository(
                 null
             }
         }
+    }
+
+    private fun loadWatchedContestIds(): Set<String> {
+        val raw = watchlistPrefs?.getString("watched_contests", "") ?: ""
+        return if (raw.isBlank()) emptySet() else raw.split(",").filter { it.isNotBlank() }.toSet()
+    }
+
+    fun getWatchedContestIds(): Flow<Set<String>> = watchedContestIdsFlow
+
+    fun toggleWatchContest(contestId: String) {
+        val current = watchedContestIdsFlow.value.toMutableSet()
+        if (current.contains(contestId)) {
+            current.remove(contestId)
+        } else {
+            current.add(contestId)
+        }
+        watchedContestIdsFlow.value = current
+        watchlistPrefs?.edit()?.putString("watched_contests", current.joinToString(","))?.apply()
+    }
+
+    fun getDailyProblem(): Flow<DailyProblem?> = dailyProblemFlow
+
+    suspend fun fetchDailyProblemOfTheDay() {
+        try {
+            val res = remoteDataSource.fetchLeetCodeDailyQuestion()
+            if (res.isSuccess) {
+                val q = res.getOrNull()
+                val question = q?.question
+                if (question != null) {
+                    val link = if (q.link.startsWith("http")) q.link else "https://leetcode.com${q.link}"
+                    dailyProblemFlow.value = DailyProblem(
+                        title = question.title,
+                        titleSlug = question.titleSlug,
+                        difficulty = question.difficulty,
+                        date = q.date,
+                        link = link,
+                        platform = Platform.LEETCODE
+                    )
+                }
+            }
+        } catch (_: Exception) {}
     }
 
     fun removePlatformAccount(platform: Platform) {
@@ -1605,7 +1546,7 @@ class FakeRepository(
                         }
                     }
                 }
-                records.ifEmpty { samplePastContests }
+                records
             }
         }
     }
@@ -1613,163 +1554,12 @@ class FakeRepository(
     fun getResources(): Flow<List<Resource>> = MutableStateFlow(curatedResources)
 }
 
+
 typealias AppRepository = FakeRepository
-
-// ── SAMPLE PAST CONTESTS RECORD (Used when accounts are connected) ───────────
-
-private val samplePastContests = listOf(
-    PastContestRecord(
-        id = "past-cf-920",
-        platform = Platform.CODEFORCES,
-        contestName = "Codeforces Round 920 (Div. 2)",
-        dateText = "3 days ago",
-        oldRating = 1684,
-        newRating = 1738,
-        ratingDelta = 54,
-        solvedCount = 4,
-        totalProblems = 5,
-        rankText = "Rank #1,240 / 18,500",
-        contestUrl = "https://codeforces.com/contest/1921"
-    ),
-    PastContestRecord(
-        id = "past-lc-384",
-        platform = Platform.LEETCODE,
-        contestName = "LeetCode Weekly Contest 384",
-        dateText = "5 days ago",
-        oldRating = 1810,
-        newRating = 1845,
-        ratingDelta = 35,
-        solvedCount = 3,
-        totalProblems = 4,
-        rankText = "Rank #890 / 22,000",
-        contestUrl = "https://leetcode.com/contest/weekly-contest-384/"
-    )
-)
 
 // ── FALLBACK CONTESTS ─────────────────────────────────────────────────────────
 
-private val fallbackContests = listOf(
-    Contest(
-        id = "innovik-6-hackathon-2026",
-        providerContestId = "innovik-6",
-        platform = Platform.CODEFORCES,
-        name = "Innovik 6.0 – International Hackathon 2026 (Agentic AI) [₹2,00,000 Prizes]",
-        officialUrl = "https://unstop.com",
-        registrationUrl = "https://unstop.com",
-        startTimeUtc = Instant.now().plusSeconds(3600 * 4),
-        endTimeUtc = Instant.now().plusSeconds(3600 * 28),
-        durationSeconds = 86400L,
-        contestType = "International Hackathon",
-        ratingType = "₹2,00,000 Prize Pool · Offline VITM Indore",
-        status = ContestStatus.UPCOMING,
-        lastFetchedAt = Instant.now()
-    ),
-    Contest(
-        id = "cf-fallback-1",
-        providerContestId = "2251",
-        platform = Platform.CODEFORCES,
-        name = "ICPC 2026 Online Challenge powered by Huawei",
-        officialUrl = "https://codeforces.com/contests",
-        registrationUrl = "https://codeforces.com/contests",
-        startTimeUtc = Instant.now().plusSeconds(3600 * 3),
-        endTimeUtc = Instant.now().plusSeconds(3600 * 24 * 7),
-        durationSeconds = 604800L,
-        contestType = "IOI",
-        ratingType = "Rated for All",
-        status = ContestStatus.LIVE,
-        lastFetchedAt = Instant.now()
-    ),
-    Contest(
-        id = "cf-fallback-2",
-        providerContestId = "2072",
-        platform = Platform.CODEFORCES,
-        name = "Codeforces Round (Div. 2)",
-        officialUrl = "https://codeforces.com/contests",
-        registrationUrl = "https://codeforces.com/contests",
-        startTimeUtc = Instant.now().plusSeconds(3600 * 48),
-        endTimeUtc = Instant.now().plusSeconds(3600 * 50),
-        durationSeconds = 7200L,
-        contestType = "Educational",
-        ratingType = "Rated for Div. 2",
-        status = ContestStatus.UPCOMING,
-        lastFetchedAt = Instant.now()
-    ),
-    Contest(
-        id = "lc-fallback-1",
-        providerContestId = "weekly-contest-515",
-        platform = Platform.LEETCODE,
-        name = "LeetCode Weekly Contest 515",
-        officialUrl = "https://leetcode.com/contest/weekly-contest-515/",
-        registrationUrl = "https://leetcode.com/contest/weekly-contest-515/",
-        startTimeUtc = Instant.now().plusSeconds(3600 * 24 * 2),
-        endTimeUtc = Instant.now().plusSeconds(3600 * 24 * 2 + 5400),
-        durationSeconds = 5400L,
-        contestType = "LeetCode Weekly",
-        ratingType = "Rated",
-        status = ContestStatus.UPCOMING,
-        lastFetchedAt = Instant.now()
-    ),
-    Contest(
-        id = "lc-fallback-2",
-        providerContestId = "biweekly-contest-189",
-        platform = Platform.LEETCODE,
-        name = "LeetCode Biweekly Contest 189",
-        officialUrl = "https://leetcode.com/contest/biweekly-contest-189/",
-        registrationUrl = "https://leetcode.com/contest/biweekly-contest-189/",
-        startTimeUtc = Instant.now().plusSeconds(3600 * 24 * 6),
-        endTimeUtc = Instant.now().plusSeconds(3600 * 24 * 6 + 5400),
-        durationSeconds = 5400L,
-        contestType = "LeetCode Biweekly",
-        ratingType = "Rated",
-        status = ContestStatus.UPCOMING,
-        lastFetchedAt = Instant.now()
-    ),
-    Contest(
-        id = "cc-fallback-1",
-        providerContestId = "START252",
-        platform = Platform.CODECHEF,
-        name = "CodeChef Starters 252 (Rated till 5 star)",
-        officialUrl = "https://www.codechef.com/START252",
-        registrationUrl = "https://www.codechef.com/START252",
-        startTimeUtc = Instant.now().plusSeconds(3600 * 24),
-        endTimeUtc = Instant.now().plusSeconds(3600 * 24 + 7200),
-        durationSeconds = 7200L,
-        contestType = "Starters",
-        ratingType = "Rated for All",
-        status = ContestStatus.UPCOMING,
-        lastFetchedAt = Instant.now()
-    ),
-    Contest(
-        id = "ac-fallback-1",
-        providerContestId = "abc472",
-        platform = Platform.ATCODER,
-        name = "AtCoder Beginner Contest 472",
-        officialUrl = "https://atcoder.jp/contests/abc472",
-        registrationUrl = "https://atcoder.jp/contests/abc472",
-        startTimeUtc = Instant.now().plusSeconds(3600 * 24 * 3),
-        endTimeUtc = Instant.now().plusSeconds(3600 * 24 * 3 + 6000),
-        durationSeconds = 6000L,
-        contestType = "Algorithm",
-        ratingType = "Rated for ~1999",
-        status = ContestStatus.UPCOMING,
-        lastFetchedAt = Instant.now()
-    ),
-    Contest(
-        id = "gfg-fallback-1",
-        providerContestId = "gfg-weekly",
-        platform = Platform.GEEKSFORGEEKS,
-        name = "GFG Weekly Coding Contest",
-        officialUrl = "https://practice.geeksforgeeks.org/events/",
-        registrationUrl = "https://practice.geeksforgeeks.org/events/",
-        startTimeUtc = Instant.now().plusSeconds(3600 * 24 * 5),
-        endTimeUtc = Instant.now().plusSeconds(3600 * 24 * 5 + 5400),
-        durationSeconds = 5400L,
-        contestType = "Mixed DSA",
-        ratingType = "Rated",
-        status = ContestStatus.UPCOMING,
-        lastFetchedAt = Instant.now()
-    )
-)
+private val fallbackContests = emptyList<Contest>()
 
 // ── CURATED RESOURCES (AI / ML Tools, YouTube Masterclasses, DSA Sheets) ──────
 

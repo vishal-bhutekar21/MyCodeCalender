@@ -385,24 +385,94 @@ fun ResourcesListSkeleton() {
 }
 
 /**
- * SettingsScreenSkeleton — Full screen skeleton for settings and preferences.
+ * SettingsScreenSkeleton — Pixel-accurate loading skeleton for settings page.
+ * Matches real layout: account card → theme/prefs card → platforms card → notifications section.
  */
 @Composable
 fun SettingsScreenSkeleton() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        ShimmerBox(modifier = Modifier.width(160.dp).height(28.dp), cornerRadius = 8.dp)
-        ShimmerBox(modifier = Modifier.fillMaxWidth().height(120.dp), cornerRadius = 20.dp)
-        ShimmerBox(modifier = Modifier.width(140.dp).height(20.dp), cornerRadius = 6.dp)
-        ShimmerBox(modifier = Modifier.fillMaxWidth().height(140.dp), cornerRadius = 18.dp)
-        ShimmerBox(modifier = Modifier.width(120.dp).height(20.dp), cornerRadius = 6.dp)
-        ShimmerBox(modifier = Modifier.fillMaxWidth().height(160.dp), cornerRadius = 18.dp)
+        Spacer(Modifier.height(24.dp))
+
+        // Page title
+        ShimmerBox(modifier = Modifier.width(120.dp).height(30.dp), cornerRadius = 10.dp)
+        Spacer(Modifier.height(6.dp))
+        ShimmerBox(modifier = Modifier.width(220.dp).height(14.dp))
+        Spacer(Modifier.height(28.dp))
+
+        // Section label
+        ShimmerBox(modifier = Modifier.width(130.dp).height(14.dp))
+        Spacer(Modifier.height(12.dp))
+
+        // Account card
+        ShimmerBox(modifier = Modifier.fillMaxWidth().height(118.dp), cornerRadius = 20.dp)
+        Spacer(Modifier.height(24.dp))
+
+        // Preferences section label
+        ShimmerBox(modifier = Modifier.width(150.dp).height(14.dp))
+        Spacer(Modifier.height(12.dp))
+
+        // Theme + Notifications prefs card
+        ShimmerBox(modifier = Modifier.fillMaxWidth().height(155.dp), cornerRadius = 18.dp)
+        Spacer(Modifier.height(24.dp))
+
+        // Connected Platforms section label
+        ShimmerBox(modifier = Modifier.width(160.dp).height(14.dp))
+        Spacer(Modifier.height(12.dp))
+
+        // Platform rows card (2 rows)
+        ShimmerBox(modifier = Modifier.fillMaxWidth().height(120.dp), cornerRadius = 18.dp)
+        Spacer(Modifier.height(24.dp))
+
+        // Notifications section label
+        ShimmerBox(modifier = Modifier.width(120.dp).height(14.dp))
+        Spacer(Modifier.height(12.dp))
+
+        // Notification cards (3 stacked)
+        NotificationSectionSkeleton()
+
+        Spacer(Modifier.height(40.dp))
     }
 }
+
+/**
+ * NotificationSectionSkeleton — 3-card shimmer for the notifications preference section.
+ */
+@Composable
+fun NotificationSectionSkeleton() {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        repeat(3) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.45f))
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ShimmerBox(modifier = Modifier.size(42.dp), cornerRadius = 12.dp)
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        ShimmerBox(modifier = Modifier.width(140.dp).height(14.dp))
+                        ShimmerBox(modifier = Modifier.fillMaxWidth(0.75f).height(11.dp))
+                    }
+                    ShimmerBox(modifier = Modifier.size(width = 44.dp, height = 24.dp), cornerRadius = 12.dp)
+                }
+            }
+        }
+    }
+}
+
 
 /**
  * BroadcastBannerSkeleton — Glassmorphic shimmer placeholder for Home Screen announcement banner.
@@ -475,5 +545,56 @@ fun NotificationsListSkeleton() {
         }
     }
 }
+
+/**
+ * DailyProblemCardSkeleton — Loading placeholder for the Problem of the Day challenge card.
+ */
+@Composable
+fun DailyProblemCardSkeleton(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.45f))
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f), RoundedCornerShape(20.dp))
+            .padding(18.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ShimmerBox(modifier = Modifier.size(width = 120.dp, height = 24.dp), cornerRadius = 8.dp)
+                    ShimmerBox(modifier = Modifier.size(width = 65.dp, height = 24.dp), cornerRadius = 6.dp)
+                }
+                ShimmerBox(modifier = Modifier.size(width = 75.dp, height = 16.dp), cornerRadius = 4.dp)
+            }
+
+            ShimmerBox(modifier = Modifier.fillMaxWidth(0.85f).height(20.dp), cornerRadius = 6.dp)
+
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                ShimmerBox(modifier = Modifier.size(width = 75.dp, height = 18.dp), cornerRadius = 4.dp)
+                ShimmerBox(modifier = Modifier.size(width = 60.dp, height = 18.dp), cornerRadius = 4.dp)
+            }
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ShimmerBox(modifier = Modifier.size(width = 130.dp, height = 16.dp), cornerRadius = 4.dp)
+                ShimmerBox(modifier = Modifier.size(width = 95.dp, height = 32.dp), cornerRadius = 10.dp)
+            }
+        }
+    }
+}
+
 
 

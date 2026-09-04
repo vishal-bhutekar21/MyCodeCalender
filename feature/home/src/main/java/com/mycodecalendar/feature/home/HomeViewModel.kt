@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
+import com.mycodecalendar.domain.model.DailyProblem
 import java.time.format.DateTimeFormatter
 
 data class HomeUiState(
@@ -31,6 +32,7 @@ data class HomeUiState(
     val highlightContests: List<Contest> = emptyList(),
     val upcomingContests: List<Contest> = emptyList(),
     val featuredResource: Resource? = null,
+    val dailyProblem: DailyProblem? = null,
     val lastUpdatedText: String = "just now",
     val fetchError: String? = null
 )
@@ -58,6 +60,9 @@ class HomeViewModel(
     val isOffline: StateFlow<Boolean> = repository.isOffline
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val dailyProblem: StateFlow<DailyProblem?> = repository.getDailyProblem()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     init {
         viewModelScope.launch {
             while (true) {
@@ -76,6 +81,7 @@ class HomeViewModel(
         repository.getGitHubStats(),
         repository.getContests(),
         repository.getResources(),
+        repository.getDailyProblem(),
         repository.isRefreshing,
         repository.isOffline
     ) { array ->
@@ -90,11 +96,32 @@ class HomeViewModel(
         @Suppress("UNCHECKED_CAST")
         val resources = array[4] as List<Resource>
         @Suppress("UNCHECKED_CAST")
-        val refreshing = array[5] as Boolean
+        val potd = array[5] as DailyProblem?
         @Suppress("UNCHECKED_CAST")
-        val offline = array[6] as Boolean
+        val refreshing = array[6] as Boolean
+        @Suppress("UNCHECKED_CAST")
+        val offline = array[7] as Boolean
 
-        val sortedContests = contests.sortedWith(
+        val minValidTime = java.time.Instant.parse("2025-01-01T00:00:00Z")
+        val now = java.time.Instant.now()
+        val validContests = contests.filter {
+            it.startTimeUtc.isAfter(minValidTime) &&
+            it.durationSeconds in 600..2592000 &&
+            it.endTimeUtc.isAfter(now) &&
+            !it.id.contains("APG4b", ignoreCase = true) &&
+            !it.id.contains("abs", ignoreCase = true) &&
+            !it.id.contains("adt", ignoreCase = true) &&
+            !it.name.contains("APG4b", ignoreCase = true) &&
+            !it.name.contains("入門") &&
+            !it.name.contains("Programming Guide", ignoreCase = true) &&
+            !it.name.contains("Beginners Selection", ignoreCase = true) &&
+            !it.name.contains("Daily Training", ignoreCase = true) &&
+            !it.name.contains("Practice", ignoreCase = true) &&
+            !it.name.contains("Tutorial", ignoreCase = true) &&
+            !it.name.contains("Typical", ignoreCase = true)
+        }
+
+        val sortedContests = validContests.sortedWith(
             compareByDescending<Contest> { it.status.name == "LIVE" }
                 .thenBy { it.startTimeUtc }
         )
@@ -121,6 +148,7 @@ class HomeViewModel(
             highlightContests = highlightContests,
             upcomingContests = sortedContests,
             featuredResource = featuredRes,
+            dailyProblem = potd,
             lastUpdatedText = formatLastUpdated(),
             fetchError = null
         )
@@ -129,6 +157,7 @@ class HomeViewModel(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = HomeUiState(isLoading = true)
     )
+
 
     fun refresh() {
         val now = System.currentTimeMillis()

@@ -290,7 +290,148 @@ fun StreakScreen(
                         }
                     }
 
-                    Spacer(Modifier.height(14.dp))
+                    // ── NEXT MILESTONE PROGRESS BAR ────────────────────────
+                    val nextMilestone = remember(streakInfo.currentStreak) {
+                        when {
+                            streakInfo.currentStreak < 7 -> 7 to "7-Day Sprint"
+                            streakInfo.currentStreak < 14 -> 14 to "14-Day Velocity"
+                            streakInfo.currentStreak < 30 -> 30 to "30-Day Master"
+                            streakInfo.currentStreak < 50 -> 50 to "50-Day Elite"
+                            streakInfo.currentStreak < 100 -> 100 to "100-Day Grandmaster"
+                            else -> (streakInfo.currentStreak + 50) to "Centurion Legend"
+                        }
+                    }
+                    val progressFraction = remember(streakInfo.currentStreak, nextMilestone) {
+                        (streakInfo.currentStreak.toFloat() / nextMilestone.first).coerceIn(0f, 1f)
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = coderRank,
+                            style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp),
+                            color = AmberFire
+                        )
+                        val daysRemaining = (nextMilestone.first - streakInfo.currentStreak).coerceAtLeast(0)
+                        Text(
+                            text = if (daysRemaining > 0) "$daysRemaining days to ${nextMilestone.second}" else "Milestone Achieved!",
+                            style = Typography.labelSmall.copy(fontSize = 10.5.sp, fontWeight = FontWeight.Medium),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                        )
+                    }
+
+                    Spacer(Modifier.height(6.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(progressFraction)
+                                .fillMaxHeight()
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(AmberFire, Color(0xFFFF8F00), Color(0xFFFFB300))
+                                    )
+                                )
+                        )
+                    }
+
+                    // ── CURRENT WEEK 7-DAY MOMENTUM STRIP ──────────────────
+                    Spacer(Modifier.height(18.dp))
+                    Text(
+                        text = "THIS WEEK'S MOMENTUM",
+                        style = Typography.labelSmall.copy(
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.8.sp,
+                            fontSize = 9.5.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+                    )
+                    Spacer(Modifier.height(8.dp))
+
+                    val startOfWeek = remember(today) {
+                        today.minusDays((today.dayOfWeek.value - 1).toLong())
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        for (i in 0 until 7) {
+                            val dayDate = startOfWeek.plusDays(i.toLong())
+                            val isDayActive = dayDate in activeDates
+                            val isDayToday = dayDate == today
+                            val isDayFuture = dayDate.isAfter(today)
+                            val dayLabel = when (i) {
+                                0 -> "M"; 1 -> "T"; 2 -> "W"; 3 -> "T"; 4 -> "F"; 5 -> "S"; else -> "S"
+                            }
+
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = dayLabel,
+                                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
+                                    color = if (isDayToday) AmberFire else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            when {
+                                                isDayActive -> AmberFire.copy(alpha = 0.22f)
+                                                isDayToday -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                                                else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.20f)
+                                            }
+                                        )
+                                        .border(
+                                            width = if (isDayToday) 1.5.dp else if (isDayActive) 1.dp else 0.5.dp,
+                                            color = when {
+                                                isDayToday -> AmberFire
+                                                isDayActive -> AmberFire.copy(alpha = 0.60f)
+                                                else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                                            },
+                                            shape = CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isDayActive) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.LocalFireDepartment,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(17.dp),
+                                            tint = AmberFire
+                                        )
+                                    } else {
+                                        Text(
+                                            text = "${dayDate.dayOfMonth}",
+                                            style = Typography.labelSmall.copy(
+                                                fontWeight = if (isDayToday) FontWeight.Bold else FontWeight.Medium,
+                                                fontSize = 10.5.sp
+                                            ),
+                                            color = if (isDayToday) AmberFire
+                                            else if (isDayFuture) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
                     Spacer(Modifier.height(10.dp))
 
@@ -327,7 +468,232 @@ fun StreakScreen(
                 StreakStatCard("Trophies", "$unlockedBadgesCount", AmberFire, Modifier.weight(1f))
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(16.dp))
+
+            // ── STREAK SHIELD & HABIT STATUS CARD ────────────────────────────────
+            GlassCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                accentColor = Color(0xFF38BDF8),
+                cornerRadius = 18.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF38BDF8).copy(alpha = 0.16f))
+                            .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.45f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Shield,
+                            contentDescription = null,
+                            tint = Color(0xFF38BDF8),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Streak Shield Active",
+                            style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = if (today in activeDates) "Today's check-in recorded! Your streak flame is burning bright."
+                            else "Open the app daily and sync your handles to keep your streak alive.",
+                            style = Typography.bodySmall.copy(fontSize = 11.5.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // ── INTERACTIVE MONTHLY HABIT CALENDAR ────────────────────────────────
+            GlassCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                accentColor = BrandPrimaryOrange,
+                cornerRadius = 22.dp
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    // Month Navigation Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            val monthTitle = remember(displayMonth) {
+                                displayMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
+                            }
+                            Text(
+                                text = monthTitle,
+                                style = Typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            val monthActiveDays = remember(displayMonth, activeDates) {
+                                activeDates.count { YearMonth.from(it) == displayMonth }
+                            }
+                            val daysInMonthTotal = remember(displayMonth) {
+                                displayMonth.lengthOfMonth()
+                            }
+                            Text(
+                                text = "$monthActiveDays of $daysInMonthTotal days active",
+                                style = Typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
+                            )
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    displayMonth = displayMonth.minusMonths(1)
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+                                    contentDescription = "Previous Month",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            IconButton(
+                                onClick = {
+                                    if (displayMonth.isBefore(YearMonth.now())) {
+                                        displayMonth = displayMonth.plusMonths(1)
+                                    }
+                                },
+                                enabled = displayMonth.isBefore(YearMonth.now()),
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                                    contentDescription = "Next Month",
+                                    tint = if (displayMonth.isBefore(YearMonth.now())) MaterialTheme.colorScheme.onSurfaceVariant
+                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(14.dp))
+
+                    // Days of Week Header
+                    val dayNames = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        dayNames.forEach { dayName ->
+                            Text(
+                                text = dayName,
+                                modifier = Modifier.weight(1f),
+                                textAlign = TextAlign.Center,
+                                style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f)
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    // Calendar Grid Days
+                    val firstDayOfWeek = displayMonth.atDay(1).dayOfWeek.value % 7 // 0 = Sun, 1 = Mon, ..., 6 = Sat
+                    val daysInMonth = displayMonth.lengthOfMonth()
+                    val totalCells = ((firstDayOfWeek + daysInMonth + 6) / 7) * 7
+
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        for (row in 0 until (totalCells / 7)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                for (col in 0 until 7) {
+                                    val cellIndex = row * 7 + col
+                                    val dayNumber = cellIndex - firstDayOfWeek + 1
+                                    if (dayNumber in 1..daysInMonth) {
+                                        val cellDate = displayMonth.atDay(dayNumber)
+                                        val isActive = cellDate in activeDates
+                                        val isToday = cellDate == today
+                                        val isFuture = cellDate.isAfter(today)
+
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .aspectRatio(1f)
+                                                .padding(2.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(
+                                                    when {
+                                                        isActive && isToday -> BrandPrimaryOrange.copy(alpha = 0.25f)
+                                                        isActive -> Color(0xFF10B981).copy(alpha = 0.20f)
+                                                        isToday -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f)
+                                                        else -> Color.Transparent
+                                                    }
+                                                )
+                                                .border(
+                                                    width = if (isToday) 1.5.dp else if (isActive) 1.dp else 0.5.dp,
+                                                    color = when {
+                                                        isToday -> BrandPrimaryOrange
+                                                        isActive -> Color(0xFF10B981).copy(alpha = 0.60f)
+                                                        else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)
+                                                    },
+                                                    shape = RoundedCornerShape(8.dp)
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Column(
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.Center
+                                            ) {
+                                                Text(
+                                                    text = "$dayNumber",
+                                                    style = Typography.labelSmall.copy(
+                                                        fontWeight = if (isActive || isToday) FontWeight.Black else FontWeight.Normal,
+                                                        fontSize = 11.sp
+                                                    ),
+                                                    color = when {
+                                                        isFuture -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.30f)
+                                                        isActive -> if (isToday) BrandPrimaryOrange else Color(0xFF10B981)
+                                                        isToday -> BrandPrimaryOrange
+                                                        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+                                                    }
+                                                )
+                                                if (isActive) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(4.dp)
+                                                            .clip(CircleShape)
+                                                            .background(if (isToday) BrandPrimaryOrange else Color(0xFF10B981))
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
 
             // ── GITHUB-STYLE CONTRIBUTION ACTIVITY MATRIX ──────────────────────────
             GlassCard(

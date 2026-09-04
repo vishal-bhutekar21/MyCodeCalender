@@ -74,8 +74,10 @@ fun Instant.formatToIndianTimeOnly(): String {
  * Example: 5400s -> "1h 30m", 7200s -> "2h", 1800s -> "30m"
  */
 fun formatContestDuration(durationSeconds: Long): String {
-    val h = durationSeconds / 3600
-    val m = (durationSeconds % 3600) / 60
+    if (durationSeconds <= 0) return "—"
+    val safeSeconds = durationSeconds.coerceAtMost(2592000L) // max 30 days
+    val h = safeSeconds / 3600
+    val m = (safeSeconds % 3600) / 60
     return when {
         h > 0 && m > 0 -> "${h}h ${m}m"
         h > 0 -> "${h}h"

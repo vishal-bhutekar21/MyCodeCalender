@@ -3,9 +3,7 @@ package com.mycodecalendar.feature.resources
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Assignment
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.*
@@ -221,21 +220,25 @@ fun ResourcesScreen(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
                         text = "Developer Hub",
                         style = Typography.headlineMedium.copy(fontWeight = FontWeight.Black),
                         color = MaterialTheme.colorScheme.onBackground
                     )
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = BrandPrimaryOrange.copy(alpha = 0.15f),
-                        border = BorderStroke(0.1.dp, BrandPrimaryOrange.copy(alpha = 0.35f))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(BrandPrimaryOrange)
+                        )
                         Text(
                             text = if (selectedMainTab == 0) "${filteredResources.size} Guides" else "${filteredPracticeSheets.size} Sheets",
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
                             style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
                             color = BrandPrimaryOrange
                         )
@@ -325,18 +328,22 @@ fun ResourcesScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(
-                                text = "Filtered by creator:",
+                                text = "Filtered by:",
                                 style = Typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = BrandPurpleAccent.copy(alpha = 0.15f),
-                                border = BorderStroke(0.1.dp, BrandPurpleAccent.copy(alpha = 0.4f))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(5.dp)
+                                        .clip(CircleShape)
+                                        .background(BrandPurpleAccent)
+                                )
                                 Text(
                                     text = selectedCreator ?: "",
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                     style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
                                     color = BrandPurpleAccent
                                 )
@@ -357,7 +364,17 @@ fun ResourcesScreen(
                 if (resources.isEmpty()) {
                     ResourcesListSkeleton()
                 } else if (filteredResources.isEmpty()) {
-                    EmptyState(message = "No learning resources match your search or filter.")
+                    EmptyState(
+                        title = "No Resources Found",
+                        message = "No learning roadmaps or cheat sheets match your current search or category filter.",
+                        icon = Icons.AutoMirrored.Rounded.MenuBook,
+                        actionLabel = "Reset Filters",
+                        onActionClick = {
+                            searchQuery = ""
+                            selectedCategory = null
+                            selectedCreator = null
+                        }
+                    )
                 } else {
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -401,7 +418,16 @@ fun ResourcesScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 if (filteredPracticeSheets.isEmpty()) {
-                    EmptyState(message = "No practice sheets match your search query.")
+                    EmptyState(
+                        title = "No Practice Sheets Found",
+                        message = "No curated practice sheets match your search query or selected platform.",
+                        icon = Icons.AutoMirrored.Rounded.Assignment,
+                        actionLabel = "Reset Filters",
+                        onActionClick = {
+                            searchQuery = ""
+                            selectedProblemPlatform = "All"
+                        }
+                    )
                 } else {
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -441,20 +467,16 @@ private fun CategoryPill(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    val bgColor = if (selected) BrandPrimaryOrange.copy(alpha = 0.16f)
-    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f)
-
-    val borderColor = if (selected) BrandPrimaryOrange.copy(alpha = 0.65f)
-    else MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
+    val bgColor = if (selected) BrandPrimaryOrange.copy(alpha = 0.14f)
+    else Color.Transparent
 
     val textColor = if (selected) BrandPrimaryOrange
-    else MaterialTheme.colorScheme.onSurfaceVariant
+    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
 
     Box(
         modifier = Modifier
             .clip(CircleShape)
             .background(bgColor)
-            .border(0.1.dp, borderColor, CircleShape)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 7.dp),
         contentAlignment = Alignment.Center
@@ -466,14 +488,14 @@ private fun CategoryPill(
             if (selected) {
                 Box(
                     modifier = Modifier
-                        .size(6.dp)
+                        .size(5.dp)
                         .background(BrandPrimaryOrange, CircleShape)
                 )
             }
             Text(
                 text = label,
                 style = Typography.labelMedium.copy(
-                    fontWeight = if (selected) FontWeight.Black else FontWeight.SemiBold,
+                    fontWeight = if (selected) FontWeight.Black else FontWeight.Medium,
                     fontSize = 12.5.sp
                 ),
                 color = textColor
@@ -483,7 +505,7 @@ private fun CategoryPill(
 }
 
 /**
- * Refined Resource Card — Ultra-minimal, modern layout with 0.1.dp card border.
+ * Refined Resource Card — Ultra-clean glassmorphic layout.
  */
 @Composable
 private fun RefinedResourceCard(
@@ -501,69 +523,68 @@ private fun RefinedResourceCard(
         else -> BrandPrimaryOrange
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .border(0.1.dp, badgeColor.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 18.dp,
+        accentColor = badgeColor,
+        elevation = 4.dp,
+        borderWidth = 0.dp,
+        onClick = onClick
     ) {
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 18.dp,
-            accentColor = badgeColor,
-            onClick = onClick
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                // Minimal Category / Type Icon or Cloud Remote Image Container
-                if (!resource.thumbnailUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = resource.thumbnailUrl,
-                        contentDescription = resource.title,
-                        modifier = Modifier
-                            .size(50.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .border(0.1.dp, badgeColor.copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
-                        contentScale = ContentScale.Crop
+            // Category Icon / Cloud Remote Thumbnail Container
+            if (!resource.thumbnailUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = resource.thumbnailUrl,
+                    contentDescription = resource.title,
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(RoundedCornerShape(14.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(badgeColor.copy(alpha = 0.13f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = categoryIcon,
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp),
+                        tint = badgeColor
                     )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(46.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(badgeColor.copy(alpha = 0.12f))
-                            .border(0.1.dp, badgeColor.copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = categoryIcon,
-                            contentDescription = null,
-                            modifier = Modifier.size(22.dp),
-                            tint = badgeColor
-                        )
-                    }
                 }
+            }
 
-            // Text Content Column (Clean & uncluttered)
+            // Text Content Column
             Column(
                 modifier = Modifier.weight(1f)
             ) {
                 if (resource.priority <= 2 || resource.creator == "Featured CMS") {
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = BrandPrimaryOrange.copy(alpha = 0.18f),
-                        modifier = Modifier.padding(bottom = 3.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(bottom = 4.dp)
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .clip(CircleShape)
+                                .background(BrandPrimaryOrange)
+                        )
                         Text(
-                            text = if (resource.priority == 1) "⭐ TOP PICK" else "⚡ FEATURED",
-                            style = Typography.labelSmall.copy(fontSize = 8.5.sp, fontWeight = FontWeight.Black),
-                            color = BrandPrimaryOrange,
-                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                            text = if (resource.priority == 1) "TOP PICK" else "FEATURED",
+                            style = Typography.labelSmall.copy(fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 0.4.sp),
+                            color = BrandPrimaryOrange
                         )
                     }
                 }
@@ -607,7 +628,7 @@ private fun RefinedResourceCard(
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 11.sp
                     ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -618,11 +639,10 @@ private fun RefinedResourceCard(
                 imageVector = Icons.Rounded.ChevronRight,
                 contentDescription = "Open",
                 modifier = Modifier.size(18.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.50f)
             )
         }
     }
-}
 }
 
 /**
@@ -684,44 +704,30 @@ private fun ResourceDetailBottomSheet(
                         PlatformBadge(platform = platform)
                     }
 
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = badgeColor.copy(alpha = 0.15f),
-                        border = BorderStroke(0.1.dp, badgeColor.copy(alpha = 0.4f))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                        ) {
-                            Icon(
-                                imageVector = categoryIcon,
-                                contentDescription = null,
-                                modifier = Modifier.size(13.dp),
-                                tint = badgeColor
-                            )
-                            Text(
-                                text = if (isYouTube) "YouTube Masterclass" else resource.category,
-                                style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
-                                color = badgeColor
-                            )
-                        }
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(badgeColor)
+                        )
+                        Text(
+                            text = if (isYouTube) "YouTube" else resource.category,
+                            style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                            color = badgeColor
+                        )
                     }
                 }
 
                 resource.duration?.let { dur ->
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        border = BorderStroke(0.1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                    ) {
-                        Text(
-                            text = dur,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            style = Typography.labelSmall.copy(fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Text(
+                        text = dur,
+                        style = Typography.labelSmall.copy(fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f)
+                    )
                 }
             }
 
@@ -787,7 +793,7 @@ private fun ResourceDetailBottomSheet(
                         .weight(1f)
                         .height(48.dp),
                     shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(0.1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
+                    border = null,
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.onSurface
                     )
@@ -846,17 +852,13 @@ private fun HubSegmentPill(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bgColor = if (selected) BrandPrimaryOrange.copy(alpha = 0.18f)
-    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-
-    val borderColor = if (selected) BrandPrimaryOrange.copy(alpha = 0.60f)
-    else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+    val bgColor = if (selected) BrandPrimaryOrange.copy(alpha = 0.14f)
+    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f)
 
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(14.dp),
         color = bgColor,
-        border = BorderStroke(0.1.dp, borderColor),
         modifier = modifier.height(44.dp)
     ) {
         Row(
@@ -866,28 +868,31 @@ private fun HubSegmentPill(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
+            if (selected) {
+                Box(
+                    modifier = Modifier
+                        .size(5.dp)
+                        .clip(CircleShape)
+                        .background(BrandPrimaryOrange)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+            }
             Text(
                 text = label,
                 style = Typography.labelMedium.copy(
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                     fontSize = 12.sp
                 ),
-                color = if (selected) BrandPrimaryOrange else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                color = if (selected) BrandPrimaryOrange else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
                 maxLines = 1
             )
             if (badgeCount > 0) {
                 Spacer(modifier = Modifier.width(6.dp))
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (selected) BrandPrimaryOrange else MaterialTheme.colorScheme.outline.copy(alpha = 0.20f)
-                ) {
-                    Text(
-                        text = badgeCount.toString(),
-                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
-                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 9.5.sp),
-                        color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = badgeCount.toString(),
+                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 9.5.sp),
+                    color = if (selected) BrandPrimaryOrange.copy(alpha = 0.80f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.50f)
+                )
             }
         }
     }
@@ -918,118 +923,122 @@ private fun PracticeSheetCard(
 ) {
     val brandColor = sheet.platform.getBrandColor()
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .border(0.1.dp, brandColor.copy(alpha = 0.40f), RoundedCornerShape(18.dp))
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 18.dp,
+        accentColor = brandColor,
+        elevation = 4.dp,
+        borderWidth = 0.dp,
+        onClick = onOpen
     ) {
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 18.dp,
-            accentColor = brandColor,
-            onClick = onOpen
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                // Top Row: Platform Badge + Problem Count Chip (0.1.dp border)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    PlatformBadge(platform = sheet.platform)
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Top Row: Platform Badge + Problem Count
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                PlatformBadge(platform = sheet.platform)
 
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = brandColor.copy(alpha = 0.15f),
-                        border = BorderStroke(0.1.dp, brandColor.copy(alpha = 0.35f))
-                    ) {
-                        Text(
-                            text = sheet.problemCount,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
-                            color = brandColor
-                        )
-                    }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(5.dp)
+                            .clip(CircleShape)
+                            .background(brandColor)
+                    )
+                    Text(
+                        text = sheet.problemCount,
+                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
+                        color = brandColor
+                    )
                 }
+            }
 
-                Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-                // Title
-                Text(
-                    text = sheet.title,
-                    style = Typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        lineHeight = 20.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+            // Title
+            Text(
+                text = sheet.title,
+                style = Typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    lineHeight = 20.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
 
-                Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-                // Description
-                Text(
-                    text = sheet.description,
-                    style = Typography.bodySmall.copy(fontSize = 11.5.sp, lineHeight = 16.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+            // Description
+            Text(
+                text = sheet.description,
+                style = Typography.bodySmall.copy(fontSize = 11.5.sp, lineHeight = 16.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
 
-                Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-                // Footer Row: Tags + 1-Tap Open Button (0.1.dp borders)
+            // Footer Row: Tags + 1-Tap Open Button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        sheet.tags.take(2).forEach { tag ->
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
-                                border = BorderStroke(0.1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.20f))
-                            ) {
-                                Text(
-                                    text = tag,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    style = Typography.labelSmall.copy(fontSize = 9.5.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
-                                )
-                            }
-                        }
-                    }
-
-                    Surface(
-                        onClick = onOpen,
-                        shape = RoundedCornerShape(10.dp),
-                        color = brandColor.copy(alpha = 0.16f),
-                        border = BorderStroke(0.1.dp, brandColor.copy(alpha = 0.40f))
-                    ) {
+                    sheet.tags.take(2).forEach { tag ->
                         Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text(
-                                text = "Practice Now",
-                                style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
-                                color = brandColor
+                            Box(
+                                modifier = Modifier
+                                    .size(4.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f))
                             )
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
-                                contentDescription = null,
-                                modifier = Modifier.size(13.dp),
-                                tint = brandColor
+                            Text(
+                                text = tag,
+                                style = Typography.labelSmall.copy(fontSize = 9.5.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
                             )
                         }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(brandColor.copy(alpha = 0.14f))
+                        .clickable(onClick = onOpen)
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Practice Now",
+                            style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                            color = brandColor
+                        )
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
+                            contentDescription = null,
+                            modifier = Modifier.size(13.dp),
+                            tint = brandColor
+                        )
                     }
                 }
             }

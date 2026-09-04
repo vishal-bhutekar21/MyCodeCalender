@@ -191,7 +191,7 @@ fun SplashScreen(
                                 )
                             )
                             .border(
-                                0.1.dp,
+                                1.2.dp,
                                 Brush.verticalGradient(
                                     listOf(
                                         Color.White.copy(alpha = (whiteLightGlow * 0.75f + 0.25f).coerceIn(0f, 1f)),

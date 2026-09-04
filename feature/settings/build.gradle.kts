@@ -25,6 +25,7 @@ dependencies {
     implementation(libs.compose.foundation)
     implementation(libs.compose.material3)
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.activity.compose)
 
     // Firebase Auth & Firestore
     implementation(platform(libs.firebase.bom))

@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ShowChart
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mycodecalendar.core.designsystem.GlassmorphismBackground
 import com.mycodecalendar.core.designsystem.Typography
+import com.mycodecalendar.core.designsystem.components.EmptyState
 import com.mycodecalendar.core.designsystem.components.GlassBackButton
 import com.mycodecalendar.core.designsystem.components.GlassCard
 import com.mycodecalendar.core.designsystem.components.PlatformBadge
@@ -92,18 +94,13 @@ fun PlatformDetailScreen(
             }
 
             if (stats == null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Platform account not connected.",
-                        style = Typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                }
+                EmptyState(
+                    title = "Account Not Connected",
+                    message = "No platform account statistics found. Connect your profile handle to track your ratings and contest progress.",
+                    icon = Icons.Rounded.AccountCircle,
+                    actionLabel = "Go Back",
+                    onActionClick = onBackClick
+                )
             } else if (stats.platform == Platform.GITHUB) {
                 // ── Dedicated GitHub Detail View ────────────────────────────
                 GitHubDetailContent(
@@ -175,8 +172,7 @@ private fun GitHubDetailContent(
                                 listOf(brandColor.copy(alpha = 0.25f), Color.Transparent)
                             ),
                             CircleShape
-                        )
-                        .border(0.1.dp, brandColor.copy(alpha = 0.5f), CircleShape),
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -282,15 +278,13 @@ private fun GitHubDetailContent(
                 }
 
                 gh?.currentContributionStreak?.let { streak ->
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFFF59E0B).copy(alpha = 0.15f),
-                        border = androidx.compose.foundation.BorderStroke(
-                            0.1.dp, Color(0xFFF59E0B).copy(alpha = 0.35f)
-                        )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFFF59E0B).copy(alpha = 0.12f))
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
@@ -401,15 +395,13 @@ private fun GitHubDetailContent(
         ) {
             gh!!.topLanguages.forEach { lang ->
                 val langColor = getLanguageColor(lang)
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = langColor.copy(alpha = 0.12f),
-                    border = androidx.compose.foundation.BorderStroke(
-                        0.1.dp, langColor.copy(alpha = 0.35f)
-                    )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(langColor.copy(alpha = 0.12f))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
@@ -439,25 +431,12 @@ private fun GitHubDetailContent(
     Spacer(modifier = Modifier.height(8.dp))
 
     if (repos.isEmpty()) {
-        GlassCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            cornerRadius = 14.dp
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No public repositories found.",
-                    style = Typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
-            }
-        }
+        EmptyState(
+            title = "No Repositories Found",
+            message = "No public repositories found for this GitHub account.",
+            icon = Icons.Rounded.Code,
+            accentColor = Color.White
+        )
     } else {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp),
@@ -727,16 +706,14 @@ private fun GitHubRepoDetailBottomSheet(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     repo.topics.take(4).forEach { topic ->
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                            border = androidx.compose.foundation.BorderStroke(
-                                0.1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
-                            )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.09f))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 text = "#$topic",
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -753,11 +730,6 @@ private fun GitHubRepoDetailBottomSheet(
                     .background(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
                         shape = RoundedCornerShape(16.dp)
-                    )
-                    .border(
-                        0.1.dp,
-                        MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
-                        RoundedCornerShape(16.dp)
                     )
                     .padding(vertical = 14.dp, horizontal = 12.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
@@ -867,8 +839,10 @@ private fun GitHubRepoDetailBottomSheet(
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(14.dp),
-                    border = androidx.compose.foundation.BorderStroke(
-                        0.1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+                    border = null,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
+                        contentColor = MaterialTheme.colorScheme.onSurface
                     )
                 ) {
                     Icon(
@@ -892,8 +866,10 @@ private fun GitHubRepoDetailBottomSheet(
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(14.dp),
-                    border = androidx.compose.foundation.BorderStroke(
-                        0.1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+                    border = null,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
+                        contentColor = MaterialTheme.colorScheme.onSurface
                     )
                 ) {
                     Icon(
@@ -987,16 +963,14 @@ private fun CpDetailContent(
                 ) {
                     PlatformBadge(platform = stats.platform)
                     stats.rank?.let { rank ->
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = brandColor.copy(alpha = 0.15f),
-                            border = androidx.compose.foundation.BorderStroke(
-                                0.1.dp, brandColor.copy(alpha = 0.40f)
-                            )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(brandColor.copy(alpha = 0.14f))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 text = rank,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                 style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                 color = brandColor
                             )
@@ -1101,10 +1075,11 @@ private fun CpDetailContent(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             if (ratingHistory.isEmpty()) {
-                Text(
-                    text = "No rating history available for this platform.",
-                    style = Typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                EmptyState(
+                    title = "No Rating Points Yet",
+                    message = "Participate in rated contests on this platform to generate your rating progression graph!",
+                    icon = Icons.AutoMirrored.Rounded.ShowChart,
+                    accentColor = brandColor
                 )
             } else {
                 val ratings = ratingHistory.map { it.rating }
@@ -1126,7 +1101,7 @@ private fun CpDetailContent(
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = brandColor.copy(alpha = 0.15f),
-                        border = androidx.compose.foundation.BorderStroke(0.1.dp, brandColor.copy(alpha = 0.35f))
+                        border = androidx.compose.foundation.BorderStroke(1.dp, brandColor.copy(alpha = 0.35f))
                     ) {
                         Text(
                             text = "Now: $currR",
@@ -1291,7 +1266,9 @@ fun StatCard(
     GlassCard(
         modifier = modifier,
         accentColor = accentColor,
-        cornerRadius = 16.dp
+        cornerRadius = 16.dp,
+        elevation = 4.dp,
+        borderWidth = 1.dp
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Icon(
@@ -1327,7 +1304,7 @@ fun DifficultyCard(
     Box(
         modifier = modifier
             .background(color.copy(alpha = 0.10f), RoundedCornerShape(12.dp))
-            .border(0.1.dp, color.copy(alpha = 0.30f), RoundedCornerShape(12.dp))
+            .border(1.dp, color.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
             .padding(12.dp),
         contentAlignment = Alignment.Center
     ) {
