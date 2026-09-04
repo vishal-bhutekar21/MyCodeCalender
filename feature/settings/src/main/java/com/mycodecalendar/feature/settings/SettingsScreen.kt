@@ -149,1392 +149,543 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            // ── PAGE HEADER ─────────────────────────────────────────────────────────
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 22.dp)
-                    .padding(top = 24.dp, bottom = 8.dp)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp)
             ) {
-                Text(
-                    text = "Settings",
-                    style = Typography.headlineMedium.copy(fontWeight = FontWeight.Black),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "Accounts, preferences, and developer profile",
-                    style = Typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // ── DEVELOPER ACCOUNT & SESSION ─────────────────────────────────────────
-            SectionHeader(title = "Account & Profile", modifier = Modifier.padding(horizontal = 22.dp))
-            Spacer(modifier = Modifier.height(10.dp))
-
-            GlassCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                cornerRadius = 24.dp,
-                accentColor = BrandPrimaryOrange
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    // Profile Header: Avatar + Identity + Pro Badge
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                // ── 1. HEADER ──────────────────────────────────────────────────────────
+                Spacer(modifier = Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Settings",
+                            style = Typography.headlineMedium.copy(fontWeight = FontWeight.Black),
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Preferences & Profile",
+                            style = Typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+                        )
+                    }
+                    // Quick Action: Share Contact Card
+                    IconButton(
+                        onClick = { showShareModal = true },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(BrandPrimaryOrange.copy(alpha = 0.12f))
                     ) {
-                        // Glowing Avatar Container
-                        Box(
-                            contentAlignment = Alignment.BottomEnd
+                        Icon(
+                            imageVector = Icons.Rounded.Share,
+                            contentDescription = "Share Profile",
+                            tint = BrandPrimaryOrange,
+                            modifier = Modifier.size(19.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // ── 2. COMPACT PROFILE HERO CARD ───────────────────────────────────────
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 20.dp,
+                    accentColor = BrandPrimaryOrange
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
+                            // Glowing Avatar Container
                             Box(
                                 modifier = Modifier
-                                    .size(56.dp)
+                                    .size(50.dp)
                                     .clip(CircleShape)
                                     .background(
                                         Brush.linearGradient(
-                                            listOf(
-                                                BrandPrimaryOrange,
-                                                Color(0xFFFF3D00)
-                                            )
+                                            listOf(BrandPrimaryOrange, Color(0xFFFF3D00))
                                         )
                                     )
-                                    .padding(2.5.dp)
+                                    .padding(2.dp)
                             ) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .clip(CircleShape)
-                                        .background(
-                                            if (isDark) Color(0xFF0F172A) else Color(0xFFFFF7ED)
-                                        ),
+                                        .background(if (isDark) Color(0xFF0F172A) else Color(0xFFFFF7ED)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (!authUsername.isNullOrBlank() && authUsername != "Guest Developer") {
                                         Text(
                                             text = authUsername.take(1).uppercase(),
-                                            style = Typography.titleLarge.copy(fontWeight = FontWeight.Black),
+                                            style = Typography.titleMedium.copy(fontWeight = FontWeight.Black),
                                             color = BrandPrimaryOrange
                                         )
                                     } else {
                                         Icon(
                                             Icons.Rounded.Person,
                                             contentDescription = null,
-                                            modifier = Modifier.size(28.dp),
+                                            modifier = Modifier.size(24.dp),
                                             tint = BrandPrimaryOrange
                                         )
                                     }
                                 }
                             }
 
-                            // Online / Sync Dot
-                            Box(
-                                modifier = Modifier
-                                    .size(14.dp)
-                                    .clip(CircleShape)
-                                    .background(if (authMethod != "Guest") Color(0xFF22C55E) else Color(0xFFF59E0B))
-                                    .border(2.dp, if (isDark) Color(0xFF1E293B) else Color.White, CircleShape)
-                            )
-                        }
-
-                        // Identity & Auth Details
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    text = authUsername ?: "Guest Developer",
-                                    style = Typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 17.sp),
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                if (authMethod != "Guest") {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Verified,
-                                        contentDescription = "Verified Account",
-                                        modifier = Modifier.size(16.dp),
-                                        tint = Color(0xFF38BDF8)
-                                    )
-                                }
-                            }
-
-                            if (!authEmail.isNullOrBlank()) {
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = authEmail,
-                                    style = Typography.bodySmall.copy(fontSize = 12.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(
-                                            if (authMethod != "Guest") BrandPrimaryOrange.copy(alpha = 0.14f)
-                                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                                        )
-                                        .padding(horizontal = 7.dp, vertical = 2.dp)
+                            // Identity & Auth Details
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                                 ) {
                                     Text(
-                                        text = if (authMethod != "Guest") "Google Sync" else "Guest Mode",
-                                        style = Typography.labelSmall.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 9.5.sp
-                                        ),
-                                        color = if (authMethod != "Guest") BrandPrimaryOrange
-                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                        text = authUsername ?: "Guest Developer",
+                                        style = Typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp),
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
-                                }
-
-                                if (authMethod != "Guest") {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(Color(0xFF22C55E).copy(alpha = 0.12f))
-                                            .padding(horizontal = 7.dp, vertical = 2.dp)
-                                    ) {
-                                        Text(
-                                            text = "Cloud Backed",
-                                            style = Typography.labelSmall.copy(
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 9.5.sp
-                                            ),
-                                            color = Color(0xFF22C55E)
+                                    if (authMethod != "Guest" && !authMethod.isNullOrBlank()) {
+                                        Icon(
+                                            Icons.Rounded.Verified,
+                                            contentDescription = "Verified",
+                                            modifier = Modifier.size(15.dp),
+                                            tint = Color(0xFF38BDF8)
                                         )
                                     }
                                 }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(18.dp))
-
-                    // ── STATS ROW (Streak, Platforms, Sync) ──────────────────────────
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(
-                                if (isDark) Color(0xFF0F172A).copy(alpha = 0.60f)
-                                else Color(0xFFF1F5F9).copy(alpha = 0.70f)
-                            )
-                            .padding(vertical = 12.dp, horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Stat 1: Streak
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    Icons.Rounded.LocalFireDepartment,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = BrandPrimaryOrange
-                                )
                                 Text(
-                                    text = "$currentStreak Days",
-                                    style = Typography.titleSmall.copy(fontWeight = FontWeight.Black),
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    text = if (!authEmail.isNullOrBlank()) authEmail else (if (authMethod == "Guest") "Local guest mode" else "Google account sync"),
+                                    style = Typography.bodySmall.copy(fontSize = 11.5.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
-                            Text(
-                                text = "Daily Streak",
-                                style = Typography.labelSmall.copy(fontSize = 10.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
-                            )
-                        }
 
-                        Box(
-                            modifier = Modifier
-                                .height(28.dp)
-                                .width(1.dp)
-                                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-                        )
-
-                        // Stat 2: Connected Handles
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    Icons.Rounded.Code,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = Color(0xFF6366F1)
-                                )
-                                Text(
-                                    text = "${connectedAccounts.size}",
-                                    style = Typography.titleSmall.copy(fontWeight = FontWeight.Black),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                            Text(
-                                text = "Platforms",
-                                style = Typography.labelSmall.copy(fontSize = 10.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .height(28.dp)
-                                .width(1.dp)
-                                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-                        )
-
-                        // Stat 3: Cloud Sync
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    if (authMethod != "Guest") Icons.Rounded.CloudDone else Icons.Rounded.CloudOff,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = if (authMethod != "Guest") Color(0xFF22C55E) else Color(0xFF94A3B8)
-                                )
-                                Text(
-                                    text = if (authMethod != "Guest") "Live" else "Local",
-                                    style = Typography.titleSmall.copy(fontWeight = FontWeight.Black),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                            Text(
-                                text = "Cloud Backup",
-                                style = Typography.labelSmall.copy(fontSize = 10.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Action 1: Share Profile Card
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { showShareModal = true }
-                            .padding(vertical = 8.dp, horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
+                            // Tour replay action
+                            IconButton(
+                                onClick = onReplayOnboardingClick,
                                 modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(BrandPrimaryOrange.copy(alpha = 0.12f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Rounded.Share,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = BrandPrimaryOrange
-                                )
-                            }
-                            Text(
-                                text = "Share Developer Profile Card",
-                                style = Typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        Icon(
-                            Icons.Rounded.ChevronRight,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-                        )
-                    }
-
-                    // Action 2: Replay App Tour & Onboarding
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable(onClick = onReplayOnboardingClick)
-                            .padding(vertical = 8.dp, horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFF6366F1).copy(alpha = 0.12f)),
-                                contentAlignment = Alignment.Center
+                                    .size(34.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
                             ) {
                                 Icon(
                                     Icons.Rounded.AutoAwesome,
-                                    contentDescription = null,
+                                    contentDescription = "Tour",
                                     modifier = Modifier.size(16.dp),
                                     tint = Color(0xFF6366F1)
                                 )
                             }
-                            Text(
-                                text = "Replay App Tour & Features",
-                                style = Typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
                         }
-                        Icon(
-                            Icons.Rounded.ChevronRight,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-                        )
-                    }
-                }
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
-            // ── PREFERENCES & DISPLAY ─────────────────────────────────────────────────
-            SectionHeader(title = "Appearance", modifier = Modifier.padding(horizontal = 22.dp))
-            Spacer(modifier = Modifier.height(10.dp))
-
-            GlassCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                cornerRadius = 20.dp
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
+                        // Compact 3-stat pill row
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isDark) Color(0xFF0F172A).copy(alpha = 0.55f) else Color(0xFFF1F5F9))
+                                .padding(vertical = 9.dp, horizontal = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceAround,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(RoundedCornerShape(11.dp))
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                                contentAlignment = Alignment.Center
+                            // Streak
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Icon(
-                                    if (isDark) Icons.Rounded.DarkMode else Icons.Rounded.LightMode,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
+                                Icon(Icons.Rounded.LocalFireDepartment, null, modifier = Modifier.size(15.dp), tint = BrandPrimaryOrange)
+                                Text("$currentStreak d Streak", style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp))
                             }
+                            Box(modifier = Modifier.height(16.dp).width(1.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)))
+                            // Platforms
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Rounded.Code, null, modifier = Modifier.size(15.dp), tint = Color(0xFF6366F1))
+                                Text("${connectedAccounts.size} Linked", style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp))
+                            }
+                            Box(modifier = Modifier.height(16.dp).width(1.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)))
+                            // Sync
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(if (authMethod != "Guest") Icons.Rounded.CloudDone else Icons.Rounded.CloudOff, null, modifier = Modifier.size(15.dp), tint = if (authMethod != "Guest") Color(0xFF22C55E) else Color(0xFF94A3B8))
+                                Text(if (authMethod != "Guest") "Cloud" else "Local", style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp))
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // ── 3. GROUP: PREFERENCES ──────────────────────────────────────────────
+                MinimalSectionLabel("PREFERENCES")
+                MinimalCardGroup {
+                    // Theme Row
+                    MinimalSettingRow(
+                        icon = if (isDark) Icons.Rounded.DarkMode else Icons.Rounded.LightMode,
+                        iconTint = MaterialTheme.colorScheme.primary,
+                        title = "Appearance",
+                        subtitle = when (currentTheme) {
+                            AppTheme.DARK -> "Dark (Obsidian)"
+                            AppTheme.LIGHT -> "Light (Daylight)"
+                            AppTheme.SYSTEM -> "Follow System"
+                        },
+                        trailing = {
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                    .padding(2.dp),
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                ThemeSegmentOption(Icons.Rounded.DarkMode, "Dark", currentTheme == AppTheme.DARK) { onThemeChange(AppTheme.DARK) }
+                                ThemeSegmentOption(Icons.Rounded.LightMode, "Light", currentTheme == AppTheme.LIGHT) { onThemeChange(AppTheme.LIGHT) }
+                                ThemeSegmentOption(Icons.Rounded.PhoneAndroid, "System", currentTheme == AppTheme.SYSTEM) { onThemeChange(AppTheme.SYSTEM) }
+                            }
+                        }
+                    )
+                    MinimalDivider()
+                    // Contest Alerts
+                    MinimalSettingRow(
+                        icon = Icons.Rounded.NotificationsActive,
+                        iconTint = Color(0xFFFF7A00),
+                        title = "Contest Alerts",
+                        subtitle = "15m heads-up before registered rounds",
+                        trailing = {
+                            Switch(
+                                checked = notificationsEnabled,
+                                onCheckedChange = { isOn ->
+                                    if (isOn && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
+                                        showNotificationPermDialog = true
+                                    } else {
+                                        notificationsEnabled = isOn
+                                    }
+                                },
+                                colors = minimalSwitchColors()
+                            )
+                        }
+                    )
+                    MinimalDivider()
+                    // Daily Problem
+                    var dailyProblemEnabled by remember { mutableStateOf(true) }
+                    MinimalSettingRow(
+                        icon = Icons.Rounded.Lightbulb,
+                        iconTint = Color(0xFFFFA116),
+                        title = "Daily Problem Reminder",
+                        subtitle = "Morning reminder for Problem of the Day",
+                        trailing = {
+                            Switch(
+                                checked = dailyProblemEnabled,
+                                onCheckedChange = { dailyProblemEnabled = it },
+                                colors = minimalSwitchColors()
+                            )
+                        }
+                    )
+                    MinimalDivider()
+                    // Calendar Sync
+                    MinimalSettingRow(
+                        icon = Icons.Rounded.CalendarMonth,
+                        iconTint = Color(0xFF22C55E),
+                        title = "Calendar Auto-Sync",
+                        subtitle = "Export registered contests to phone calendar",
+                        trailing = {
+                            Switch(
+                                checked = calendarSyncEnabled,
+                                onCheckedChange = { calendarSyncEnabled = it },
+                                colors = minimalSwitchColors()
+                            )
+                        }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // ── 4. GROUP: CONNECTED PLATFORMS ──────────────────────────────────────
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    MinimalSectionLabel("CONNECTED PLATFORMS")
+                    Text(
+                        text = "+ Connect",
+                        style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = BrandPrimaryOrange,
+                        modifier = Modifier.clickable(onClick = onAddPlatformClick)
+                    )
+                }
+                MinimalCardGroup {
+                    if (connectedAccounts.isEmpty()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(onClick = onAddPlatformClick)
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
                             Column {
                                 Text(
-                                    text = "Theme Mode",
-                                    style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                    text = "No platforms connected",
+                                    style = Typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = when (currentTheme) {
-                                        AppTheme.DARK   -> "Dark — OLED Obsidian"
-                                        AppTheme.LIGHT  -> "Light — Daylight"
-                                        AppTheme.SYSTEM -> "System Default"
-                                    },
-                                    style = Typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f)
+                                    text = "Link LeetCode, Codeforces, CodeChef & GitHub",
+                                    style = Typography.bodySmall.copy(fontSize = 11.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                 )
                             }
+                            Icon(
+                                Icons.Rounded.AddCircleOutline,
+                                contentDescription = null,
+                                tint = BrandPrimaryOrange,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
-
-                        Row(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isDark) 0.50f else 0.80f))
-                                .padding(3.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            ThemeSegmentOption(Icons.Rounded.DarkMode, "Dark Mode", currentTheme == AppTheme.DARK) { onThemeChange(AppTheme.DARK) }
-                            ThemeSegmentOption(Icons.Rounded.LightMode, "Light Mode", currentTheme == AppTheme.LIGHT) { onThemeChange(AppTheme.LIGHT) }
-                            ThemeSegmentOption(Icons.Rounded.PhoneAndroid, "System", currentTheme == AppTheme.SYSTEM) { onThemeChange(AppTheme.SYSTEM) }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // ── NOTIFICATIONS ─────────────────────────────────────────────────────────
-            SectionHeader(title = "Notifications", modifier = Modifier.padding(horizontal = 22.dp))
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = "Control which alerts you receive — all are spam-free",
-                style = Typography.labelSmall.copy(fontSize = 11.5.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
-                modifier = Modifier.padding(horizontal = 22.dp)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Individual notification type cards
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // --- Contest Alerts ---
-                NotificationPrefCard(
-                    icon = Icons.Rounded.EmojiEvents,
-                    iconTint = Color(0xFFFF7A00),
-                    iconBg = Color(0xFFFF7A00).copy(alpha = 0.12f),
-                    title = "Contest Alerts",
-                    subtitle = "15-min heads-up before tracked contests on LeetCode, Codeforces, CodeChef & HackerEarth",
-                    checked = notificationsEnabled,
-                    onCheckedChange = { isOn ->
-                        if (isOn && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
-                            showNotificationPermDialog = true
-                        } else {
-                            notificationsEnabled = isOn
-                        }
-                    },
-                    isDark = isDark
-                )
-
-                // --- App Announcements ---
-                var announcementsEnabled by remember { mutableStateOf(true) }
-                NotificationPrefCard(
-                    icon = Icons.Rounded.Campaign,
-                    iconTint = Color(0xFF6366F1),
-                    iconBg = Color(0xFF6366F1).copy(alpha = 0.12f),
-                    title = "Hackathon Announcements",
-                    subtitle = "New hackathons, admin broadcasts, and app feature releases",
-                    checked = announcementsEnabled,
-                    onCheckedChange = { isOn ->
-                        if (isOn && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
-                            showNotificationPermDialog = true
-                        } else {
-                            announcementsEnabled = isOn
-                        }
-                    },
-                    isDark = isDark
-                )
-
-                // --- Daily Problem ---
-                var dailyProblemEnabled by remember { mutableStateOf(true) }
-                NotificationPrefCard(
-                    icon = Icons.Rounded.Lightbulb,
-                    iconTint = Color(0xFFFFA116),
-                    iconBg = Color(0xFFFFA116).copy(alpha = 0.12f),
-                    title = "Daily Problem Reminder",
-                    subtitle = "Morning reminder to solve today's LeetCode problem of the day",
-                    checked = dailyProblemEnabled,
-                    onCheckedChange = { isOn ->
-                        if (isOn && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
-                            showNotificationPermDialog = true
-                        } else {
-                            dailyProblemEnabled = isOn
-                        }
-                    },
-                    isDark = isDark
-                )
-
-                // --- Calendar Sync ---
-                NotificationPrefCard(
-                    icon = Icons.Rounded.CalendarMonth,
-                    iconTint = Color(0xFF22C55E),
-                    iconBg = Color(0xFF22C55E).copy(alpha = 0.12f),
-                    title = "Calendar Auto-Sync",
-                    subtitle = "Automatically export registered contests to your device calendar",
-                    checked = calendarSyncEnabled,
-                    onCheckedChange = { calendarSyncEnabled = it },
-                    isDark = isDark
-                )
-            }
-
-            // ── CONNECTED PLATFORMS ──────────────────────────────────────────────────
-            SectionHeader(title = "Connected Platforms", modifier = Modifier.padding(horizontal = 22.dp))
-            Spacer(modifier = Modifier.height(10.dp))
-
-            GlassCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                cornerRadius = 18.dp
-            ) {
-                if (connectedAccounts.isEmpty()) {
-                    EmptyState(
-                        title = "No Platforms Connected",
-                        message = "Link your LeetCode, Codeforces, GitHub, or CodeChef handles to monitor real-time ratings, solved problems, and streaks.",
-                        icon = Icons.Rounded.AddLink,
-                        actionLabel = "Connect Platform",
-                        onActionClick = onAddPlatformClick
-                    )
-                } else {
-                    Column {
-                        connectedAccounts.forEachIndexed { index, account ->
+                    } else {
+                        connectedAccounts.forEachIndexed { idx, acc ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { onManageAccountClick(account) }
-                                    .padding(horizontal = 18.dp, vertical = 14.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                    .clickable { onManageAccountClick(acc) }
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    PlatformBadge(platform = account.platform)
+                                    PlatformBadge(platform = acc.platform)
                                     Column {
                                         Text(
-                                            text = "@${account.username}",
-                                            style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                            text = "@${acc.username}",
+                                            style = Typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
-                                        account.displayName?.let { name ->
-                                            Text(
-                                                text = "$name  ·  ${account.platform.name}",
-                                                style = Typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                            )
-                                        }
+                                        Text(
+                                            text = acc.platform.name,
+                                            style = Typography.bodySmall.copy(fontSize = 11.sp),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                        )
                                     }
                                 }
                                 Icon(
-                                    imageVector = Icons.Rounded.ChevronRight,
+                                    Icons.Rounded.ChevronRight,
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp),
                                     tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
                                 )
                             }
-                            if (index < connectedAccounts.lastIndex) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = 18.dp),
-                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)
-                                )
-                            }
+                            if (idx < connectedAccounts.lastIndex) MinimalDivider()
                         }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
-            // Connect button with 1px border
-            GlassCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                accentColor = BrandPrimaryOrange,
-                cornerRadius = 16.dp,
-                onClick = onAddPlatformClick
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = BrandPrimaryOrange
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Connect a Platform",
-                        style = Typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                        color = BrandPrimaryOrange
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // ── SHARE & COMMUNITY ───────────────────────────────────────────────────
-            SectionHeader(title = "Share & Community", modifier = Modifier.padding(horizontal = 22.dp))
-            Spacer(modifier = Modifier.height(10.dp))
-
-            GlassCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                cornerRadius = 20.dp,
-                accentColor = BrandPrimaryOrange
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showShareModal = true },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .background(BrandPrimaryOrange.copy(alpha = 0.14f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Rounded.QrCode2,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                    tint = BrandPrimaryOrange
-                                )
-                            }
-
-                            Column {
-                                Text(
-                                    text = "Share App & QR Contact Card",
-                                    style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Generate instant QR code or share with friends",
-                                    style = Typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
-                                )
-                            }
-                        }
-
-                        Icon(
-                            Icons.Rounded.ChevronRight,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = BrandPrimaryOrange
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onOpenUrl(playDevPage) },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .background(Color(0xFF10B981).copy(alpha = 0.14f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Rounded.Shop,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                    tint = Color(0xFF10B981)
-                                )
-                            }
-
-                            Column {
-                                Text(
-                                    text = "Google Play Developer Page",
-                                    style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Discover more published apps & rate us",
-                                    style = Typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
-                                )
-                            }
-                        }
-
-                        Icon(
-                            Icons.Rounded.ChevronRight,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = Color(0xFF10B981)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // ── MEET THE CREATOR / DEVELOPER SHOWCASE CARD ──────────────────────────
-            SectionHeader(title = "Meet the Creator", modifier = Modifier.padding(horizontal = 22.dp))
-            Spacer(modifier = Modifier.height(10.dp))
-
-            GlassCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                cornerRadius = 22.dp,
-                accentColor = BrandPrimaryOrange
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(BrandPrimaryOrange.copy(alpha = 0.15f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Rounded.Terminal,
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp),
-                                tint = BrandPrimaryOrange
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(14.dp))
-
-                        Column {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp)
-                            ) {
-                                Text(
-                                    text = "Vishal Bhutekar",
-                                    style = Typography.titleMedium.copy(fontWeight = FontWeight.Black),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                // Verified Developer Blue Tick Badge (Authentic Platform Verified Badge)
-                                Icon(
-                                    imageVector = Icons.Rounded.Verified,
-                                    contentDescription = "Verified Developer",
-                                    modifier = Modifier.size(16.dp),
-                                    tint = Color(0xFF1D9BF0) // Verified Blue
-                                )
-                            }
-                            Text(
-                                text = "Android & Full-Stack Engineer",
-                                style = Typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                                color = BrandPrimaryOrange
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = "Passionate mobile engineer crafting modern, fluid, and state-of-the-art Android experiences for developers worldwide.",
-                        style = Typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                        lineHeight = 18.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // ── CREATOR QUICK LINKS (Instagram, Google Play Store, Portfolio, JustU Launcher) ──
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Row 1: Instagram & Google Play Store
+                // ── 5. GROUP: CREATOR & COMMUNITY ──────────────────────────────────────
+                MinimalSectionLabel("CREATOR & COMMUNITY")
+                MinimalCardGroup {
+                    // Creator profile row
+                    Column(modifier = Modifier.padding(16.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            // Instagram Card
-                            CreatorLinkTile(
-                                title = "Instagram",
-                                subtitle = "@unexplored_vish_2.0",
-                                isVerified = true,
-                                icon = {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .background(
-                                                Brush.linearGradient(
-                                                    listOf(Color(0xFF833AB4), Color(0xFFFD1D1D), Color(0xFFFCB045))
-                                                ),
-                                                RoundedCornerShape(8.dp)
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.CameraAlt,
-                                            contentDescription = "Instagram",
-                                            modifier = Modifier.size(16.dp),
-                                            tint = Color.White
-                                        )
-                                    }
-                                },
-                                onClick = { onOpenUrl(instagramLink) },
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            // Google Play Developer Card
-                            CreatorLinkTile(
-                                title = "Play Store",
-                                subtitle = "Developer Apps",
-                                isVerified = false,
-                                icon = {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .background(
-                                                Brush.linearGradient(
-                                                    listOf(Color(0xFF00C9FF), Color(0xFF92FE9D))
-                                                ),
-                                                RoundedCornerShape(8.dp)
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Shop,
-                                            contentDescription = "Play Store",
-                                            modifier = Modifier.size(16.dp),
-                                            tint = Color(0xFF064E3B)
-                                        )
-                                    }
-                                },
-                                onClick = { onOpenUrl(playDevPage) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-
-                        // Row 2: Portfolio & JustU Launcher
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            // Portfolio Card
-                            CreatorLinkTile(
-                                title = "Portfolio",
-                                subtitle = "Web & Projects",
-                                isVerified = false,
-                                icon = {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .background(BrandPrimaryOrange.copy(alpha = 0.18f), RoundedCornerShape(8.dp)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Language,
-                                            contentDescription = "Portfolio",
-                                            modifier = Modifier.size(16.dp),
-                                            tint = BrandPrimaryOrange
-                                        )
-                                    }
-                                },
-                                onClick = { onOpenUrl(portfolioLink) },
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            // JustU Launcher Card
-                            CreatorLinkTile(
-                                title = "JustU Launcher",
-                                subtitle = "Minimalist App",
-                                isVerified = false,
-                                icon = {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .background(BrandPurpleAccent.copy(alpha = 0.18f), RoundedCornerShape(8.dp)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Smartphone,
-                                            contentDescription = "JustU Launcher",
-                                            modifier = Modifier.size(16.dp),
-                                            tint = BrandPurpleAccent
-                                        )
-                                    }
-                                },
-                                onClick = { onOpenUrl(playStoreApp) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // ── FEEDBACK & BUG REPORTING ───────────────────────────────────────────
-            SectionHeader(title = "Feedback & Suggestions", modifier = Modifier.padding(horizontal = 22.dp))
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "Report issues, suggest new coding platforms, or request features directly",
-                style = Typography.labelSmall.copy(fontSize = 11.5.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
-                modifier = Modifier.padding(horizontal = 22.dp)
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-
-            GlassCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                cornerRadius = 20.dp,
-                accentColor = BrandPrimaryOrange
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    // Row 1: Suggest a Feature
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                initialFeedbackType = "FEATURE_REQUEST"
-                                showFeedbackModal = true
-                            }
-                            .padding(vertical = 10.dp, horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFFF59E0B).copy(alpha = 0.14f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Lightbulb,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(22.dp),
-                                    tint = Color(0xFFF59E0B)
-                                )
-                            }
-                            Column {
-                                Text(
-                                    text = "Suggest a Feature / Platform",
-                                    style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Request new platforms, widgets, or tools",
-                                    style = Typography.bodySmall.copy(fontSize = 11.5.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
-                                )
-                            }
-                        }
-                        Icon(
-                            imageVector = Icons.Rounded.ChevronRight,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Row 2: Report a Bug
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                initialFeedbackType = "BUG_REPORT"
-                                showFeedbackModal = true
-                            }
-                            .padding(vertical = 10.dp, horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFFEF4444).copy(alpha = 0.14f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.BugReport,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(22.dp),
-                                    tint = Color(0xFFEF4444)
-                                )
-                            }
-                            Column {
-                                Text(
-                                    text = "Report a Bug / Issue",
-                                    style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Let us know about crashes, timer sync, or glitches",
-                                    style = Typography.bodySmall.copy(fontSize = 11.5.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
-                                )
-                            }
-                        }
-                        Icon(
-                            imageVector = Icons.Rounded.ChevronRight,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Row 3: Direct Email
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
-                                    data = Uri.parse("mailto:vishal.bhutekar1@gmail.com")
-                                    putExtra(Intent.EXTRA_SUBJECT, "[CodeCalendar] Developer Query / Suggestion")
-                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                }
-                                context.startActivity(Intent.createChooser(emailIntent, "Send Email"))
-                            }
-                            .padding(vertical = 10.dp, horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFF6366F1).copy(alpha = 0.14f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Email,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(22.dp),
-                                    tint = Color(0xFF6366F1)
-                                )
-                            }
-                            Column {
-                                Text(
-                                    text = "Email Developer Directly",
-                                    style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "vishal.bhutekar1@gmail.com",
-                                    style = Typography.bodySmall.copy(fontSize = 11.5.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
-                                )
-                            }
-                        }
-                        Icon(
-                            imageVector = Icons.Rounded.ChevronRight,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // ── LEGAL & DATA SAFETY ─────────────────────────────────────────────────
-            SectionHeader(title = "Legal & Data Safety", modifier = Modifier.padding(horizontal = 22.dp))
-            Spacer(modifier = Modifier.height(10.dp))
-
-            GlassCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                cornerRadius = 18.dp,
-                accentColor = null
-            ) {
-                Column {
-                    // Privacy Policy
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onOpenUrl("https://vishalbhutekar.netlify.app/myapps/codecalendar/privacy") }
-                            .padding(horizontal = 18.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .size(38.dp)
+                                    .clip(CircleShape)
                                     .background(BrandPrimaryOrange.copy(alpha = 0.12f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Rounded.Security,
+                                    Icons.Rounded.Terminal,
                                     contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
+                                    modifier = Modifier.size(20.dp),
                                     tint = BrandPrimaryOrange
                                 )
                             }
-                            Column {
-                                Text(
-                                    text = "Privacy Policy & Terms",
-                                    style = Typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Open official disclosures",
-                                    style = Typography.bodySmall.copy(fontSize = 11.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f)
-                                )
-                            }
-                        }
-                        Icon(
-                            imageVector = Icons.Rounded.ChevronRight,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.40f)
-                        )
-                    }
-
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 18.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f))
-
-                    // Account Deletion
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                if (authMethod != "Guest" && authUsername != "Guest Developer" && !authMethod.isNullOrBlank()) {
-                                    showDeleteAccountConfirmModal = true
-                                } else {
-                                    onOpenUrl("https://vishalbhutekar.netlify.app/myapps/codecalendar/delete-account")
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = "Vishal Bhutekar",
+                                        style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                    Icon(
+                                        Icons.Rounded.Verified,
+                                        contentDescription = "Verified",
+                                        modifier = Modifier.size(14.dp),
+                                        tint = Color(0xFF1D9BF0)
+                                    )
                                 }
-                            }
-                            .padding(horizontal = 18.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(Color(0xFFE11D48).copy(alpha = 0.10f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.DeleteOutline,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                    tint = Color(0xFFE11D48)
-                                )
-                            }
-                            Column {
                                 Text(
-                                    text = "Request Account Deletion",
-                                    style = Typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Google Play data safety & erasure",
+                                    text = "Android & Full-Stack Engineer",
                                     style = Typography.bodySmall.copy(fontSize = 11.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f)
+                                    color = BrandPrimaryOrange
                                 )
                             }
                         }
-                        Icon(
-                            imageVector = Icons.Rounded.ChevronRight,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.40f)
-                        )
-                    }
-
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 18.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f))
-
-                    // Copyright Notice
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 18.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.Top,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(BrandPrimaryOrange.copy(alpha = 0.10f)),
-                            contentAlignment = Alignment.Center
+                        Spacer(modifier = Modifier.height(12.dp))
+                        // 4 compact social pills
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Copyright,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = BrandPrimaryOrange
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = "Educational Purpose & Fair Use",
-                                style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 12.5.sp),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(3.dp))
-                            Text(
-                                text = "All contest schedules, logos, and practice sheets belong to their respective copyright holders. This app operates strictly as a non-commercial educational aggregator under fair use. For content removal: vishal.bhutekar1@gmail.com",
-                                style = Typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 16.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
-                            )
+                            CompactSocialPill("Instagram", Icons.Rounded.CameraAlt, Color(0xFFE1306C), Modifier.weight(1f)) { onOpenUrl(instagramLink) }
+                            CompactSocialPill("Play Store", Icons.Rounded.Shop, Color(0xFF10B981), Modifier.weight(1f)) { onOpenUrl(playDevPage) }
+                            CompactSocialPill("Portfolio", Icons.Rounded.Language, BrandPrimaryOrange, Modifier.weight(1f)) { onOpenUrl(portfolioLink) }
+                            CompactSocialPill("JustU", Icons.Rounded.Smartphone, Color(0xFF6366F1), Modifier.weight(1f)) { onOpenUrl(playStoreApp) }
                         }
                     }
+                    MinimalDivider()
+                    // Share App Card
+                    MinimalSettingRow(
+                        icon = Icons.Rounded.QrCode2,
+                        iconTint = BrandPrimaryOrange,
+                        title = "Share App & QR Contact Card",
+                        subtitle = "Instant QR code or share with friends",
+                        onClick = { showShareModal = true },
+                        trailing = {
+                            Icon(Icons.Rounded.ChevronRight, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                        }
+                    )
                 }
-            }
 
-            Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
-            val isGuest = authMethod == "Guest" || authUsername == "Guest Developer" || authMethod.isNullOrBlank()
+                // ── 6. GROUP: SUPPORT & LEGAL ──────────────────────────────────────────
+                MinimalSectionLabel("SUPPORT & LEGAL")
+                MinimalCardGroup {
+                    // Feedback & Bug Report
+                    MinimalSettingRow(
+                        icon = Icons.Rounded.Feedback,
+                        iconTint = Color(0xFFF59E0B),
+                        title = "Send Feedback or Feature Request",
+                        subtitle = "Suggest new coding platforms or tools",
+                        onClick = {
+                            initialFeedbackType = "FEATURE_REQUEST"
+                            showFeedbackModal = true
+                        },
+                        trailing = {
+                            Icon(Icons.Rounded.ChevronRight, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                        }
+                    )
+                    MinimalDivider()
+                    MinimalSettingRow(
+                        icon = Icons.Rounded.BugReport,
+                        iconTint = Color(0xFFEF4444),
+                        title = "Report a Bug / Issue",
+                        subtitle = "Report crashes, sync or timer problems",
+                        onClick = {
+                            initialFeedbackType = "BUG_REPORT"
+                            showFeedbackModal = true
+                        },
+                        trailing = {
+                            Icon(Icons.Rounded.ChevronRight, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                        }
+                    )
+                    MinimalDivider()
+                    // Privacy Policy
+                    MinimalSettingRow(
+                        icon = Icons.Rounded.Security,
+                        iconTint = Color(0xFF38BDF8),
+                        title = "Privacy Policy & Disclosures",
+                        onClick = { onOpenUrl("https://vishalbhutekar.netlify.app/myapps/codecalendar/privacy") },
+                        trailing = {
+                            Icon(Icons.Rounded.ChevronRight, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                        }
+                    )
+                    MinimalDivider()
+                    // Account Deletion
+                    MinimalSettingRow(
+                        icon = Icons.Rounded.DeleteOutline,
+                        iconTint = Color(0xFFE11D48),
+                        title = "Request Account Deletion",
+                        onClick = {
+                            if (authMethod != "Guest" && authUsername != "Guest Developer" && !authMethod.isNullOrBlank()) {
+                                showDeleteAccountConfirmModal = true
+                            } else {
+                                onOpenUrl("https://vishalbhutekar.netlify.app/myapps/codecalendar/delete-account")
+                            }
+                        },
+                        trailing = {
+                            Icon(Icons.Rounded.ChevronRight, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                        }
+                    )
+                }
 
-            if (!isGuest) {
-                // ── DEDICATED SIGN OUT CARD (Logged In Users Only) ───────────────────
-                GlassCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    accentColor = MaterialTheme.colorScheme.error,
-                    cornerRadius = 18.dp,
-                    onClick = { showSignOutConfirmModal = true }
-                ) {
-                    Row(
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // ── 7. SESSION BUTTON ──────────────────────────────────────────────────
+                val isGuest = authMethod == "Guest" || authUsername == "Guest Developer" || authMethod.isNullOrBlank()
+                if (!isGuest) {
+                    OutlinedButton(
+                        onClick = { showSignOutConfirmModal = true },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                            .height(46.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.35f)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.06f),
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.Logout,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Sign Out of Developer Session",
-                            style = Typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.error
-                        )
+                        Icon(Icons.AutoMirrored.Rounded.Logout, null, modifier = Modifier.size(17.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Sign Out", style = Typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                     }
-                }
-            } else {
-                // ── SIGN IN / CREATE ACCOUNT CARD (Guest Mode) ───────────────────────
-                GlassCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    accentColor = BrandPrimaryOrange,
-                    cornerRadius = 18.dp,
-                    onClick = onSignOutClick
-                ) {
-                    Row(
+                } else {
+                    Button(
+                        onClick = onSignOutClick,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                            .height(46.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandPrimaryOrange)
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.Login,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = BrandPrimaryOrange
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Sign In to Sync & Save Platforms",
-                            style = Typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                            color = BrandPrimaryOrange
-                        )
+                        Icon(Icons.AutoMirrored.Rounded.Login, null, modifier = Modifier.size(17.dp), tint = Color.White)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Sign In with Google", style = Typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = Color.White)
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(36.dp))
-
-            // Footer
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f))
                 Spacer(modifier = Modifier.height(20.dp))
-                Text(
-                    text = "MyCodeCalendar  ·  v1.0.0 (Build 2026.09)",
-                    style = Typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-                )
-            }
 
-            Spacer(modifier = Modifier.height(120.dp))
-        }
+                // App version
+                Text(
+                    text = "MyCodeCalendar  ·  v1.1.0",
+                    style = Typography.labelSmall.copy(fontSize = 11.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.40f),
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+
+                Spacer(modifier = Modifier.height(100.dp))
+            }
         } // close AnimatedVisibility (real content)
 
         // ── NOTIFICATION PERMISSION RATIONALE DIALOG ──────────────────────────
@@ -1965,8 +1116,8 @@ fun SettingsScreen(
                 onSendEmailIntent = { subject, body ->
                     val mailIntent = Intent(Intent.ACTION_SENDTO).apply {
                         data = Uri.parse("mailto:vishal.bhutekar1@gmail.com")
-                        putExtra(Intent.EXTRA_SUBJECT, subject)
-                        putExtra(Intent.EXTRA_TEXT, body)
+                        putExtra(Intent.EXTRA_SUBJECT, subject as String)
+                        putExtra(Intent.EXTRA_TEXT, body as String)
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
                     context.startActivity(Intent.createChooser(mailIntent, "Send Bug Report / Feature Request"))
@@ -1975,6 +1126,8 @@ fun SettingsScreen(
         }
     }
 }
+}
+
 
 @Composable
 private fun ThemeSegmentOption(
@@ -2008,6 +1161,143 @@ private fun ThemeSegmentOption(
             tint = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
         )
     }
+}
+
+@Composable
+private fun MinimalSectionLabel(text: String) {
+    Text(
+        text = text,
+        style = Typography.labelSmall.copy(
+            fontWeight = FontWeight.Bold,
+            fontSize = 11.sp,
+            letterSpacing = 0.8.sp
+        ),
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f),
+        modifier = Modifier.padding(start = 6.dp, bottom = 8.dp)
+    )
+}
+
+@Composable
+private fun MinimalCardGroup(
+    content: @Composable ColumnScope.() -> Unit
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 18.dp
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            content = content
+        )
+    }
+}
+
+@Composable
+private fun MinimalSettingRow(
+    icon: ImageVector,
+    iconTint: Color,
+    title: String,
+    subtitle: String? = null,
+    onClick: (() -> Unit)? = null,
+    trailing: @Composable () -> Unit = {}
+) {
+    val modifier = Modifier
+        .fillMaxWidth()
+        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+        .padding(horizontal = 16.dp, vertical = 13.dp)
+
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            modifier = Modifier.weight(1f).padding(end = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(13.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(iconTint.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = iconTint
+                )
+            }
+            Column {
+                Text(
+                    text = title,
+                    style = Typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (!subtitle.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(1.dp))
+                    Text(
+                        text = subtitle,
+                        style = Typography.bodySmall.copy(fontSize = 11.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f)
+                    )
+                }
+            }
+        }
+        trailing()
+    }
+}
+
+@Composable
+private fun MinimalDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f),
+        thickness = 0.8.dp
+    )
+}
+
+@Composable
+private fun CompactSocialPill(
+    label: String,
+    icon: ImageVector,
+    tint: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .height(34.dp)
+            .clip(RoundedCornerShape(9.dp))
+            .background(tint.copy(alpha = 0.10f))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(icon, null, modifier = Modifier.size(13.dp), tint = tint)
+            Text(
+                text = label,
+                style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
+                color = tint
+            )
+        }
+    }
+}
+
+@Composable
+private fun minimalSwitchColors(): SwitchColors {
+    return SwitchDefaults.colors(
+        checkedThumbColor = Color.White,
+        checkedTrackColor = BrandPrimaryOrange,
+        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+        uncheckedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+    )
 }
 
 @Composable
