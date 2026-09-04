@@ -122,10 +122,9 @@ class FakeRepository(
      */
     private fun isUserLoggedIn(): Boolean {
         val ctx = context ?: return false
-        val authPrefs = ctx.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+        val authPrefs = ctx.getSharedPreferences("app_auth_prefs", Context.MODE_PRIVATE)
         val isLoggedIn = authPrefs.getBoolean("is_logged_in", false)
-        val authMethod = authPrefs.getString("auth_method", null)
-        return isLoggedIn && authMethod != "Guest"
+        return isLoggedIn
     }
 
     // ── OFFLINE-FIRST CACHE SEEDING ───────────────────────────────────────────
@@ -181,8 +180,15 @@ class FakeRepository(
             contestsFlow.value = emptyList()
         }
 
-        // Only seed user-specific platform stats, ratings, and GitHub activity if a valid user is logged in
-        if (!isUserLoggedIn()) {
+        // 3. Load saved platform accounts from SharedPreferences
+        val savedAccounts = loadSavedAccounts()
+        if (savedAccounts.isNotEmpty()) {
+            connectedPlatforms.value = savedAccounts
+        }
+
+        // Only clear user data if completely unauthenticated AND no connected platforms exist
+        val loggedIn = isUserLoggedIn()
+        if (!loggedIn && savedAccounts.isEmpty()) {
             connectedPlatforms.value = emptyList()
             dynamicStats.value = emptyMap()
             ratingHistoryMap.value = emptyMap()
@@ -581,6 +587,14 @@ class FakeRepository(
     }
 
     private suspend fun fetchLiveGitHubData(username: String) {
+        // Fast-path: Pre-emit cached GitHub stats from phone storage immediately
+        if (gitHubStatsFlow.value == null) {
+            val preCachedGh = db?.gitHubStatsDao()?.getGitHubStats(username)
+            if (preCachedGh != null) {
+                gitHubStatsFlow.value = preCachedGh.toDomain(jsonSerializer)
+            }
+        }
+
         val userRes = remoteDataSource.fetchGitHubUser(username)
         val reposRes = remoteDataSource.fetchGitHubUserRepos(username)
         val contribRes = remoteDataSource.fetchGitHubDailyContributions(username)
@@ -607,7 +621,14 @@ class FakeRepository(
                     )
                 }
             } else {
-                generateFallbackDailyContributions(username)
+                // If network contributions failed or empty, preserve existing cached contributions from phone
+                val cachedEntity = db?.gitHubStatsDao()?.getGitHubStats(username)
+                val cachedDomain = cachedEntity?.toDomain(jsonSerializer)
+                if (cachedDomain != null && cachedDomain.dailyContributions.isNotEmpty()) {
+                    cachedDomain.dailyContributions
+                } else {
+                    generateFallbackDailyContributions(username)
+                }
             }
 
             val domainRepos = repos.map { r ->
@@ -1067,9 +1088,16 @@ class FakeRepository(
     }
 
     private fun computeStreak(contribs: List<DailyContribution>): Int {
+        if (contribs.isEmpty()) return 0
+        val reversed = contribs.reversed()
+        var startIndex = 0
+        // If today has 0 commits yet (it's early in the day), preserve ongoing streak from yesterday
+        if (reversed[0].count == 0 && reversed.size > 1 && reversed[1].count > 0) {
+            startIndex = 1
+        }
         var streak = 0
-        for (c in contribs.reversed()) {
-            if (c.count > 0) streak++ else break
+        for (i in startIndex until reversed.size) {
+            if (reversed[i].count > 0) streak++ else break
         }
         return streak.coerceAtLeast(0)
     }

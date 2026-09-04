@@ -3,6 +3,8 @@ package com.mycodecalendar.feature.onboarding
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,12 +16,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -27,85 +27,54 @@ import androidx.compose.ui.unit.sp
 import com.mycodecalendar.core.designsystem.BrandPrimaryOrange
 import com.mycodecalendar.core.designsystem.GlassmorphismBackground
 import com.mycodecalendar.core.designsystem.Typography
-import kotlinx.coroutines.delay
 
 /**
- * Ultra-Clean Minimalist 2-Second Typing Splash Screen.
+ * Ultra-Fast, Fluid, Modern Splash Screen.
  *
- * Design:
- * - Clean terminal typing animation (types "Code Calendar" character-by-character with blinking cursor).
- * - Deep Obsidian background with subtle electric orange ambient glow.
- * - Exact 2.0-second timed progression sequence.
+ * Characteristics:
+ * - Instant responsive launch: ~280ms total animation time.
+ * - Tap-to-skip: User can tap anywhere to immediately enter the app.
+ * - Pure Daylight / White Theme aesthetic: Crisp white elevated icon card, soft orange glow,
+ *   clean modern typography with signature orange accent dot, and sleek progress indicator.
  */
 @Composable
 fun SplashScreen(
     onSplashFinished: () -> Unit
 ) {
-    val fullText = "Code Calendar"
-    var displayedCharsCount by remember { mutableIntStateOf(0) }
-    val progressAnim = remember { Animatable(0f) }
-    val contentAlpha = remember { Animatable(0f) }
-
-    val infiniteTransition = rememberInfiniteTransition(label = "cursorTransition")
-    val cursorBlink by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(350, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "cursorBlink"
-    )
-
-    // Smooth breathing circle animation (small to big)
-    val circleScale by infiniteTransition.animateFloat(
-        initialValue = 0.82f,
-        targetValue = 1.22f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "circleScale"
-    )
-
-    // Slow blinking white light aura
-    val whiteLightGlow by infiniteTransition.animateFloat(
-        initialValue = 0.10f,
-        targetValue = 0.65f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1400, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "whiteLightGlow"
-    )
-
-    // Master 550ms Sequence Controller
-    LaunchedEffect(Unit) {
-        // Fade in container smoothly (0-120ms)
-        contentAlpha.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(120, easing = FastOutSlowInEasing)
-        )
-    }
-
-    LaunchedEffect(Unit) {
-        // Snappy Typing Effect: 13 characters over ~280ms (starts after 50ms delay)
-        delay(50)
-        for (i in 1..fullText.length) {
-            displayedCharsCount = i
-            delay(20)
+    var hasFinished by remember { mutableStateOf(false) }
+    val finishOnce = rememberUpdatedState {
+        if (!hasFinished) {
+            hasFinished = true
+            onSplashFinished()
         }
     }
 
+    val contentAlpha = remember { Animatable(0f) }
+    val contentScale = remember { Animatable(0.92f) }
+    val progressAnim = remember { Animatable(0f) }
+
     LaunchedEffect(Unit) {
-        // Smooth progress bar from 0 -> 100% over 480ms
+        // Snappy, fluid entrance animation (~180ms)
+        contentAlpha.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(180, easing = FastOutSlowInEasing)
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        contentScale.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(220, easing = FastOutSlowInEasing)
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        // Fast, satisfying progress fill (280ms)
         progressAnim.animateTo(
             targetValue = 1f,
-            animationSpec = tween(480, easing = FastOutSlowInEasing)
+            animationSpec = tween(280, easing = FastOutSlowInEasing)
         )
-        // Hold for final 70ms to total exactly 550ms
-        delay(70)
-        onSplashFinished()
+        finishOnce.value()
     }
 
     GlassmorphismBackground {
@@ -113,7 +82,13 @@ fun SplashScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .navigationBarsPadding(),
+                .navigationBarsPadding()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    finishOnce.value()
+                },
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -123,165 +98,138 @@ fun SplashScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 32.dp)
                     .alpha(contentAlpha.value)
+                    .scale(contentScale.value)
             ) {
                 Spacer(modifier = Modifier.weight(1f))
 
-                // ── ICON WITH CENTERED GLOWING CIRCLE & GLOWING WHITE 0.5.DP BORDER ──
+                // ── ELEVATED PURE WHITE APP ICON CARD WITH ORANGE GLOW ──
                 Box(
-                    modifier = Modifier.size(240.dp),
+                    modifier = Modifier.size(110.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Outer dynamic gradient halo centered behind icon
+                    // Soft ambient orange halo
                     Box(
                         modifier = Modifier
-                            .size((220 * circleScale).dp)
-                            .drawBehind {
-                                drawCircle(
-                                    brush = Brush.radialGradient(
-                                        colors = listOf(
-                                            BrandPrimaryOrange.copy(alpha = 0.28f),
-                                            Color(0xFF818CF8).copy(alpha = 0.12f),
-                                            Color.Transparent
-                                        ),
-                                        center = center,
-                                        radius = size.width * 0.75f
-                                    )
-                                )
-                                drawCircle(
-                                    brush = Brush.radialGradient(
-                                        colors = listOf(
-                                            Color.White.copy(alpha = whiteLightGlow * 0.40f),
-                                            Color.White.copy(alpha = whiteLightGlow * 0.10f),
-                                            Color.Transparent
-                                        ),
-                                        center = center,
-                                        radius = size.width * 0.45f
-                                    )
-                                )
-                            }
-                    )
-
-                    // Soft animated glowing white light aura ring
-                    Box(
-                        modifier = Modifier
-                            .size((96 * circleScale).dp)
+                            .size(100.dp)
                             .clip(CircleShape)
                             .background(
                                 Brush.radialGradient(
                                     listOf(
-                                        Color.White.copy(alpha = whiteLightGlow * 0.30f),
-                                        BrandPrimaryOrange.copy(alpha = 0.25f),
+                                        BrandPrimaryOrange.copy(alpha = 0.18f),
+                                        Color(0xFF818CF8).copy(alpha = 0.08f),
                                         Color.Transparent
                                     )
                                 )
                             )
                     )
 
-                    // Premium Icon container with 0.5.dp glowing white border
+                    // Elevated White Icon Card
                     Box(
                         modifier = Modifier
-                            .size(72.dp)
-                            .clip(RoundedCornerShape(22.dp))
+                            .size(76.dp)
+                            .shadow(
+                                elevation = 16.dp,
+                                shape = RoundedCornerShape(24.dp),
+                                ambientColor = Color(0x18FF6B00),
+                                spotColor = Color(0x28FF6B00)
+                            )
+                            .clip(RoundedCornerShape(24.dp))
                             .background(
                                 Brush.linearGradient(
                                     listOf(
-                                        Color(0xFF151B28),
-                                        Color(0xFF0F131C)
+                                        Color.White,
+                                        Color(0xFFFFF7ED)
                                     )
                                 )
                             )
                             .border(
-                                1.2.dp,
-                                Brush.verticalGradient(
+                                width = 1.2.dp,
+                                brush = Brush.linearGradient(
                                     listOf(
-                                        Color.White.copy(alpha = (whiteLightGlow * 0.75f + 0.25f).coerceIn(0f, 1f)),
-                                        BrandPrimaryOrange.copy(alpha = 0.60f),
-                                        Color.White.copy(alpha = (whiteLightGlow * 0.50f + 0.15f).coerceIn(0f, 1f))
+                                        Color.White,
+                                        BrandPrimaryOrange.copy(alpha = 0.35f),
+                                        Color(0xFFE2E8F0)
                                     )
                                 ),
-                                RoundedCornerShape(22.dp)
-                            )
-                            .shadow(16.dp, RoundedCornerShape(22.dp), spotColor = Color.White.copy(alpha = whiteLightGlow * 0.35f)),
+                                shape = RoundedCornerShape(24.dp)
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Terminal,
                             contentDescription = "Code Calendar",
-                            modifier = Modifier.size(36.dp),
+                            modifier = Modifier.size(40.dp),
                             tint = BrandPrimaryOrange
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-                // ── LIVE CODE TYPING PROMPT ────────────────────────────────────────
+                // ── BRAND TITLE WITH ORANGE ACCENT DOT ──
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = fullText.substring(0, displayedCharsCount),
+                        text = "Code Calendar",
                         style = Typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Black,
+                            fontWeight = FontWeight.ExtraBold,
                             fontSize = 28.sp,
                             letterSpacing = (-0.5).sp
                         ),
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = Color(0xFF0F172A)
                     )
-
-                    // Electric Orange Blinking Terminal Cursor
                     Box(
                         modifier = Modifier
-                            .padding(start = 3.dp)
-                            .width(3.dp)
-                            .height(28.dp)
-                            .alpha(cursorBlink)
-                            .background(BrandPrimaryOrange, RoundedCornerShape(1.dp))
+                            .padding(start = 3.dp, top = 6.dp)
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(BrandPrimaryOrange)
                     )
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Clean Subtitle
+                // Subtitle Badge
                 Text(
                     text = "Live Contests · Ratings · Coding Streaks",
                     style = Typography.bodySmall.copy(
                         fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 0.5.sp
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.4.sp
                     ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                    color = Color(0xFF64748B),
                     textAlign = TextAlign.Center
                 )
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // ── MINIMAL 1PX LINE PROGRESS BAR ───────────────────────────────────
+                // ── MINIMAL FAST PROGRESS BAR ──
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth(0.50f)
+                    modifier = Modifier.fillMaxWidth(0.48f)
                 ) {
                     LinearProgressIndicator(
                         progress = { progressAnim.value },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(2.5.dp)
+                            .height(3.dp)
                             .clip(CircleShape),
                         color = BrandPrimaryOrange,
-                        trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                        trackColor = Color(0xFFE2E8F0)
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "READY",
+                        text = "STARTING",
                         style = Typography.labelSmall.copy(
                             fontSize = 9.sp,
-                            fontWeight = FontWeight.Black,
+                            fontWeight = FontWeight.Bold,
                             letterSpacing = 2.sp
                         ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.40f)
+                        color = Color(0xFF94A3B8)
                     )
                 }
 

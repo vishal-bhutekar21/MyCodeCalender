@@ -264,18 +264,56 @@ class RemoteDataSource(
     }
 
     /**
-     * Fetches daily contribution data for a GitHub user via the Jogruber contributions API.
-     * This is a community-maintained service that scrapes GitHub contribution graphs.
-     * Endpoint: GET https://github-contributions-api.jogruber.de/v4/{username}
+     * Fetches daily contribution data for a GitHub user.
+     * Primary: Jogruber contributions API with ?y=last parameter (fast, lightweight, last 365 days).
+     * Secondary fallback: gh-calendar API.
      *
-     * Response shape: { "contributions": [{ "date": "2024-01-01", "count": 3, "level": 2 }, ...] }
+     * Response shape: List of GitHubContributionDayDto ({ "date": "2024-01-01", "count": 3, "level": 2 })
      */
     suspend fun fetchGitHubDailyContributions(username: String): Result<List<GitHubContributionDayDto>> {
-        return runCatching {
+        // Primary attempt: jogruber API with ?y=last for fast, lightweight 1-year response
+        val primary = runCatching {
             val response: GitHubContributionsResponseDto =
-                client.get("https://github-contributions-api.jogruber.de/v4/$username").body()
-            response.contributions
+                client.get("https://github-contributions-api.jogruber.de/v4/$username?y=last") {
+                    header("User-Agent", "MyCodeCalendar-Android/1.0")
+                    header("Accept", "application/json")
+                }.body()
+            if (response.contributions.isNotEmpty()) response.contributions else error("Empty jogruber contributions")
         }
+        if (primary.isSuccess) {
+            return primary
+        }
+
+        // Secondary fallback attempt: gh-calendar API
+        val secondary = runCatching {
+            val responseText: String = client.get("https://gh-calendar.rschristian.dev/user/$username") {
+                header("User-Agent", "MyCodeCalendar-Android/1.0")
+                header("Accept", "application/json")
+            }.body()
+            val jsonObj = org.json.JSONObject(responseText)
+            val contribWeeks = jsonObj.optJSONArray("contributions")
+            val list = mutableListOf<GitHubContributionDayDto>()
+            if (contribWeeks != null) {
+                for (i in 0 until contribWeeks.length()) {
+                    val week = contribWeeks.optJSONArray(i) ?: continue
+                    for (j in 0 until week.length()) {
+                        val day = week.optJSONObject(j) ?: continue
+                        val date = day.optString("date", "")
+                        val count = day.optInt("count", 0)
+                        val level = day.optString("intensity", "0").toIntOrNull() ?: 0
+                        if (date.isNotBlank()) {
+                            list.add(GitHubContributionDayDto(date = date, count = count, level = level))
+                        }
+                    }
+                }
+            }
+            if (list.isNotEmpty()) list else error("Empty rschristian contributions")
+        }
+        if (secondary.isSuccess) {
+            return secondary
+        }
+
+        return primary
     }
 
     // ── ATCODER USER STATS ────────────────────────────────────────────────────
