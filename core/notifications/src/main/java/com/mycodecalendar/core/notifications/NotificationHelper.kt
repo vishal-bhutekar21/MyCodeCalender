@@ -37,7 +37,7 @@ object NotificationHelper {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-            // Contest Reminders — HIGH importance (heads-up)
+            // Contest Reminders — HIGH importance (heads-up, lock screen visible)
             manager.createNotificationChannel(
                 NotificationChannel(
                     CHANNEL_CONTEST_REMINDERS,
@@ -46,11 +46,13 @@ object NotificationHelper {
                 ).apply {
                     description = "Upcoming coding contest start alerts"
                     enableVibration(true)
+                    enableLights(true)
                     setShowBadge(true)
+                    lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
                 }
             )
 
-            // FCM / Cloud Broadcasts — HIGH importance
+            // FCM / Cloud Broadcasts — HIGH importance (lock screen visible)
             manager.createNotificationChannel(
                 NotificationChannel(
                     CHANNEL_FCM_BROADCASTS,
@@ -59,7 +61,9 @@ object NotificationHelper {
                 ).apply {
                     description = "Hackathons, contests, and app updates from the admin"
                     enableVibration(true)
+                    enableLights(true)
                     setShowBadge(true)
+                    lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
                 }
             )
 
@@ -142,6 +146,7 @@ object NotificationHelper {
                     .setSummaryText(platformName)
             )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
             .setContentIntent(contentPendingIntent)
@@ -255,6 +260,7 @@ object NotificationHelper {
             )
             .setSubText(subText)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setAutoCancel(true)
             .setContentIntent(contentPendingIntent)

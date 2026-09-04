@@ -1,7 +1,13 @@
 package com.mycodecalendar.feature.home
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -168,6 +174,32 @@ fun NotificationsListScreen(
 ) {
     val context = LocalContext.current
     val notifPrefs = remember { context.getSharedPreferences("app_notif_prefs", android.content.Context.MODE_PRIVATE) }
+
+    var hasNotificationPermission by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasNotificationPermission = isGranted
+    }
+
+    // Proactively request notification permission on entering screen so alerts show when screen is off
+    LaunchedEffect(Unit) {
+        if (!hasNotificationPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     var notifications by remember { mutableStateOf<List<AppNotification>>(defaultNotifications) }
     var dismissedIds by remember {
@@ -509,69 +541,145 @@ fun NotificationsListScreen(
                 }
             }
 
-            // ── RADAR STATUS & 3/DAY SAFETY CAP BANNER ────────────────────────
+            // ── NOTIFICATION PERMISSION & LOCKSCREEN STATUS BANNER ────────────
             ScrollRevealContainer(
                 delayMillis = 20,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 18.dp, vertical = 4.dp)
             ) {
-                GlassCard(
-                    cornerRadius = 16.dp,
-                    accentColor = Color(0xFF00E5FF),
-                    elevation = 2.dp
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                if (!hasNotificationPermission) {
+                    // Elevated Permission Warning & Request Card
+                    GlassCard(
+                        cornerRadius = 16.dp,
+                        accentColor = BrandPrimaryOrange,
+                        elevation = 3.dp
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.weight(1f)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Box(
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .background(BrandPrimaryOrange.copy(alpha = 0.15f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.NotificationsActive,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = BrandPrimaryOrange
+                                    )
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Enable Lock Screen & Contest Alerts",
+                                        style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "Allow notification permission so contest start alerts appear on your lock screen even when your screen is off.",
+                                        style = Typography.labelSmall.copy(fontSize = 11.sp, lineHeight = 15.sp),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                                    )
+                                }
+                            }
+
+                            Button(
+                                onClick = {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = BrandPrimaryOrange,
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier
-                                    .size(32.dp)
-                                    .background(Color(0xFF00E5FF).copy(alpha = 0.15f), CircleShape),
-                                contentAlignment = Alignment.Center
+                                    .fillMaxWidth()
+                                    .height(38.dp),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
                             ) {
                                 Icon(
-                                    Icons.Rounded.Shield,
+                                    Icons.Rounded.NotificationsActive,
                                     contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = Color(0xFF00E5FF)
+                                    modifier = Modifier.size(16.dp)
                                 )
-                            }
-                            Column {
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Clean Dispatch Guarantee",
-                                    style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Manual CRM dispatch only · Strict 3 alerts/day cap · Zero cron spam",
-                                    style = Typography.labelSmall.copy(fontSize = 10.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                                    text = "Allow Notifications",
+                                    style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
                                 )
                             }
                         }
-
-                        if (unreadCount > 0) {
-                            Surface(
-                                shape = CircleShape,
-                                color = BrandPrimaryOrange.copy(alpha = 0.20f),
-                                border = BorderStroke(0.8.dp, BrandPrimaryOrange.copy(alpha = 0.45f))
+                    }
+                } else {
+                    // Active Lockscreen Alerts Indicator
+                    GlassCard(
+                        cornerRadius = 16.dp,
+                        accentColor = Color(0xFF10B981),
+                        elevation = 2.dp
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.weight(1f)
                             ) {
-                                Text(
-                                    text = "$unreadCount NEW",
-                                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 9.5.sp),
-                                    color = BrandPrimaryOrange,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .background(Color(0xFF10B981).copy(alpha = 0.15f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.NotificationsActive,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = Color(0xFF10B981)
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        text = "Lock Screen & Contest Alerts Active",
+                                        style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "Alerts dispatch 15 min prior even when screen is locked",
+                                        style = Typography.labelSmall.copy(fontSize = 10.sp),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                                    )
+                                }
+                            }
+
+                            if (unreadCount > 0) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = BrandPrimaryOrange.copy(alpha = 0.20f),
+                                    border = BorderStroke(0.8.dp, BrandPrimaryOrange.copy(alpha = 0.45f))
+                                ) {
+                                    Text(
+                                        text = "$unreadCount NEW",
+                                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 9.5.sp),
+                                        color = BrandPrimaryOrange,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    )
+                                }
                             }
                         }
                     }
