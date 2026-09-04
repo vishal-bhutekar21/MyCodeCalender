@@ -112,49 +112,14 @@ fun SettingsScreen(
     val playDevPage = "https://play.google.com/store/apps/dev?id=8656025420118431472"
     val emailLink = "mailto:vishal.bhutekar1@gmail.com"
 
-    // ── Shimmer loading state: shows skeleton for 700ms on first open ──
-    var isPageLoading by remember { mutableStateOf(true) }
-    LaunchedEffect(Unit) {
-        delay(700L)
-        isPageLoading = false
-    }
-
     GlassmorphismBackground {
-        // Skeleton shown during initial load
-        androidx.compose.animation.AnimatedVisibility(
-            visible = isPageLoading,
-            enter = androidx.compose.animation.fadeIn(),
-            exit = androidx.compose.animation.fadeOut()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .statusBarsPadding()
-            ) {
-                com.mycodecalendar.core.designsystem.components.SettingsScreenSkeleton()
-            }
-        }
-        // Real content
-        androidx.compose.animation.AnimatedVisibility(
-            visible = !isPageLoading,
-            enter = androidx.compose.animation.fadeIn(
-                animationSpec = androidx.compose.animation.core.tween(350)
-            ),
-            exit = androidx.compose.animation.fadeOut()
-        ) {
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp)
-            ) {
                 // ── 1. HEADER ──────────────────────────────────────────────────────────
                 Spacer(modifier = Modifier.height(20.dp))
                 Row(
@@ -686,7 +651,6 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(100.dp))
             }
-        } // close AnimatedVisibility (real content)
 
         // ── NOTIFICATION PERMISSION RATIONALE DIALOG ──────────────────────────
         if (showNotificationPermDialog) {
@@ -1125,7 +1089,6 @@ fun SettingsScreen(
             )
         }
     }
-}
 }
 
 
