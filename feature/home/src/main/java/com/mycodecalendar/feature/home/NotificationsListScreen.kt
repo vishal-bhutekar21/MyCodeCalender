@@ -261,41 +261,57 @@ fun NotificationsListScreen(
                 // 2. Fetch custom contests & hackathons
                 db.collection("custom_contests").get().addOnSuccessListener { contestSnap ->
                     contestSnap.documents.forEach { doc ->
-                        val isActive = doc.getBoolean("isActive") ?: true
-                        if (!isActive && doc.contains("isActive")) return@forEach
+                        try {
+                            val isActive = doc.getBoolean("isActive") ?: true
+                            if (!isActive && doc.contains("isActive")) return@forEach
 
-                        val title = doc.getString("title") ?: doc.getString("name") ?: return@forEach
-                        val platform = doc.getString("platform") ?: doc.getString("organizer") ?: "Community"
-                        val regUrl = doc.getString("registrationUrl") ?: doc.getString("url") ?: "codecalendar://contests"
-                        val bannerUrl = doc.getString("bannerImageUrl") ?: doc.getString("bannerUrl") ?: ""
-                        val prize = doc.getString("prize") ?: doc.getString("prizePool") ?: ""
-                        val tags = (doc.get("tags") as? List<*>)?.mapNotNull { it?.toString() } ?: listOf(platform, "Contest")
+                            val title = doc.getString("title") ?: doc.getString("name") ?: return@forEach
+                            val platform = doc.getString("platform") ?: doc.getString("organizer") ?: "Community"
+                            val regUrl = doc.getString("registrationUrl") ?: doc.getString("url") ?: "codecalendar://contests"
+                            val bannerUrl = doc.getString("bannerImageUrl") ?: doc.getString("bannerUrl") ?: ""
+                            val prize = doc.getString("prize") ?: doc.getString("prizePool") ?: ""
+                            val tags = (doc.get("tags") as? List<*>)?.mapNotNull { it?.toString() } ?: listOf(platform, "Contest")
 
-                        val startMillis = doc.getTimestamp("startTime")?.toDate()?.time
-                            ?: doc.getLong("startTime")
+                            val startMillis = when (val raw = doc.get("startTime")) {
+                                is com.google.firebase.Timestamp -> raw.toDate().time
+                                is java.util.Date -> raw.time
+                                is Number -> {
+                                    val num = raw.toLong()
+                                    if (num in 1..99_999_999_999L) num * 1000L else num
+                                }
+                                is String -> {
+                                    raw.toLongOrNull() ?: try {
+                                        Instant.parse(raw).toEpochMilli()
+                                    } catch (_: Exception) { null }
+                                }
+                                else -> null
+                            }
 
-                        val scheduleInfo = if (startMillis != null && startMillis > 0) {
-                            "Starts: ${Instant.ofEpochMilli(startMillis).formatToIndianCompactDateTime()}"
-                        } else {
-                            "Upcoming Contest · Register Now"
-                        }
+                            val scheduleInfo = if (startMillis != null && startMillis > 0) {
+                                "Starts: ${Instant.ofEpochMilli(startMillis).formatToIndianCompactDateTime()}"
+                            } else {
+                                "Upcoming Contest · Register Now"
+                            }
 
-                        result.add(
-                            AppNotification(
-                                id = "custom_${doc.id}",
-                                type = NotificationKind.CONTEST_ALERT,
-                                title = title,
-                                subtitle = "Organized by $platform · Direct registration open",
-                                badge = "CONTEST ALERT",
-                                badgeColor = Color(0xFF00E5FF),
-                                imageUrl = bannerUrl,
-                                actionUrl = regUrl,
-                                prizePool = prize,
-                                scheduleInfo = scheduleInfo,
-                                tags = tags,
-                                isNew = "custom_${doc.id}" !in readIds
+                            result.add(
+                                AppNotification(
+                                    id = "custom_${doc.id}",
+                                    type = NotificationKind.CONTEST_ALERT,
+                                    title = title,
+                                    subtitle = "Organized by $platform · Direct registration open",
+                                    badge = "CONTEST ALERT",
+                                    badgeColor = Color(0xFF00E5FF),
+                                    imageUrl = bannerUrl,
+                                    actionUrl = regUrl,
+                                    prizePool = prize,
+                                    scheduleInfo = scheduleInfo,
+                                    tags = tags,
+                                    isNew = "custom_${doc.id}" !in readIds
+                                )
                             )
-                        )
+                        } catch (e: Exception) {
+                            android.util.Log.e("NotificationsListScreen", "Error parsing custom_contest doc ${doc.id}", e)
+                        }
                     }
 
                     // 3. Fetch featured study materials

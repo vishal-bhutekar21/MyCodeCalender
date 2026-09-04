@@ -276,13 +276,27 @@ object CloudAdminSyncService {
             val banner = doc.getString("bannerUrl") ?: doc.getString("bannerImageUrl") ?: ""
             val regUrl = doc.getString("registrationUrl") ?: doc.getString("url") ?: ""
 
-            val startMillis = doc.getTimestamp("startTime")?.toDate()?.time
-                ?: doc.getLong("startTime")
-                ?: parseTimeStringToMillis(doc.getString("startTime"))
+            val startMillis = when (val raw = doc.get("startTime")) {
+                is com.google.firebase.Timestamp -> raw.toDate().time
+                is java.util.Date -> raw.time
+                is Number -> {
+                    val num = raw.toLong()
+                    if (num in 1..99_999_999_999L) num * 1000L else num
+                }
+                is String -> raw.toLongOrNull() ?: parseTimeStringToMillis(raw)
+                else -> 0L
+            }
 
-            val endMillis = doc.getTimestamp("endTime")?.toDate()?.time
-                ?: doc.getLong("endTime")
-                ?: parseTimeStringToMillis(doc.getString("endTime"))
+            val endMillis = when (val raw = doc.get("endTime")) {
+                is com.google.firebase.Timestamp -> raw.toDate().time
+                is java.util.Date -> raw.time
+                is Number -> {
+                    val num = raw.toLong()
+                    if (num in 1..99_999_999_999L) num * 1000L else num
+                }
+                is String -> raw.toLongOrNull() ?: parseTimeStringToMillis(raw)
+                else -> 0L
+            }
 
             @Suppress("UNCHECKED_CAST")
             val tags = (doc.get("tags") as? List<String>) ?: emptyList()
