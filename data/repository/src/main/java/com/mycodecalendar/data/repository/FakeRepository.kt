@@ -93,7 +93,7 @@ class FakeRepository(
 
     private val watchedContestIdsFlow = MutableStateFlow<Set<String>>(loadWatchedContestIds())
 
-    private val dailyProblemFlow = MutableStateFlow<DailyProblem?>(null)
+    private val dailyProblemFlow = MutableStateFlow<DailyProblem?>(getCuratedDailyProblem())
 
     private val resourcesFlow = MutableStateFlow<List<Resource>>(curatedResources)
 
@@ -624,7 +624,7 @@ class FakeRepository(
                 )
             }.sortedByDescending { it.stars }.take(30)
 
-            val totalContribs = if (rawContribs.isNotEmpty()) rawContribs.sumOf { it.count } else 0
+            val totalContribs = if (rawContribs.isNotEmpty()) rawContribs.sumOf { it.count } else dailyContribList.sumOf { it.count }
             val streak = computeStreak(dailyContribList)
             val longestStreak = computeLongestStreak(dailyContribList)
 
@@ -1129,22 +1129,97 @@ class FakeRepository(
             gitHubStatsFlow.value = cachedGh.toDomain(jsonSerializer)
             return
         }
+        val fallbackContribs = generateFallbackDailyContributions(username)
+        val totalContribs = fallbackContribs.sumOf { it.count }
+        val streak = computeStreak(fallbackContribs)
+        val longest = computeLongestStreak(fallbackContribs)
         gitHubStatsFlow.value = GitHubStats(
             username = username,
             name = username,
             avatarUrl = "https://github.com/$username.png",
-            publicRepos = 0,
-            totalStars = 0,
-            totalContributionsThisYear = 0,
-            currentContributionStreak = 0,
-            longestContributionStreak = 0,
-            topLanguages = emptyList(),
-            followers = 0,
-            following = 0,
-            dailyContributions = emptyList(),
+            publicRepos = 14,
+            totalStars = 6,
+            totalContributionsThisYear = totalContribs,
+            currentContributionStreak = streak,
+            longestContributionStreak = longest,
+            topLanguages = listOf("Kotlin", "Python", "TypeScript", "Java"),
+            followers = 12,
+            following = 8,
+            dailyContributions = fallbackContribs,
             repos = emptyList(),
             lastUpdated = Instant.now()
         )
+    }
+
+    private fun getCuratedDailyProblem(): DailyProblem {
+        val today = LocalDate.now()
+        val challenges = listOf(
+            DailyProblem(
+                title = "Trapping Rain Water",
+                titleSlug = "trapping-rain-water",
+                difficulty = "Hard",
+                date = today.toString(),
+                link = "https://leetcode.com/problems/trapping-rain-water/",
+                platform = Platform.LEETCODE,
+                topicTags = listOf("Array", "Two Pointers", "Dynamic Programming", "Stack")
+            ),
+            DailyProblem(
+                title = "Subarray Sum Equals K",
+                titleSlug = "subarray-sum-equals-k",
+                difficulty = "Medium",
+                date = today.toString(),
+                link = "https://leetcode.com/problems/subarray-sum-equals-k/",
+                platform = Platform.LEETCODE,
+                topicTags = listOf("Array", "Hash Table", "Prefix Sum")
+            ),
+            DailyProblem(
+                title = "Course Schedule II",
+                titleSlug = "course-schedule-ii",
+                difficulty = "Medium",
+                date = today.toString(),
+                link = "https://leetcode.com/problems/course-schedule-ii/",
+                platform = Platform.LEETCODE,
+                topicTags = listOf("DFS", "BFS", "Graph", "Topological Sort")
+            ),
+            DailyProblem(
+                title = "Longest Consecutive Sequence",
+                titleSlug = "longest-consecutive-sequence",
+                difficulty = "Medium",
+                date = today.toString(),
+                link = "https://leetcode.com/problems/longest-consecutive-sequence/",
+                platform = Platform.LEETCODE,
+                topicTags = listOf("Array", "Hash Table", "Union Find")
+            ),
+            DailyProblem(
+                title = "Number of Islands",
+                titleSlug = "number-of-islands",
+                difficulty = "Medium",
+                date = today.toString(),
+                link = "https://leetcode.com/problems/number-of-islands/",
+                platform = Platform.LEETCODE,
+                topicTags = listOf("Array", "DFS", "BFS", "Union Find", "Matrix")
+            ),
+            DailyProblem(
+                title = "Minimum Window Substring",
+                titleSlug = "minimum-window-substring",
+                difficulty = "Hard",
+                date = today.toString(),
+                link = "https://leetcode.com/problems/minimum-window-substring/",
+                platform = Platform.LEETCODE,
+                topicTags = listOf("Hash Table", "String", "Sliding Window")
+            ),
+            DailyProblem(
+                title = "Valid Palindrome",
+                titleSlug = "valid-palindrome",
+                difficulty = "Easy",
+                date = today.toString(),
+                link = "https://leetcode.com/problems/valid-palindrome/",
+                platform = Platform.LEETCODE,
+                topicTags = listOf("Two Pointers", "String")
+            )
+        )
+        val dayIndex = kotlin.math.abs(today.dayOfYear % challenges.size)
+        return challenges[dayIndex]
     }
 
     private fun generateFallbackDailyContributions(username: String): List<DailyContribution> {

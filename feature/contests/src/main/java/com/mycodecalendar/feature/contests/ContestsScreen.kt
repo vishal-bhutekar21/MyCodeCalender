@@ -150,9 +150,13 @@ fun ContestsScreen(
     onSetReminderClick: (Contest) -> Unit = {},
     onContestClick: (String) -> Unit,
     onAddPlatformClick: () -> Unit = {},
-    onPastContestClick: (String) -> Unit = {}
+    onPastContestClick: (String) -> Unit = {},
+    initialTab: Int = 0
 ) {
-    var selectedMainTab by remember { mutableStateOf(0) } // 0 = Upcoming & Live, 1 = Hackathons, 2 = My History & Ratings
+    var selectedMainTab by remember(initialTab) { mutableStateOf(initialTab) }
+    LaunchedEffect(initialTab) {
+        selectedMainTab = initialTab
+    }
     var searchQuery by remember { mutableStateOf("") }
     var selectedPlatform by remember { mutableStateOf<Platform?>(null) }
     var selectedStatus by remember { mutableStateOf<ContestStatus?>(null) }

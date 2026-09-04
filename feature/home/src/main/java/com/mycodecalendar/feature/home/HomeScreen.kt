@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -90,6 +91,8 @@ fun HomeScreen(
     onPlatformClick: (Platform) -> Unit,
     onContestClick: (String) -> Unit,
     onViewAllContestsClick: () -> Unit,
+    onViewHackathonsClick: () -> Unit = {},
+    onMyRatingsClick: () -> Unit = {},
     onResourceClick: (String) -> Unit,
     onStreakClick: () -> Unit = {},
     onNotificationClick: (CloudBroadcastBanner) -> Unit = {},
@@ -749,16 +752,15 @@ fun HomeScreen(
                             QuickAccessTile(
                                 icon = Icons.Rounded.Code,
                                 label = "Problem\nof the Day",
-                                sublabel = if (uiState.dailyProblem != null) uiState.dailyProblem.difficulty else "LeetCode",
-                                accentColor = Color(0xFF38BDF8),
+                                sublabel = (uiState.dailyProblem?.difficulty ?: "Daily") + " · LeetCode",
+                                accentColor = Color(0xFFFFA116),
                                 onClick = {
-                                    val link = uiState.dailyProblem?.link
-                                    if (!link.isNullOrBlank()) {
-                                        try {
-                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
-                                            context.startActivity(intent)
-                                        } catch (_: Exception) {}
-                                    }
+                                    val link = uiState.dailyProblem?.link?.ifBlank { null }
+                                        ?: "https://leetcode.com/problemset/all/"
+                                    try {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {}
                                 },
                                 modifier = Modifier.weight(1f)
                             )
@@ -769,21 +771,21 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             QuickAccessTile(
-                                icon = Icons.AutoMirrored.Rounded.MenuBook,
-                                label = "Dev Hub",
-                                sublabel = "Resources & sheets",
-                                accentColor = Color(0xFFA855F7),
-                                onClick = { onResourceClick("https://neetcode.io") },
+                                icon = Icons.Rounded.WorkspacePremium,
+                                label = "Hackathons",
+                                sublabel = "Prizes & events",
+                                accentColor = Color(0xFF8B5CF6),
+                                onClick = onViewHackathonsClick,
                                 modifier = Modifier.weight(1f)
                             )
                             QuickAccessTile(
                                 icon = Icons.Rounded.BarChart,
                                 label = "My Ratings",
                                 sublabel = if (uiState.connectedStats.isNotEmpty())
-                                    "${uiState.connectedStats.size} platforms"
+                                    "${uiState.connectedStats.size} linked"
                                 else "Connect now",
-                                accentColor = Color(0xFF22C55E),
-                                onClick = onAddPlatformClick,
+                                accentColor = Color(0xFF16A34A),
+                                onClick = onMyRatingsClick,
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -916,23 +918,28 @@ fun HomeScreen(
                 }
 
                 // ── OFFICIAL 2D GITHUB CONTRIBUTION HEATMAP GRID ────────────────────
-                uiState.gitHubStats?.let { gh ->
-                    ScrollRevealContainer(
-                        delayMillis = 200,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            SectionHeader(title = "GitHub Activity", modifier = Modifier.padding(horizontal = 20.dp))
-                            Spacer(modifier = Modifier.height(12.dp))
+                ScrollRevealContainer(
+                    delayMillis = 200,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        SectionHeader(title = "GitHub Activity", modifier = Modifier.padding(horizontal = 20.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
+                        if (uiState.gitHubStats != null) {
                             GitHubActivityCard(
-                                stats = gh,
+                                stats = uiState.gitHubStats,
                                 onClick = { onPlatformClick(Platform.GITHUB) },
+                                modifier = Modifier.padding(horizontal = 20.dp)
+                            )
+                        } else {
+                            GitHubConnectPromptCard(
+                                onConnectClick = onAddPlatformClick,
                                 modifier = Modifier.padding(horizontal = 20.dp)
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(32.dp))
                 }
+                Spacer(modifier = Modifier.height(32.dp))
 
                 // ── UPCOMING CONTESTS STREAM ─────────────────────────────────────────
                 ScrollRevealContainer(
@@ -1450,52 +1457,75 @@ private fun CyberCountdownBlock(
 
 @Composable
 fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val brandColor = BrandGitHub
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     val weeks = remember(stats.dailyContributions) {
-        stats.dailyContributions.chunked(7)
+        if (stats.dailyContributions.isNotEmpty()) {
+            stats.dailyContributions.chunked(7)
+        } else {
+            emptyList()
+        }
     }
 
-    GlassCard(
-        modifier = modifier,
-        accentColor = null,
-        cornerRadius = 20.dp,
-        borderWidth = 0.dp,
-        onClick = onClick
+    var selectedDayInfo by remember { mutableStateOf<DailyContribution?>(null) }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(3.dp, RoundedCornerShape(20.dp), spotColor = Color(0x10000000))
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White)
+            .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .padding(18.dp)
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
+        Column {
             // Header Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     Box(
                         modifier = Modifier
-                            .size(9.dp)
-                            .background(brandColor, CircleShape)
-                    )
-                    Spacer(Modifier.width(8.dp))
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(Color(0xFF0F172A)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "GH",
+                            style = Typography.labelLarge.copy(
+                                fontWeight = FontWeight.Black,
+                                fontSize = 13.sp
+                            ),
+                            color = Color.White
+                        )
+                    }
                     Column {
                         Text(
                             text = stats.name ?: stats.username,
-                            style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp),
-                            color = MaterialTheme.colorScheme.onSurface
+                            style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 14.5.sp),
+                            color = Color(0xFF0F172A)
                         )
                         Text(
-                            text = "@${stats.username}",
+                            text = "@${stats.username} · GitHub Profile",
                             style = Typography.bodySmall.copy(fontSize = 11.5.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            color = Color(0xFF64748B)
                         )
                     }
                 }
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFFF6B00).copy(alpha = 0.12f)
+                    color = Color(0xFFFF6B00).copy(alpha = 0.12f),
+                    border = androidx.compose.foundation.BorderStroke(0.8.dp, Color(0xFFFF6B00).copy(alpha = 0.25f))
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.5.dp),
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -1514,7 +1544,37 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(14.dp))
+
+            // Stat pills summary row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(
+                    "${stats.totalContributionsThisYear} Commits" to Color(0xFF16A34A),
+                    "${stats.publicRepos} Repos" to Color(0xFF0284C7),
+                    "${stats.totalStars} Stars" to Color(0xFFD97706)
+                ).forEach { (statText, statColor) ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFF8FAFC))
+                            .border(0.8.dp, Color(0xFFE2E8F0), RoundedCornerShape(8.dp))
+                            .padding(vertical = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = statText,
+                            style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                            color = statColor
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
 
             // Contribution Graph Header
             Row(
@@ -1523,52 +1583,116 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Contribution Graph",
-                    style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.5.sp),
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = "Contribution Activity (365 Days)",
+                    style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
+                    color = Color(0xFF334155)
                 )
                 Text(
-                    text = "${stats.totalContributionsThisYear} commits this year",
-                    style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
-                    color = Color(0xFF10B981)
+                    text = "Tap cell to inspect",
+                    style = Typography.labelSmall.copy(fontSize = 10.5.sp),
+                    color = Color(0xFF94A3B8)
                 )
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
 
-            // Heatmap Matrix
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(3.5.dp),
-                contentPadding = PaddingValues(vertical = 2.dp)
+            // Heatmap Matrix with Day Labels
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                items(weeks) { week ->
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(3.5.dp)
-                    ) {
-                        week.forEach { contrib ->
-                            val heatColor = when (contrib.level) {
-                                4 -> Color(0xFF39D353)
-                                3 -> Color(0xFF26A641)
-                                2 -> Color(0xFF006D32)
-                                1 -> Color(0xFF0E4429)
-                                else -> Color.White.copy(alpha = 0.20f)
+                // Day of week labels
+                Column(
+                    verticalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.height(86.dp)
+                ) {
+                    Text("M", style = Typography.labelSmall.copy(fontSize = 8.sp), color = Color(0xFF94A3B8))
+                    Text("W", style = Typography.labelSmall.copy(fontSize = 8.sp), color = Color(0xFF94A3B8))
+                    Text("F", style = Typography.labelSmall.copy(fontSize = 8.sp), color = Color(0xFF94A3B8))
+                }
+
+                // Heatmap Matrix
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(3.5.dp),
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(vertical = 2.dp)
+                ) {
+                    items(weeks) { week ->
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(3.5.dp)
+                        ) {
+                            week.forEach { contrib ->
+                                val heatColor = when (contrib.level) {
+                                    4 -> Color(0xFF216E39)
+                                    3 -> Color(0xFF30A14E)
+                                    2 -> Color(0xFF40C463)
+                                    1 -> Color(0xFF9BE9A8)
+                                    else -> Color(0xFFEBEDF0)
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.5.dp)
+                                        .clip(RoundedCornerShape(2.dp))
+                                        .background(heatColor)
+                                        .border(
+                                            0.6.dp,
+                                            if (contrib.level == 0) Color(0xFFCBD5E1) else Color.Transparent,
+                                            RoundedCornerShape(2.dp)
+                                        )
+                                        .clickable { selectedDayInfo = contrib }
+                                )
                             }
-                            Box(
-                                modifier = Modifier
-                                    .size(11.dp)
-                                    .background(heatColor, RoundedCornerShape(2.dp))
-                                    .border(0.5.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(2.dp))
-                            )
                         }
                     }
                 }
             }
 
-            // Top Public Repositories Carousel (if available)
+            // Interactive Day Info & Legend
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = selectedDayInfo?.let { "${it.count} commits on ${it.date}" } ?: "Active contribution habit",
+                    style = Typography.bodySmall.copy(
+                        fontSize = 11.sp,
+                        fontWeight = if (selectedDayInfo != null) FontWeight.Bold else FontWeight.Medium
+                    ),
+                    color = if (selectedDayInfo != null) Color(0xFF0F172A) else Color(0xFF64748B)
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text("Less", style = Typography.labelSmall.copy(fontSize = 9.sp), color = Color(0xFF94A3B8))
+                    listOf(
+                        Color(0xFFEBEDF0),
+                        Color(0xFF9BE9A8),
+                        Color(0xFF40C463),
+                        Color(0xFF30A14E),
+                        Color(0xFF216E39)
+                    ).forEach { col ->
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(col)
+                                .border(0.5.dp, Color(0xFFCBD5E1), RoundedCornerShape(2.dp))
+                        )
+                    }
+                    Text("More", style = Typography.labelSmall.copy(fontSize = 9.sp), color = Color(0xFF94A3B8))
+                }
+            }
+
+            // Top Repositories (if available)
             if (stats.repos.isNotEmpty()) {
-                Spacer(Modifier.height(16.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
                 Spacer(Modifier.height(14.dp))
+                HorizontalDivider(color = Color(0xFFF1F5F9))
+                Spacer(Modifier.height(12.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1578,12 +1702,12 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                     Text(
                         text = "Top Repositories",
                         style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = Color(0xFF0F172A)
                     )
                     Text(
-                        text = "${stats.repos.size} Repos",
+                        text = "${stats.repos.size} repos",
                         style = Typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        color = Color(0xFF64748B)
                     )
                 }
 
@@ -1598,8 +1722,16 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                             modifier = Modifier
                                 .width(200.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f))
-                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.22f), RoundedCornerShape(12.dp))
+                                .background(Color(0xFFF8FAFC))
+                                .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
+                                .clickable {
+                                    if (repo.url.isNotBlank()) {
+                                        try {
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(repo.url))
+                                            context.startActivity(intent)
+                                        } catch (_: Exception) {}
+                                    }
+                                }
                                 .padding(10.dp)
                         ) {
                             Column {
@@ -1611,7 +1743,7 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                                     Text(
                                         text = repo.name,
                                         style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
-                                        color = MaterialTheme.colorScheme.onSurface,
+                                        color = Color(0xFF0F172A),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.weight(1f)
@@ -1629,7 +1761,7 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                                         Text(
                                             text = "${repo.stars}",
                                             style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = Color(0xFF64748B)
                                         )
                                     }
                                 }
@@ -1639,38 +1771,28 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                                     Text(
                                         text = desc,
                                         style = Typography.bodySmall.copy(fontSize = 10.5.sp),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                                        color = Color(0xFF64748B),
                                         maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                        lineHeight = 14.sp
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
 
-                                Spacer(Modifier.height(6.dp))
-
                                 repo.language?.let { lang ->
+                                    Spacer(Modifier.height(6.dp))
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
                                         Box(
                                             modifier = Modifier
-                                                .size(7.dp)
-                                                .background(
-                                                    when (lang.lowercase()) {
-                                                        "kotlin" -> Color(0xFFA97BFF)
-                                                        "c++" -> Color(0xFFF34B7D)
-                                                        "java" -> Color(0xFFB07219)
-                                                        "python" -> Color(0xFF3572A5)
-                                                        else -> BrandGitHub
-                                                    },
-                                                    CircleShape
-                                                )
+                                                .size(6.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFF3B82F6))
                                         )
                                         Text(
                                             text = lang,
-                                            style = Typography.labelSmall.copy(fontSize = 10.sp),
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                            style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
+                                            color = Color(0xFF475569)
                                         )
                                     }
                                 }
@@ -1679,45 +1801,104 @@ fun GitHubActivityCard(stats: GitHubStats, onClick: () -> Unit, modifier: Modifi
                     }
                 }
             }
+        }
+    }
+}
 
-            Spacer(Modifier.height(12.dp))
-
-            // Footer Quick Stats
+@Composable
+fun GitHubConnectPromptCard(
+    onConnectClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(3.dp, RoundedCornerShape(20.dp), spotColor = Color(0x10000000))
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White)
+            .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(20.dp))
+            .padding(18.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("⭐ ${stats.totalStars} Stars", style = Typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
-                    Text("📁 ${stats.publicRepos} Repos", style = Typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
-                    Text("🔥 Max ${stats.longestContributionStreak}d", style = Typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
-                }
-
-                Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("Less", style = Typography.labelSmall.copy(fontSize = 9.sp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f))
-                    listOf(
-                        Color.White.copy(alpha = 0.20f),
-                        Color(0xFF0E4429),
-                        Color(0xFF006D32),
-                        Color(0xFF26A641),
-                        Color(0xFF39D353)
-                    ).forEach { col ->
-                        Box(
-                            modifier = Modifier
-                                .size(9.dp)
-                                .background(col, RoundedCornerShape(2.dp))
-                                .border(0.5.dp, Color.White.copy(alpha = 0.30f), RoundedCornerShape(2.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(Color(0xFF0F172A)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "GH",
+                            style = Typography.labelLarge.copy(
+                                fontWeight = FontWeight.Black,
+                                fontSize = 13.sp
+                            ),
+                            color = Color.White
                         )
                     }
-                    Text("More", style = Typography.labelSmall.copy(fontSize = 9.sp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f))
+                    Column {
+                        Text(
+                            text = "GitHub Activity & Heatmap",
+                            style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp),
+                            color = Color(0xFF0F172A)
+                        )
+                        Text(
+                            text = "Track daily commits, streaks & top repos",
+                            style = Typography.bodySmall.copy(fontSize = 11.5.sp),
+                            color = Color(0xFF64748B)
+                        )
+                    }
                 }
+            }
+
+            // Preview matrix
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(3.5.dp)
+            ) {
+                repeat(18) { colIdx ->
+                    Column(verticalArrangement = Arrangement.spacedBy(3.5.dp)) {
+                        repeat(5) { rowIdx ->
+                            val isGreen = (colIdx + rowIdx * 3) % 4 == 0 || (colIdx * 2 + rowIdx) % 5 == 0
+                            val color = if (isGreen) {
+                                if ((colIdx + rowIdx) % 3 == 0) Color(0xFF30A14E) else Color(0xFF9BE9A8)
+                            } else Color(0xFFEBEDF0)
+                            Box(
+                                modifier = Modifier
+                                    .size(9.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(color)
+                                    .border(0.5.dp, if (!isGreen) Color(0xFFCBD5E1) else Color.Transparent, RoundedCornerShape(2.dp))
+                            )
+                        }
+                    }
+                }
+            }
+
+            Button(
+                onClick = onConnectClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(42.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))
+            ) {
+                Icon(Icons.Rounded.AddLink, null, modifier = Modifier.size(16.dp), tint = Color.White)
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = "Connect GitHub Handle",
+                    style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = Color.White
+                )
             }
         }
     }
@@ -2179,37 +2360,34 @@ fun DailyProblemCard(
     modifier: Modifier = Modifier
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val brandColor = Color(0xFFFFA116) // LeetCode signature orange
+    val brandColor = Color(0xFFFFA116) // LeetCode signature amber
 
-    val diffColor = when (dailyProblem.difficulty.uppercase()) {
-        "EASY" -> Color(0xFF06B6D4) // Electric Cyber Cyan
-        "HARD" -> Color(0xFFFF334B) // Electric Rose
-        else -> Color(0xFFFFC01E)   // Warm Amber for Medium
+    val (diffColor, diffBg) = when (dailyProblem.difficulty.uppercase()) {
+        "EASY" -> Color(0xFF0284C7) to Color(0xFFE0F2FE)
+        "HARD" -> Color(0xFFE11D48) to Color(0xFFFFE4E6)
+        else -> Color(0xFFD97706) to Color(0xFFFEF3C7)
     }
 
-    GlassCard(
-        modifier = modifier.fillMaxWidth(),
-        cornerRadius = 22.dp,
-        accentColor = null,
-        elevation = 6.dp,
-        borderWidth = 0.dp,
-        onClick = {
-            if (dailyProblem.link.isNotBlank()) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(3.dp, RoundedCornerShape(22.dp), spotColor = Color(0x10000000))
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color.White)
+            .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(22.dp))
+            .clickable {
+                val link = dailyProblem.link.ifBlank { "https://leetcode.com/problemset/all/" }
                 try {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(dailyProblem.link))
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
                     context.startActivity(intent)
-                } catch (_: Exception) {}
-            } else {
-                onClick()
+                } catch (_: Exception) {
+                    onClick()
+                }
             }
-        }
+            .padding(18.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp)
-        ) {
-            // Top Row: Unboxed Platform Label + Difficulty Tag + Date
+        Column {
+            // Top Row: LeetCode Brand Badge + Difficulty Pill + Date
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -2235,11 +2413,12 @@ fun DailyProblemCard(
                     Text(
                         text = "·",
                         style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.40f)
+                        color = Color(0xFF94A3B8)
                     )
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = diffColor.copy(alpha = 0.12f)
+                        color = diffBg,
+                        border = androidx.compose.foundation.BorderStroke(0.8.dp, diffColor.copy(alpha = 0.3f))
                     ) {
                         Text(
                             text = dailyProblem.difficulty.uppercase(),
@@ -2257,7 +2436,7 @@ fun DailyProblemCard(
                     Text(
                         text = dailyProblem.date,
                         style = Typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Medium),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
+                        color = Color(0xFF64748B)
                     )
                 }
             }
@@ -2272,7 +2451,7 @@ fun DailyProblemCard(
                     fontSize = 17.sp,
                     lineHeight = 23.sp
                 ),
-                color = MaterialTheme.colorScheme.onSurface,
+                color = Color(0xFF0F172A),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -2287,12 +2466,13 @@ fun DailyProblemCard(
                     for (tag in dailyProblem.topicTags.take(3)) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                            color = Color(0xFFF1F5F9),
+                            border = androidx.compose.foundation.BorderStroke(0.8.dp, Color(0xFFE2E8F0))
                         ) {
                             Text(
                                 text = tag,
                                 style = Typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = Color(0xFF334155),
                                 modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp)
                             )
                         }
@@ -2314,7 +2494,7 @@ fun DailyProblemCard(
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.Medium
                     ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
+                    color = Color(0xFF64748B)
                 )
 
                 Row(
@@ -2323,12 +2503,14 @@ fun DailyProblemCard(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
+                        color = Color(0xFFF8FAFC),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
                         modifier = Modifier.clickable {
                             try {
+                                val link = dailyProblem.link.ifBlank { "https://leetcode.com/problemset/all/" }
                                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                     type = "text/plain"
-                                    putExtra(Intent.EXTRA_TEXT, "🧩 LeetCode Daily Challenge: ${dailyProblem.title} [${dailyProblem.difficulty}]\n🔗 Solve here: ${dailyProblem.link}")
+                                    putExtra(Intent.EXTRA_TEXT, "🧩 LeetCode Daily Challenge: ${dailyProblem.title} [${dailyProblem.difficulty}]\n🔗 Solve here: $link")
                                 }
                                 context.startActivity(Intent.createChooser(shareIntent, "Share Problem of the Day"))
                             } catch (_: Exception) {}
@@ -2348,12 +2530,11 @@ fun DailyProblemCard(
                         shape = RoundedCornerShape(12.dp),
                         color = Color.Transparent,
                         modifier = Modifier.clickable {
-                            if (dailyProblem.link.isNotBlank()) {
-                                try {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(dailyProblem.link))
-                                    context.startActivity(intent)
-                                } catch (_: Exception) {}
-                            } else {
+                            val link = dailyProblem.link.ifBlank { "https://leetcode.com/problemset/all/" }
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
+                                context.startActivity(intent)
+                            } catch (_: Exception) {
                                 onClick()
                             }
                         }
@@ -2362,7 +2543,7 @@ fun DailyProblemCard(
                             modifier = Modifier
                                 .background(
                                     Brush.horizontalGradient(
-                                        listOf(brandColor, Color(0xFFFF8533))
+                                        listOf(brandColor, Color(0xFFFF6B00))
                                     )
                                 )
                                 .padding(horizontal = 14.dp, vertical = 8.dp),
@@ -2374,14 +2555,17 @@ fun DailyProblemCard(
                             ) {
                                 Text(
                                     text = "Solve Challenge",
-                                    style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
+                                    style = Typography.labelMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    ),
                                     color = Color.White
                                 )
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
+                                    imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
                                     contentDescription = null,
-                                    modifier = Modifier.size(13.dp),
-                                    tint = Color.White
+                                    tint = Color.White,
+                                    modifier = Modifier.size(14.dp)
                                 )
                             }
                         }
@@ -2391,6 +2575,7 @@ fun DailyProblemCard(
         }
     }
 }
+
 // ── QUICK ACCESS TILE ─────────────────────────────────────────────────────────
 
 @Composable
@@ -2402,8 +2587,6 @@ fun QuickAccessTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -2415,19 +2598,10 @@ fun QuickAccessTile(
     Box(
         modifier = modifier
             .scale(scale)
+            .shadow(2.dp, RoundedCornerShape(18.dp), spotColor = Color(0x10000000))
             .clip(RoundedCornerShape(18.dp))
-            .background(
-                if (isDark) Color(0xFF131A26).copy(alpha = 0.90f)
-                else Color(0xFFF1F5F9).copy(alpha = 0.90f)
-            )
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        accentColor.copy(alpha = if (isDark) 0.08f else 0.05f),
-                        Color.Transparent
-                    )
-                )
-            )
+            .background(Color.White)
+            .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(18.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -2436,12 +2610,13 @@ fun QuickAccessTile(
             .padding(horizontal = 14.dp, vertical = 14.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            // Icon with glow circle
+            // Icon with soft brand accent background
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(accentColor.copy(alpha = if (isDark) 0.18f else 0.12f)),
+                    .background(accentColor.copy(alpha = 0.12f))
+                    .border(0.8.dp, accentColor.copy(alpha = 0.22f), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -2460,13 +2635,13 @@ fun QuickAccessTile(
                         fontSize = 12.5.sp,
                         lineHeight = 16.sp
                     ),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = Color(0xFF0F172A),
                     maxLines = 2
                 )
                 Text(
                     text = sublabel,
-                    style = Typography.labelSmall.copy(fontSize = 10.5.sp),
-                    color = accentColor.copy(alpha = 0.75f),
+                    style = Typography.labelSmall.copy(fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold),
+                    color = accentColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

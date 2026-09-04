@@ -321,18 +321,18 @@ private fun GitHubDetailContent(
                         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             col.forEach { day ->
                                 val cellColor = when (day.level) {
-                                    4 -> Color(0xFF00F579)
-                                    3 -> Color(0xFF00C962)
-                                    2 -> Color(0xFF006D35)
-                                    1 -> Color(0xFF00381B)
-                                    else -> Color.White.copy(alpha = 0.20f)
+                                    4 -> Color(0xFF216E39)
+                                    3 -> Color(0xFF30A14E)
+                                    2 -> Color(0xFF40C463)
+                                    1 -> Color(0xFF9BE9A8)
+                                    else -> Color(0xFFEBEDF0)
                                 }
                                 Box(
                                     modifier = Modifier
                                         .size(10.dp)
                                         .clip(RoundedCornerShape(2.dp))
                                         .background(cellColor)
-                                        .border(0.5.dp, Color.White.copy(alpha = 0.30f), RoundedCornerShape(2.dp))
+                                        .border(0.5.dp, if (day.level == 0) Color(0xFFCBD5E1) else Color.Transparent, RoundedCornerShape(2.dp))
                                 )
                             }
                         }
@@ -349,14 +349,14 @@ private fun GitHubDetailContent(
                     Text(
                         "Less ",
                         style = Typography.labelSmall.copy(fontSize = 9.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
                     )
                     listOf(
-                        Color.White.copy(alpha = 0.20f),
-                        Color(0xFF00381B),
-                        Color(0xFF006D35),
-                        Color(0xFF00C962),
-                        Color(0xFF00F579)
+                        Color(0xFFEBEDF0),
+                        Color(0xFF9BE9A8),
+                        Color(0xFF40C463),
+                        Color(0xFF30A14E),
+                        Color(0xFF216E39)
                     ).forEach { col ->
                         Box(
                             modifier = Modifier

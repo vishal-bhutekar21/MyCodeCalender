@@ -24,6 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -170,7 +172,7 @@ class MainActivity : ComponentActivity() {
 
                 val showBottomBar = currentRoute in listOf(
                     "home", "contests", "resources", "settings"
-                )
+                ) || currentRoute?.startsWith("contests") == true
 
                 LaunchedEffect(fetchError) {
                     val err = fetchError
@@ -350,7 +352,10 @@ class MainActivity : ComponentActivity() {
                     bottomBar = {
                         if (showBottomBar) {
                             FloatingBottomNavigation(
-                                currentRoute = currentRoute ?: "home",
+                                currentRoute = when {
+                                    currentRoute?.startsWith("contests") == true -> "contests"
+                                    else -> currentRoute ?: "home"
+                                },
                                 onTabSelected = { route ->
                                     navController.navigate(route) {
                                         popUpTo(navController.graph.findStartDestination().id) {
@@ -513,7 +518,15 @@ class MainActivity : ComponentActivity() {
                                     onContestClick = { id ->
                                         navController.navigate("contest_detail/$id")
                                     },
-                                    onViewAllContestsClick = { navController.navigate("contests") },
+                                    onViewAllContestsClick = { navController.navigate("contests?tab=0") },
+                                    onViewHackathonsClick = { navController.navigate("contests?tab=1") },
+                                    onMyRatingsClick = {
+                                        if (connectedAccounts.isNotEmpty()) {
+                                            navController.navigate("contests?tab=2")
+                                        } else {
+                                            onProtectedAddPlatform()
+                                        }
+                                    },
                                     onResourceClick = { url -> openUrl(url) },
                                     onStreakClick = { navController.navigate("streak") },
                                     onNotificationClick = { broadcastItem ->
@@ -563,7 +576,16 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
-                            composable("contests") {
+                            composable(
+                                route = "contests?tab={tab}",
+                                arguments = listOf(
+                                    navArgument("tab") {
+                                        type = NavType.IntType
+                                        defaultValue = 0
+                                    }
+                                )
+                            ) { back ->
+                                val tab = back.arguments?.getInt("tab") ?: 0
                                 val pastContests by repository.getPastContestHistory()
                                     .collectAsState(initial = emptyList())
                                 val watchedContestIds by repository.getWatchedContestIds()
@@ -585,7 +607,8 @@ class MainActivity : ComponentActivity() {
                                         ).show()
                                     },
                                     onAddPlatformClick = onProtectedAddPlatform,
-                                    onPastContestClick = { url -> openUrl(url) }
+                                    onPastContestClick = { url -> openUrl(url) },
+                                    initialTab = tab
                                 )
                             }
 
