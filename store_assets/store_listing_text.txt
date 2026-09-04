@@ -1,0 +1,54 @@
+# MyCodeCalendar: Contests & DSA
+
+## Short Description (75 characters):
+Track live coding contests across LeetCode, Codeforces, CodeChef & AtCoder.
+
+## Full Description:
+MyCodeCalendar is the ultimate companion app for competitive programmers, computer science students, and software engineers. Never miss an upcoming coding competition or hackathon again!
+
+Track upcoming and live algorithmic contests in real time across the world’s top competitive programming platforms with automated push alerts, Google Calendar sync, and curated DSA practice sheets.
+
+==================================
+🔥 KEY FEATURES
+==================================
+
+📅 ALL CONTESTS IN ONE PLACE
+• Real-time countdown timers to upcoming and active contests.
+• Direct 1-tap navigation into contest arenas.
+• Filter contests by platform, start time, and duration.
+• Clean, modern dark mode UI tailored for developers.
+
+🔔 SMART PUSH NOTIFICATIONS
+• Get timely notifications before contests start (1 hour and 15 minutes prior).
+• Never forget a round due to timezone confusion — all times are automatically converted to your local timezone.
+• Select and bookmark your favorite platforms to customize alerts.
+
+💻 SUPPORTED CODING PLATFORMS
+• Codeforces (Div. 1, Div. 2, Div. 3, Div. 4, Educational Rounds)
+• LeetCode (Weekly & Biweekly Contests)
+• CodeChef (Starters, Cook-Offs, Lunchtimes)
+• AtCoder (Beginner ABC, Regular ARC, Grand AGC)
+• HackerRank & HackerEarth
+• TopCoder, Google Kickstart / Coding Competitions archives
+
+📚 CURATED DSA SHEETS & ROADMAPS
+• Track your problem-solving progress on top coding interview sheets:
+  - Striver's SDE Sheet (180 Core Interview Questions)
+  - Blind 75 Curated LeetCode Patterns
+  - NeetCode 150 Categorized Problem Set
+• Monitor topic-wise mastery: Arrays, Two Pointers, Sliding Window, Trees, Graphs, Dynamic Programming & more.
+
+⚡ BLZING FAST & OFFLINE READY
+• Optimized with advanced R8 code shrinking and caching.
+• View your schedule, saved bookmarks, and problem lists even when offline.
+• Add any contest directly to your device calendar with 1 tap.
+
+==================================
+🔒 PRIVACY FIRST & NO ADS
+==================================
+• Completely free to use.
+• Clean experience with no intrusive popup ads.
+• Privacy Policy: https://vishalbhutekar.me/myapps/codecalendar/privacy
+• Support & Feedback: vishal.bhutekar1@gmail.com
+
+Download MyCodeCalendar today and level up your competitive programming journey!

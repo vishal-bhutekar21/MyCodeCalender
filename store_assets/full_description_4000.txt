@@ -1,0 +1,63 @@
+MyCodeCalendar is the ultimate all-in-one companion app for competitive programmers, computer science students, software engineers, and coding enthusiasts. Never miss an upcoming coding contest, algorithmic round, or global hackathon again!
+
+Track upcoming and live programming contests in real time across the world’s top competitive programming platforms with automated push alerts, Google Calendar synchronization, and curated DSA practice sheets.
+
+Whether you are preparing for technical FAANG interviews, aiming for Candidate Master on Codeforces, climbing the LeetCode leaderboard, or sharpening your problem-solving skills on CodeChef, MyCodeCalendar keeps your competitive schedule organized, synchronized, and effortless.
+
+==================================
+🔥 KEY FEATURES AT A GLANCE
+==================================
+
+📅 UNIVERSAL CODING CONTEST CALENDAR
+• Real-time countdown timers to upcoming and active contests worldwide.
+• Unified schedule covering all major platforms in one single, clean view.
+• Direct 1-tap navigation directly into official contest arenas.
+• Precise contest duration, start time, end time, and platform badges.
+• Filter contests by platform, date, registration status, and ongoing rounds.
+
+🔔 SMART PUSH NOTIFICATIONS & REMINDERS
+• Automatic 1-hour and 15-minute alerts before bookmarked contests start.
+• Never miss a round due to timezone confusion — all contest times automatically convert to your local device timezone.
+• Customizable alert preferences: toggle notifications per platform so you only get alerted for the contests you care about.
+• Spam-free, privacy-first notification delivery.
+
+💻 SUPPORTED COMPETITIVE PLATFORMS
+• Codeforces (Div. 1, Div. 2, Div. 3, Div. 4, Educational & Global Rounds)
+• LeetCode (Weekly & Biweekly Contests)
+• CodeChef (Starters, Cook-Offs, Lunchtimes, Division 1 to 4)
+• AtCoder (Beginner ABC, Regular ARC, Grand AGC)
+• HackerRank & HackerEarth (Codesprints, hiring challenges, hackathons)
+• TopCoder, CS Academy, and Google Coding Competitions archives
+
+📚 CURATED DSA SHEETS & ROADMAPS
+• Track your problem-solving progress on industry-standard coding sheets:
+  - Striver's SDE Sheet (180 core DSA interview questions)
+  - Blind 75 Curated LeetCode Patterns
+  - NeetCode 150 Categorized Interview Roadmap
+• Topic-wise mastery: Arrays, Two Pointers, Sliding Window, Binary Search, Trees, Graphs, Dynamic Programming, Greedy, and Bit Manipulation.
+• Check off solved problems and monitor completion percentage in real time.
+
+⚡ LIGHTNING FAST & OFFLINE READY
+• Optimized with full-mode R8 code shrinking and minimal memory footprint.
+• Offline caching: view bookmarked contests and DSA sheets without internet.
+• 1-Tap Google Calendar sync: export any contest directly with alarms.
+
+🎨 MODERN, MINIMALIST DEVELOPER UI
+• Sleek dark mode (OLED Obsidian) and crisp daylight theme.
+• Fluid micro-animations and zero visual clutter.
+• Built natively with Jetpack Compose following modern Material 3 guidelines.
+
+==================================
+🔒 PRIVACY FOCUSED & TRANSPARENT
+==================================
+• 100% free to use with zero annoying popup ads.
+• Optional Google Sign-In to back up your bookmarks across devices.
+• Full control over your data with direct in-app account deletion.
+• Educational aggregator operating under fair use principles.
+
+Privacy Policy: https://vishalbhutekar.me/myapps/codecalendar/privacy
+Account Deletion: https://vishalbhutekar.me/myapps/codecalendar/delete-account
+Developer Support: vishal.bhutekar1@gmail.com
+Portfolio: https://vishalbhutekar.me
+
+Download MyCodeCalendar today and level up your competitive programming journey!
