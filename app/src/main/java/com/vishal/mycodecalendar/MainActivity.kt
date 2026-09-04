@@ -544,7 +544,11 @@ class MainActivity : ComponentActivity() {
                                 NotificationsListScreen(
                                     onBackClick = { navController.popBackStack() },
                                     onNotificationClick = { appNotif ->
-                                        if (appNotif.type == com.mycodecalendar.feature.home.NotificationKind.MATERIAL_ADDED ||
+                                        if (appNotif.type == com.mycodecalendar.feature.home.NotificationKind.CONTEST_ALERT ||
+                                            appNotif.actionUrl == "codecalendar://contests" ||
+                                            appNotif.actionUrl.contains("contests")) {
+                                            navController.navigate("contests")
+                                        } else if (appNotif.type == com.mycodecalendar.feature.home.NotificationKind.MATERIAL_ADDED ||
                                             appNotif.type == com.mycodecalendar.feature.home.NotificationKind.PLAYLIST) {
                                             navController.navigate("resources")
                                         } else if (appNotif.broadcast != null) {
@@ -556,6 +560,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onOpenResource = {
                                         navController.navigate("resources")
+                                    },
+                                    onViewContests = {
+                                        navController.navigate("contests")
                                     }
                                 )
                             }

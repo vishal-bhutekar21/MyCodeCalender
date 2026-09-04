@@ -256,10 +256,11 @@ fun HomeScreen(
                 ),
                 exit = androidx.compose.animation.fadeOut()
             ) {
+            val homeScrollState = rememberScrollState()
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(homeScrollState)
             ) {
             // ── HEADER ───────────────────────────────────────────────────────────────
             Row(
@@ -431,7 +432,7 @@ fun HomeScreen(
                                         .background(BrandPrimaryOrange, CircleShape)
                                         .border(1.dp, MaterialTheme.colorScheme.surface, CircleShape)
                                         .clip(CircleShape)
-                                )
+                                    )
                             }
                         }
                     }
@@ -463,89 +464,94 @@ fun HomeScreen(
                 BroadcastBannerSkeleton()
             } else if (cloudBroadcast != null && !isCurrentBroadcastDismissedOnHome) {
                 val currentBroadcast = cloudBroadcast!!
-                GlassCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 18.dp, vertical = 6.dp),
-                    cornerRadius = 18.dp,
-                    accentColor = null,
-                    borderWidth = 0.dp,
-                    onClick = {
-                        onNotificationClick(currentBroadcast)
-                    }
+                ScrollRevealContainer(
+                    delayMillis = 20,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
+                    GlassCard(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .background(BrandPrimaryOrange.copy(alpha = 0.16f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Rounded.Notifications,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = BrandPrimaryOrange
-                            )
+                            .padding(horizontal = 18.dp, vertical = 6.dp),
+                        cornerRadius = 18.dp,
+                        accentColor = null,
+                        borderWidth = 0.dp,
+                        onClick = {
+                            onNotificationClick(currentBroadcast)
                         }
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .background(BrandPrimaryOrange.copy(alpha = 0.16f), CircleShape),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = BrandPrimaryOrange.copy(alpha = 0.20f)
+                                Icon(
+                                    Icons.Rounded.Notifications,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = BrandPrimaryOrange
+                                )
+                            }
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = BrandPrimaryOrange.copy(alpha = 0.20f)
+                                    ) {
+                                        Text(
+                                            text = currentBroadcast.badge.uppercase(),
+                                            style = Typography.labelSmall.copy(fontSize = 8.5.sp, fontWeight = FontWeight.Black),
+                                            color = BrandPrimaryOrange,
+                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                        )
+                                    }
                                     Text(
-                                        text = currentBroadcast.badge.uppercase(),
-                                        style = Typography.labelSmall.copy(fontSize = 8.5.sp, fontWeight = FontWeight.Black),
-                                        color = BrandPrimaryOrange,
-                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                        text = currentBroadcast.title,
+                                        style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 13.5.sp),
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
-                                Text(
-                                    text = currentBroadcast.title,
-                                    style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 13.5.sp),
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                                if (currentBroadcast.subtitle.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = currentBroadcast.subtitle,
+                                        style = Typography.bodySmall.copy(fontSize = 11.sp),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f),
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
-                            if (currentBroadcast.subtitle.isNotBlank()) {
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = currentBroadcast.subtitle,
-                                    style = Typography.bodySmall.copy(fontSize = 11.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f),
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
 
-                        IconButton(
-                            onClick = {
-                                val bId = currentBroadcast.id
-                                val updated = dismissedHomeBroadcastIds + bId
-                                dismissedHomeBroadcastIds = updated
-                                homePrefs.edit().putStringSet("dismissed_broadcast_ids", updated).apply()
-                            },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                Icons.Rounded.Clear,
-                                contentDescription = "Dismiss from Home",
-                                modifier = Modifier.size(15.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.50f)
-                            )
+                            IconButton(
+                                onClick = {
+                                    val bId = currentBroadcast.id
+                                    val updated = dismissedHomeBroadcastIds + bId
+                                    dismissedHomeBroadcastIds = updated
+                                    homePrefs.edit().putStringSet("dismissed_broadcast_ids", updated).apply()
+                                },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Clear,
+                                    contentDescription = "Dismiss from Home",
+                                    modifier = Modifier.size(15.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.50f)
+                                )
+                            }
                         }
                     }
                 }
@@ -654,55 +660,60 @@ fun HomeScreen(
                 }
 
                 if (highlightList.isNotEmpty()) {
-                    if (highlightList.size == 1) {
-                        NextContestHeroCard(
-                            contest = highlightList.first(),
-                            onClick = { onContestClick(highlightList.first().id) },
-                            modifier = Modifier.padding(horizontal = 20.dp)
-                        )
-                    } else {
-                        val pagerState = rememberPagerState(pageCount = { highlightList.size })
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            HorizontalPager(
-                                state = pagerState,
-                                contentPadding = PaddingValues(horizontal = 20.dp),
-                                pageSpacing = 14.dp,
-                                modifier = Modifier.fillMaxWidth()
-                            ) { page ->
-                                val contest = highlightList[page]
-                                NextContestHeroCard(
-                                    contest = contest,
-                                    onClick = { onContestClick(contest.id) },
+                    ScrollRevealContainer(
+                        delayMillis = 40,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (highlightList.size == 1) {
+                            NextContestHeroCard(
+                                contest = highlightList.first(),
+                                onClick = { onContestClick(highlightList.first().id) },
+                                modifier = Modifier.padding(horizontal = 20.dp)
+                            )
+                        } else {
+                            val pagerState = rememberPagerState(pageCount = { highlightList.size })
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                HorizontalPager(
+                                    state = pagerState,
+                                    contentPadding = PaddingValues(horizontal = 20.dp),
+                                    pageSpacing = 14.dp,
                                     modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            // Animated swipeable dot indicators
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                repeat(highlightList.size) { index ->
-                                    val isSelected = pagerState.currentPage == index
-                                    val dotWidth by animateDpAsState(
-                                        targetValue = if (isSelected) 22.dp else 6.dp,
-                                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                        label = "dotWidth"
+                                ) { page ->
+                                    val contest = highlightList[page]
+                                    NextContestHeroCard(
+                                        contest = contest,
+                                        onClick = { onContestClick(contest.id) },
+                                        modifier = Modifier.fillMaxWidth()
                                     )
-                                    val dotColor = if (isSelected) com.mycodecalendar.core.designsystem.BrandPrimaryOrange
-                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+                                }
 
-                                    Box(
-                                        modifier = Modifier
-                                            .padding(horizontal = 3.dp)
-                                            .height(5.dp)
-                                            .width(dotWidth)
-                                            .clip(CircleShape)
-                                            .background(dotColor)
-                                    )
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                // Animated swipeable dot indicators
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    repeat(highlightList.size) { index ->
+                                        val isSelected = pagerState.currentPage == index
+                                        val dotWidth by animateDpAsState(
+                                            targetValue = if (isSelected) 22.dp else 6.dp,
+                                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                            label = "dotWidth"
+                                        )
+                                        val dotColor = if (isSelected) com.mycodecalendar.core.designsystem.BrandPrimaryOrange
+                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+
+                                        Box(
+                                            modifier = Modifier
+                                                .padding(horizontal = 3.dp)
+                                                .height(5.dp)
+                                                .width(dotWidth)
+                                                .clip(CircleShape)
+                                                .background(dotColor)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -712,115 +723,127 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // ── QUICK ACCESS GRID ─────────────────────────────────────────────────
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
+                ScrollRevealContainer(
+                    delayMillis = 80,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    SectionHeader(title = "Quick Access")
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
                     ) {
-                        QuickAccessTile(
-                            icon = Icons.Rounded.EmojiEvents,
-                            label = "Contests",
-                            sublabel = "${uiState.upcomingContests.size} upcoming",
-                            accentColor = BrandPrimaryOrange,
-                            onClick = onViewAllContestsClick,
-                            modifier = Modifier.weight(1f)
-                        )
-                        QuickAccessTile(
-                            icon = Icons.Rounded.Code,
-                            label = "Problem\nof the Day",
-                            sublabel = if (uiState.dailyProblem != null) uiState.dailyProblem.difficulty else "LeetCode",
-                            accentColor = Color(0xFF38BDF8),
-                            onClick = {
-                                val link = uiState.dailyProblem?.link
-                                if (!link.isNullOrBlank()) {
-                                    try {
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
-                                        context.startActivity(intent)
-                                    } catch (_: Exception) {}
-                                }
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        QuickAccessTile(
-                            icon = Icons.AutoMirrored.Rounded.MenuBook,
-                            label = "Dev Hub",
-                            sublabel = "Resources & sheets",
-                            accentColor = Color(0xFFA855F7),
-                            onClick = { onResourceClick("https://neetcode.io") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        QuickAccessTile(
-                            icon = Icons.Rounded.BarChart,
-                            label = "My Ratings",
-                            sublabel = if (uiState.connectedStats.isNotEmpty())
-                                "${uiState.connectedStats.size} platforms"
-                            else "Connect now",
-                            accentColor = Color(0xFF22C55E),
-                            onClick = onAddPlatformClick,
-                            modifier = Modifier.weight(1f)
-                        )
+                        SectionHeader(title = "Quick Access")
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            QuickAccessTile(
+                                icon = Icons.Rounded.EmojiEvents,
+                                label = "Contests",
+                                sublabel = "${uiState.upcomingContests.size} upcoming",
+                                accentColor = BrandPrimaryOrange,
+                                onClick = onViewAllContestsClick,
+                                modifier = Modifier.weight(1f)
+                            )
+                            QuickAccessTile(
+                                icon = Icons.Rounded.Code,
+                                label = "Problem\nof the Day",
+                                sublabel = if (uiState.dailyProblem != null) uiState.dailyProblem.difficulty else "LeetCode",
+                                accentColor = Color(0xFF38BDF8),
+                                onClick = {
+                                    val link = uiState.dailyProblem?.link
+                                    if (!link.isNullOrBlank()) {
+                                        try {
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
+                                            context.startActivity(intent)
+                                        } catch (_: Exception) {}
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            QuickAccessTile(
+                                icon = Icons.AutoMirrored.Rounded.MenuBook,
+                                label = "Dev Hub",
+                                sublabel = "Resources & sheets",
+                                accentColor = Color(0xFFA855F7),
+                                onClick = { onResourceClick("https://neetcode.io") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            QuickAccessTile(
+                                icon = Icons.Rounded.BarChart,
+                                label = "My Ratings",
+                                sublabel = if (uiState.connectedStats.isNotEmpty())
+                                    "${uiState.connectedStats.size} platforms"
+                                else "Connect now",
+                                accentColor = Color(0xFF22C55E),
+                                onClick = onAddPlatformClick,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(28.dp))
 
                 // ── PLATFORM RATINGS & ACCOUNTS ──────────────────────────────────────
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                ScrollRevealContainer(
+                    delayMillis = 120,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    SectionHeader(
-                        title = "Connected Ratings",
-                        trailingContent = {
-                            TextButton(
-                                onClick = onAddPlatformClick,
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-                            ) {
-                                Icon(Icons.Rounded.Add, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
-                                Spacer(Modifier.width(4.dp))
-                                Text(
-                                    text = "Connect",
-                                    style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SectionHeader(
+                                title = "Connected Ratings",
+                                trailingContent = {
+                                    TextButton(
+                                        onClick = onAddPlatformClick,
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                    ) {
+                                        Icon(Icons.Rounded.Add, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(
+                                            text = "Connect",
+                                            style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            )
                         }
-                    )
-                }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                if (uiState.connectedStats.isEmpty()) {
-                    EmptyState(
-                        title = "No Platforms Connected",
-                        message = "Link your Codeforces, LeetCode, GitHub, or CodeChef handles to track ratings, streaks, and charts.",
-                        icon = Icons.Rounded.AddLink,
-                        actionLabel = "Connect Platforms",
-                        onActionClick = onAddPlatformClick,
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
-                } else {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(horizontal = 20.dp)
-                    ) {
-                        items(uiState.connectedStats) { stat ->
-                            PlatformRatingCard(stat = stat, onClick = { onPlatformClick(stat.platform) })
+                        if (uiState.connectedStats.isEmpty()) {
+                            EmptyState(
+                                title = "No Platforms Connected",
+                                message = "Link your Codeforces, LeetCode, GitHub, or CodeChef handles to track ratings, streaks, and charts.",
+                                icon = Icons.Rounded.AddLink,
+                                actionLabel = "Connect Platforms",
+                                onActionClick = onAddPlatformClick,
+                                modifier = Modifier.padding(horizontal = 20.dp)
+                            )
+                        } else {
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                contentPadding = PaddingValues(horizontal = 20.dp)
+                            ) {
+                                items(uiState.connectedStats) { stat ->
+                                    PlatformRatingCard(stat = stat, onClick = { onPlatformClick(stat.platform) })
+                                }
+                            }
                         }
                     }
                 }
@@ -830,103 +853,131 @@ fun HomeScreen(
                 // ── DAILY CODING CHALLENGE (POTD) ───────────────────────────────────
                 if (uiState.dailyProblem != null) {
                     val potd = uiState.dailyProblem
-                    SectionHeader(
-                        title = "Problem of the Day",
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                        trailingContent = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .background(Color(0xFFFFA116), CircleShape)
-                                )
-                                Text(
-                                    text = "LeetCode",
-                                    style = Typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.5.sp
-                                    ),
-                                    color = Color(0xFFFFA116)
-                                )
-                            }
+                    ScrollRevealContainer(
+                        delayMillis = 160,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            SectionHeader(
+                                title = "Problem of the Day",
+                                modifier = Modifier.padding(horizontal = 20.dp),
+                                trailingContent = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .background(Color(0xFFFFA116), CircleShape)
+                                        )
+                                        Text(
+                                            text = "LeetCode",
+                                            style = Typography.labelSmall.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 11.5.sp
+                                            ),
+                                            color = Color(0xFFFFA116)
+                                        )
+                                    }
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            DailyProblemCard(
+                                dailyProblem = potd,
+                                onClick = {
+                                    if (potd.link.isNotBlank()) {
+                                        try {
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(potd.link))
+                                            context.startActivity(intent)
+                                        } catch (_: Exception) {}
+                                    }
+                                },
+                                modifier = Modifier.padding(horizontal = 20.dp)
+                            )
                         }
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    DailyProblemCard(
-                        dailyProblem = potd,
-                        onClick = {
-                            if (potd.link.isNotBlank()) {
-                                try {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(potd.link))
-                                    context.startActivity(intent)
-                                } catch (_: Exception) {}
-                            }
-                        },
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
+                    }
                     Spacer(modifier = Modifier.height(32.dp))
                 } else if (isRefreshing) {
-                    SectionHeader(
-                        title = "Problem of the Day",
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    DailyProblemCardSkeleton(modifier = Modifier.padding(horizontal = 20.dp))
+                    ScrollRevealContainer(
+                        delayMillis = 160,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            SectionHeader(
+                                title = "Problem of the Day",
+                                modifier = Modifier.padding(horizontal = 20.dp)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            DailyProblemCardSkeleton(modifier = Modifier.padding(horizontal = 20.dp))
+                        }
+                    }
                     Spacer(modifier = Modifier.height(32.dp))
                 }
 
                 // ── OFFICIAL 2D GITHUB CONTRIBUTION HEATMAP GRID ────────────────────
                 uiState.gitHubStats?.let { gh ->
-                    SectionHeader(title = "GitHub Activity", modifier = Modifier.padding(horizontal = 20.dp))
-                    Spacer(modifier = Modifier.height(12.dp))
-                    GitHubActivityCard(
-                        stats = gh,
-                        onClick = { onPlatformClick(Platform.GITHUB) },
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
+                    ScrollRevealContainer(
+                        delayMillis = 200,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            SectionHeader(title = "GitHub Activity", modifier = Modifier.padding(horizontal = 20.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
+                            GitHubActivityCard(
+                                stats = gh,
+                                onClick = { onPlatformClick(Platform.GITHUB) },
+                                modifier = Modifier.padding(horizontal = 20.dp)
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(32.dp))
                 }
 
                 // ── UPCOMING CONTESTS STREAM ─────────────────────────────────────────
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                ScrollRevealContainer(
+                    delayMillis = 240,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    SectionHeader(
-                        title = "Upcoming Contests",
-                        trailingContent = {
-                            SeeAllButton(onClick = onViewAllContestsClick)
-                        }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                if (uiState.upcomingContests.isEmpty()) {
-                    EmptyState(
-                        title = "Radar Clear",
-                        message = "No upcoming contests found. Sync with the live radar to check for upcoming rounds across all platforms.",
-                        icon = Icons.Rounded.CloudSync,
-                        actionLabel = "Refresh Radar",
-                        onActionClick = onRefresh,
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
-                } else {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    ) {
-                        uiState.upcomingContests.take(4).forEach { contest ->
-                            UpcomingContestRow(
-                                contest = contest,
-                                onClick = { onContestClick(contest.id) }
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SectionHeader(
+                                title = "Upcoming Contests",
+                                trailingContent = {
+                                    SeeAllButton(onClick = onViewAllContestsClick)
+                                }
                             )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        if (uiState.upcomingContests.isEmpty()) {
+                            EmptyState(
+                                title = "Radar Clear",
+                                message = "No upcoming contests found. Sync with the live radar to check for upcoming rounds across all platforms.",
+                                icon = Icons.Rounded.CloudSync,
+                                actionLabel = "Refresh Radar",
+                                onActionClick = onRefresh,
+                                modifier = Modifier.padding(horizontal = 20.dp)
+                            )
+                        } else {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.padding(horizontal = 20.dp)
+                            ) {
+                                uiState.upcomingContests.take(4).forEach { contest ->
+                                    UpcomingContestRow(
+                                        contest = contest,
+                                        onClick = { onContestClick(contest.id) }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -935,19 +986,31 @@ fun HomeScreen(
 
                 // ── FEATURED STUDY RESOURCE ──────────────────────────────────────────
                 uiState.featuredResource?.let { resource ->
-                    SectionHeader(title = "Featured Resource", modifier = Modifier.padding(horizontal = 20.dp))
-                    Spacer(modifier = Modifier.height(12.dp))
-                    FeaturedResourceCard(
-                        resource = resource,
-                        onClick = { onResourceClick(resource.url) },
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
+                    ScrollRevealContainer(
+                        delayMillis = 280,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            SectionHeader(title = "Featured Resource", modifier = Modifier.padding(horizontal = 20.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
+                            FeaturedResourceCard(
+                                resource = resource,
+                                onClick = { onResourceClick(resource.url) },
+                                modifier = Modifier.padding(horizontal = 20.dp)
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(28.dp))
                 }
 
                 // ── LAST UPDATED TIMESTAMP ────────────────────────────────────────────
-                Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp), Alignment.Center) {
-                    LastUpdatedLabel(timeAgo = uiState.lastUpdatedText)
+                ScrollRevealContainer(
+                    delayMillis = 320,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp), Alignment.Center) {
+                        LastUpdatedLabel(timeAgo = uiState.lastUpdatedText)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(120.dp))
