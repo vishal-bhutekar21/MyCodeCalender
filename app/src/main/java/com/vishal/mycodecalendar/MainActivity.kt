@@ -270,6 +270,67 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                // ── REAL-TIME CUSTOM CONTESTS & FEATURED MATERIALS FROM CRM ─────────────
+                DisposableEffect(Unit) {
+                    val contestsReg = CloudAdminSyncService.listenToCloudCustomContests { cloudContests ->
+                        val domainContests = cloudContests.map { c ->
+                            val matchedPlatform = try {
+                                Platform.valueOf(c.organizer.uppercase(java.util.Locale.ROOT))
+                            } catch (_: Exception) {
+                                Platform.CODEFORCES
+                            }
+                            val now = java.time.Instant.now()
+                            val start = if (c.startTime > 0) java.time.Instant.ofEpochMilli(c.startTime) else now.plusSeconds(3600)
+                            val end = if (c.endTime > 0) java.time.Instant.ofEpochMilli(c.endTime) else start.plusSeconds(7200)
+                            val status = when {
+                                now.isBefore(start) -> com.mycodecalendar.domain.model.ContestStatus.UPCOMING
+                                now.isAfter(end) -> com.mycodecalendar.domain.model.ContestStatus.ENDED
+                                else -> com.mycodecalendar.domain.model.ContestStatus.LIVE
+                            }
+                            Contest(
+                                id = "custom_${c.id}",
+                                providerContestId = c.id,
+                                platform = matchedPlatform,
+                                name = c.name.ifBlank { "Community Hackathon" },
+                                officialUrl = c.registrationUrl.ifBlank { "https://mycodecalendar.app" },
+                                registrationUrl = c.registrationUrl.ifBlank { null },
+                                startTimeUtc = start,
+                                endTimeUtc = end,
+                                durationSeconds = java.time.Duration.between(start, end).seconds.coerceAtLeast(600),
+                                contestType = "COMMUNITY_HACKATHON",
+                                ratingType = "RATED",
+                                status = status,
+                                lastFetchedAt = now
+                            )
+                        }
+                        repository.setCloudCustomContests(domainContests)
+                    }
+
+                    val materialsReg = CloudAdminSyncService.listenToCloudFeaturedMaterials { cloudMaterials ->
+                        val domainMaterials = cloudMaterials.map { m ->
+                            com.mycodecalendar.domain.model.Resource(
+                                id = "cloud_${m.id}",
+                                title = m.title,
+                                description = m.description,
+                                creator = "Admin Curated",
+                                url = m.redirectUrl,
+                                category = m.category,
+                                platform = null,
+                                duration = null,
+                                priority = m.priority,
+                                thumbnailUrl = m.imageUrl.ifBlank { null },
+                                publishedAt = java.time.Instant.now()
+                            )
+                        }
+                        repository.setCloudFeaturedMaterials(domainMaterials)
+                    }
+
+                    onDispose {
+                        contestsReg?.remove()
+                        materialsReg?.remove()
+                    }
+                }
+
                 // ── SYNC STREAK TO CLOUD ONLY ON GENUINE LOCAL NEW DAY INCREMENT ──────
                 LaunchedEffect(isLoggedIn, streakInfo?.isNewDayIncrement) {
                     if (isLoggedIn && authMethod != "Guest" && streakInfo?.isNewDayIncrement == true) {

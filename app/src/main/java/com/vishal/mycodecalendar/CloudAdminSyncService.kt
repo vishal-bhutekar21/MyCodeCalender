@@ -103,7 +103,10 @@ object CloudAdminSyncService {
         connectedAccountsMap: Map<String, String> = emptyMap(),
         currentStreak: Int = 0
     ) {
-        val targetUid = uid?.ifBlank { null } ?: email?.replace(".", "_") ?: displayName.replace(" ", "_")
+        val targetUid = uid?.ifBlank { null }
+            ?: FirebaseAuth.getInstance().currentUser?.uid
+            ?: email?.replace(".", "_")
+            ?: displayName.replace(" ", "_")
         if (targetUid.isBlank()) return
 
         val userData = hashMapOf<String, Any>(
@@ -242,6 +245,64 @@ object CloudAdminSyncService {
     }
 
     /**
+     * Helper to parse string datetime (ISO-8601 or local format) to epoch milliseconds.
+     */
+    fun parseTimeStringToMillis(timeStr: String?): Long {
+        if (timeStr.isNullOrBlank()) return 0L
+        return try {
+            java.time.Instant.parse(timeStr).toEpochMilli()
+        } catch (_: Exception) {
+            try {
+                java.time.LocalDateTime.parse(timeStr)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli()
+            } catch (_: Exception) {
+                0L
+            }
+        }
+    }
+
+    /**
+     * Helper to parse a Firestore document into CloudCustomContest with cross-field compatibility.
+     */
+    private fun parseCustomContestDoc(doc: com.google.firebase.firestore.DocumentSnapshot): CloudCustomContest? {
+        return try {
+            val isActive = doc.getBoolean("isActive") ?: true
+            if (!isActive && doc.contains("isActive")) return null
+
+            val name = doc.getString("name") ?: doc.getString("title") ?: ""
+            val organizer = doc.getString("organizer") ?: doc.getString("platform") ?: "Community"
+            val banner = doc.getString("bannerUrl") ?: doc.getString("bannerImageUrl") ?: ""
+            val regUrl = doc.getString("registrationUrl") ?: doc.getString("url") ?: ""
+
+            val startMillis = doc.getTimestamp("startTime")?.toDate()?.time
+                ?: doc.getLong("startTime")
+                ?: parseTimeStringToMillis(doc.getString("startTime"))
+
+            val endMillis = doc.getTimestamp("endTime")?.toDate()?.time
+                ?: doc.getLong("endTime")
+                ?: parseTimeStringToMillis(doc.getString("endTime"))
+
+            @Suppress("UNCHECKED_CAST")
+            val tags = (doc.get("tags") as? List<String>) ?: emptyList()
+
+            CloudCustomContest(
+                id = doc.id,
+                name = name,
+                organizer = organizer,
+                bannerUrl = banner,
+                startTime = startMillis,
+                endTime = endMillis,
+                registrationUrl = regUrl,
+                tags = tags
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
      * Fetches custom community hackathons and contests from Firestore.
      */
     fun fetchCloudCustomContests(
@@ -249,34 +310,73 @@ object CloudAdminSyncService {
         onError: (Exception) -> Unit = {}
     ) {
         firestore.collection("custom_contests")
-            .orderBy("startTime", Query.Direction.ASCENDING)
             .get()
             .addOnSuccessListener { snapshot ->
-                val contests = snapshot.documents.mapNotNull { doc ->
-                    try {
-                        @Suppress("UNCHECKED_CAST")
-                        CloudCustomContest(
-                            id = doc.id,
-                            name = doc.getString("name") ?: "",
-                            organizer = doc.getString("organizer") ?: "",
-                            bannerUrl = doc.getString("bannerUrl") ?: "",
-                            startTime = doc.getTimestamp("startTime")?.toDate()?.time
-                                ?: doc.getLong("startTime") ?: 0L,
-                            endTime = doc.getTimestamp("endTime")?.toDate()?.time
-                                ?: doc.getLong("endTime") ?: 0L,
-                            registrationUrl = doc.getString("registrationUrl") ?: "",
-                            tags = (doc.get("tags") as? List<String>) ?: emptyList()
-                        )
-                    } catch (e: Exception) {
-                        null
-                    }
-                }
+                val contests = snapshot.documents.mapNotNull { parseCustomContestDoc(it) }
+                    .sortedBy { it.startTime }
                 onSuccess(contests)
             }
             .addOnFailureListener { e ->
                 Log.w(TAG, "Error fetching custom contests: ${e.message}")
                 onError(e)
             }
+    }
+
+    /**
+     * Real-time listener for custom hackathons/contests from Firestore.
+     */
+    fun listenToCloudCustomContests(
+        onUpdate: (List<CloudCustomContest>) -> Unit
+    ): com.google.firebase.firestore.ListenerRegistration? {
+        return try {
+            firestore.collection("custom_contests")
+                .addSnapshotListener { snapshot, error ->
+                    if (error == null && snapshot != null) {
+                        val contests = snapshot.documents.mapNotNull { parseCustomContestDoc(it) }
+                            .sortedBy { it.startTime }
+                        onUpdate(contests)
+                    }
+                }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error attaching listener to custom_contests: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Real-time listener for featured study materials & roadmap resources.
+     */
+    fun listenToCloudFeaturedMaterials(
+        onUpdate: (List<CloudFeaturedMaterial>) -> Unit
+    ): com.google.firebase.firestore.ListenerRegistration? {
+        return try {
+            firestore.collection("featured_materials")
+                .whereEqualTo("isActive", true)
+                .addSnapshotListener { snapshot, error ->
+                    if (error == null && snapshot != null) {
+                        val materials = snapshot.documents.mapNotNull { doc ->
+                            try {
+                                CloudFeaturedMaterial(
+                                    id = doc.id,
+                                    title = doc.getString("title") ?: "",
+                                    description = doc.getString("description") ?: "",
+                                    category = doc.getString("category") ?: "DSA",
+                                    imageUrl = doc.getString("imageUrl") ?: "",
+                                    redirectUrl = doc.getString("redirectUrl") ?: "",
+                                    priority = doc.getLong("priority")?.toInt() ?: 1,
+                                    isActive = doc.getBoolean("isActive") ?: true
+                                )
+                            } catch (_: Exception) {
+                                null
+                            }
+                        }.sortedBy { it.priority }
+                        onUpdate(materials)
+                    }
+                }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error attaching listener to featured_materials: ${e.message}")
+            null
+        }
     }
 
     /**
@@ -528,8 +628,8 @@ object CloudAdminSyncService {
         activeDates: Set<String>
     ) {
         val targetUid = uid?.ifBlank { null }
-            ?: email?.replace(".", "_")
             ?: FirebaseAuth.getInstance().currentUser?.uid
+            ?: email?.replace(".", "_")
             ?: FirebaseAuth.getInstance().currentUser?.email?.replace(".", "_")
             ?: return
         if (targetUid.isBlank() || currentStreak <= 0) return

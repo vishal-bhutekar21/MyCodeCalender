@@ -95,6 +95,8 @@ class FakeRepository(
 
     private val dailyProblemFlow = MutableStateFlow<DailyProblem?>(null)
 
+    private val resourcesFlow = MutableStateFlow<List<Resource>>(curatedResources)
+
     val fetchError = MutableStateFlow<String?>(null)
 
     val isRefreshing = MutableStateFlow(false)
@@ -1551,7 +1553,20 @@ class FakeRepository(
         }
     }
 
-    fun getResources(): Flow<List<Resource>> = MutableStateFlow(curatedResources)
+    fun getResources(): Flow<List<Resource>> = resourcesFlow
+
+    fun setCloudCustomContests(customList: List<Contest>) {
+        val current = contestsFlow.value
+        val merged = (current.filterNot { it.id.startsWith("custom_") } + customList)
+            .distinctBy { it.id }
+            .sortedBy { it.startTimeUtc }
+        contestsFlow.value = merged
+    }
+
+    fun setCloudFeaturedMaterials(cloudMaterials: List<Resource>) {
+        val merged = (cloudMaterials + curatedResources).distinctBy { it.url }
+        resourcesFlow.value = merged
+    }
 }
 
 
