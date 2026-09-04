@@ -104,29 +104,23 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            val isEffectiveDark = when (appTheme) {
-                AppTheme.DARK   -> true
-                AppTheme.LIGHT  -> false
-                AppTheme.SYSTEM -> isDarkTheme
-            }
+            val isEffectiveDark = false
 
-            DisposableEffect(isEffectiveDark) {
+            DisposableEffect(Unit) {
                 enableEdgeToEdge(
-                    statusBarStyle = SystemBarStyle.auto(
-                        lightScrim = Color.Transparent.toArgb(),
-                        darkScrim = Color.Transparent.toArgb(),
-                        detectDarkMode = { isEffectiveDark }
+                    statusBarStyle = SystemBarStyle.light(
+                        scrim = Color.Transparent.toArgb(),
+                        darkScrim = Color.Transparent.toArgb()
                     ),
-                    navigationBarStyle = SystemBarStyle.auto(
-                        lightScrim = Color.Transparent.toArgb(),
-                        darkScrim = Color.Transparent.toArgb(),
-                        detectDarkMode = { isEffectiveDark }
+                    navigationBarStyle = SystemBarStyle.light(
+                        scrim = Color.Transparent.toArgb(),
+                        darkScrim = Color.Transparent.toArgb()
                     )
                 )
                 onDispose {}
             }
 
-            MyCodeCalendarTheme(appTheme = appTheme) {
+            MyCodeCalendarTheme(appTheme = AppTheme.LIGHT) {
                 var authUsername by remember { mutableStateOf(authPrefs.getString("auth_username", "Developer")) }
                 var authMethod by remember { mutableStateOf(authPrefs.getString("auth_method", "Guest")) }
                 var authEmail by remember { mutableStateOf(authPrefs.getString("auth_email", null)) }
@@ -233,13 +227,7 @@ class MainActivity : ComponentActivity() {
                                             }
                                         }
                                     }
-                                    if (restoredCount > 0) {
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            "✓ Restored $restoredCount handles from your cloud profile",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
+                                    // Cloud handles synchronized silently without popup toast
                                 }
                             )
                         }

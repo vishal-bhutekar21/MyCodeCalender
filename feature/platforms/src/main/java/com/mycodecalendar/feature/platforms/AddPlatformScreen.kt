@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -80,6 +81,7 @@ fun AddPlatformScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
         ) {
             // ── TOP BAR ──────────────────────────────────────────────────────
@@ -95,13 +97,13 @@ fun AddPlatformScreen(
                     Text(
                         "Connect Platform",
                         style = Typography.headlineSmall.copy(fontWeight = FontWeight.Black),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = Color(0xFF0F172A)
                     )
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(3.dp))
                     Text(
-                        "Link your handle to track ratings and contests",
+                        "Link your competitive profile for live tracking",
                         style = Typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
+                        color = Color(0xFF64748B)
                     )
                 }
             }
@@ -112,12 +114,19 @@ fun AddPlatformScreen(
             if (connectedAccounts.isNotEmpty()) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                     Text(
-                        "Connected (${connectedAccounts.size})",
+                        "Linked Handles (${connectedAccounts.size})",
                         style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                        color = Color(0xFF64748B),
                         modifier = Modifier.padding(bottom = 8.dp, start = 2.dp)
                     )
-                    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 16.dp) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(3.dp, RoundedCornerShape(16.dp), spotColor = Color(0x10000000))
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(16.dp))
+                    ) {
                         Column {
                             connectedAccounts.forEachIndexed { idx, acc ->
                                 val acColor = acc.platform.getBrandColor()
@@ -135,41 +144,27 @@ fun AddPlatformScreen(
                                         // Brand color dot
                                         Box(
                                             modifier = Modifier
-                                                .size(8.dp)
+                                                .size(10.dp)
                                                 .background(acColor, CircleShape)
                                         )
-                                        Spacer(Modifier.width(10.dp))
+                                        Spacer(Modifier.width(12.dp))
                                         Column {
                                             Text(
                                                 text = "@${acc.username}",
-                                                style = Typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                                                color = MaterialTheme.colorScheme.onSurface
+                                                style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                                color = Color(0xFF0F172A)
                                             )
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                horizontalArrangement = Arrangement.spacedBy(5.dp)
                                             ) {
                                                 Text(
                                                     acc.platform.getDisplayName(),
-                                                    style = Typography.labelSmall,
-                                                    color = acColor.copy(alpha = 0.80f),
-                                                    fontSize = 10.sp
+                                                    style = Typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                                    color = acColor,
+                                                    fontSize = 11.sp
                                                 )
-                                                val syncLabel = when (acc.syncStatus) {
-                                                    "SYNCED"  -> "· Synced"
-                                                    "SYNCING" -> "· Syncing..."
-                                                    "ERROR"   -> "· Sync failed"
-                                                    else      -> ""
-                                                }
-                                                val syncColor = when (acc.syncStatus) {
-                                                    "SYNCED"  -> Color(0xFF10B981)
-                                                    "SYNCING" -> MaterialTheme.colorScheme.primary
-                                                    "ERROR"   -> Color(0xFFF87171)
-                                                    else      -> MaterialTheme.colorScheme.onSurfaceVariant
-                                                }
-                                                if (syncLabel.isNotBlank()) {
-                                                    Text(syncLabel, style = Typography.labelSmall, color = syncColor, fontSize = 10.sp)
-                                                }
+                                                Text("· Synced", style = Typography.labelSmall, color = Color(0xFF16A34A), fontSize = 11.sp)
                                             }
                                         }
                                     }
@@ -179,30 +174,30 @@ fun AddPlatformScreen(
                                     ) {
                                         Icon(
                                             Icons.Rounded.DeleteOutline, "Disconnect",
-                                            modifier = Modifier.size(16.dp),
-                                            tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
+                                            modifier = Modifier.size(17.dp),
+                                            tint = Color(0xFFEF4444).copy(alpha = 0.7f)
                                         )
                                     }
                                 }
                                 if (idx < connectedAccounts.lastIndex) {
                                     HorizontalDivider(
                                         modifier = Modifier.padding(horizontal = 14.dp),
-                                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)
+                                        color = Color(0xFFF1F5F9)
                                     )
                                 }
                             }
                         }
                     }
                 }
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(20.dp))
             }
 
             // ── PLATFORM SELECTOR ─────────────────────────────────────────────
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Text(
-                    "Select Platform",
+                    "Select Platform to Connect",
                     style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                    color = Color(0xFF64748B),
                     modifier = Modifier.padding(bottom = 10.dp, start = 2.dp)
                 )
 
@@ -212,22 +207,15 @@ fun AddPlatformScreen(
                         val color = platform.getBrandColor()
                         val alreadyLinked = connectedAccounts.any { it.platform == platform }
 
-                        val bgBrush = if (isSelected) Brush.horizontalGradient(
-                            listOf(color.copy(alpha = 0.22f), color.copy(alpha = 0.06f))
-                        ) else null
-
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .shadow(if (isSelected) 4.dp else 1.dp, RoundedCornerShape(14.dp), spotColor = if (isSelected) color.copy(alpha = 0.25f) else Color(0x08000000))
                                 .clip(RoundedCornerShape(14.dp))
-                                .then(
-                                    if (bgBrush != null) Modifier.background(bgBrush)
-                                    else Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
-                                )
+                                .background(if (isSelected) color.copy(alpha = 0.06f) else Color.White)
                                 .border(
-                                    width = if (isSelected) 1.5.dp else 0.6.dp,
-                                    color = if (isSelected) color.copy(alpha = 0.70f)
-                                            else color.copy(alpha = 0.25f),
+                                    width = if (isSelected) 1.6.dp else 1.dp,
+                                    color = if (isSelected) color else Color(0xFFE2E8F0),
                                     shape = RoundedCornerShape(14.dp)
                                 )
                                 .clickable {
@@ -235,61 +223,74 @@ fun AddPlatformScreen(
                                     validationError = null
                                     isSuccess = false
                                 }
+                                .padding(horizontal = 14.dp, vertical = 13.dp)
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 0.dp, vertical = 0.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                // Left accent bar
-                                Box(
-                                    modifier = Modifier
-                                        .width(4.dp)
-                                        .height(52.dp)
-                                        .background(
-                                            if (isSelected) color else Color.Transparent,
-                                            RoundedCornerShape(topStart = 14.dp, bottomStart = 14.dp)
-                                        )
-                                )
-                                Spacer(Modifier.width(14.dp))
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(end = 14.dp, top = 12.dp, bottom = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                        // Brand color indicator dot
-                                        Box(
-                                            modifier = Modifier
-                                                .size(10.dp)
-                                                .background(color, CircleShape)
-                                        )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clip(RoundedCornerShape(9.dp))
+                                            .background(color.copy(alpha = 0.12f))
+                                            .border(0.8.dp, color.copy(alpha = 0.25f), RoundedCornerShape(9.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
                                         Text(
-                                            text = platform.getDisplayName(),
-                                            style = Typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                                            color = if (isSelected) color
-                                                    else MaterialTheme.colorScheme.onSurface
+                                            text = when (platform) {
+                                                Platform.LEETCODE -> "LC"
+                                                Platform.CODEFORCES -> "CF"
+                                                Platform.CODECHEF -> "CC"
+                                                Platform.ATCODER -> "AC"
+                                                Platform.GITHUB -> "GH"
+                                                Platform.GEEKSFORGEEKS -> "GFG"
+                                            },
+                                            style = Typography.labelMedium.copy(fontWeight = FontWeight.Black, fontSize = 11.sp),
+                                            color = color
                                         )
                                     }
-                                    // Connected badge (no tick)
-                                    if (alreadyLinked) {
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(CircleShape)
-                                                .background(color.copy(alpha = 0.12f))
-                                                .border(1.dp, color.copy(alpha = 0.35f), CircleShape)
-                                                .padding(horizontal = 8.dp, vertical = 3.dp)
-                                        ) {
-                                            Text(
-                                                "● Connected",
-                                                style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                                color = color,
-                                                fontSize = 10.sp
-                                            )
-                                        }
+                                    Column {
+                                        Text(
+                                            text = platform.getDisplayName(),
+                                            style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = if (isSelected) color else Color(0xFF0F172A)
+                                        )
+                                        Text(
+                                            text = if (alreadyLinked) "Currently linked" else "Available to sync",
+                                            style = Typography.bodySmall.copy(fontSize = 11.sp),
+                                            color = Color(0xFF94A3B8)
+                                        )
+                                    }
+                                }
+
+                                if (alreadyLinked) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(Color(0xFFDCFCE7))
+                                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                                    ) {
+                                        Text(
+                                            "Linked",
+                                            style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
+                                            color = Color(0xFF15803D)
+                                        )
+                                    }
+                                } else if (isSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(CircleShape)
+                                            .background(color)
+                                            .size(18.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(Icons.Rounded.Check, null, tint = Color.White, modifier = Modifier.size(12.dp))
                                     }
                                 }
                             }
@@ -298,14 +299,14 @@ fun AddPlatformScreen(
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(22.dp))
 
             // ── HANDLE INPUT ──────────────────────────────────────────────────
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Text(
                     if (isAlreadyConnected) "Update Handle" else "Your Handle",
                     style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                    color = Color(0xFF64748B),
                     modifier = Modifier.padding(bottom = 8.dp, start = 2.dp)
                 )
 
@@ -320,7 +321,7 @@ fun AddPlatformScreen(
                         Text(
                             placeholderHint,
                             style = Typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f)
+                            color = Color(0xFF94A3B8)
                         )
                     },
                     leadingIcon = {
@@ -346,21 +347,19 @@ fun AddPlatformScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
                     singleLine = true,
-                    textStyle = Typography.bodyMedium,
+                    textStyle = Typography.bodyMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.SemiBold),
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                         keyboardType = androidx.compose.ui.text.input.KeyboardType.Text,
                         imeAction = androidx.compose.ui.text.input.ImeAction.Done
                     ),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.45f),
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
                         focusedBorderColor = if (validationError != null) MaterialTheme.colorScheme.error else brandColor,
                         unfocusedBorderColor = if (validationError != null) MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
-                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                            else Color(0xFFCBD5E1),
+                        focusedTextColor = Color(0xFF0F172A),
+                        unfocusedTextColor = Color(0xFF0F172A),
                         cursorColor = brandColor
                     )
                 )

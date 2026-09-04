@@ -48,9 +48,23 @@ import com.mycodecalendar.core.designsystem.Typography
 import com.mycodecalendar.core.designsystem.components.EmptyState
 import com.mycodecalendar.core.designsystem.components.GlassCard
 import com.mycodecalendar.core.designsystem.components.PlatformBadge
+import com.mycodecalendar.core.designsystem.components.getBrandColor
+import com.mycodecalendar.core.designsystem.components.getDisplayName
 import com.mycodecalendar.core.designsystem.components.SectionHeader
 import com.mycodecalendar.core.designsystem.isAppInDarkTheme
 import com.mycodecalendar.domain.model.PlatformAccount
+
+private fun getPlatformProfileUrl(platform: com.mycodecalendar.domain.model.Platform, username: String): String {
+    val clean = username.trim().removePrefix("@")
+    return when (platform) {
+        com.mycodecalendar.domain.model.Platform.LEETCODE -> "https://leetcode.com/u/$clean/"
+        com.mycodecalendar.domain.model.Platform.CODEFORCES -> "https://codeforces.com/profile/$clean"
+        com.mycodecalendar.domain.model.Platform.CODECHEF -> "https://www.codechef.com/users/$clean"
+        com.mycodecalendar.domain.model.Platform.ATCODER -> "https://atcoder.jp/users/$clean"
+        com.mycodecalendar.domain.model.Platform.GITHUB -> "https://github.com/$clean"
+        com.mycodecalendar.domain.model.Platform.GEEKSFORGEEKS -> "https://auth.geeksforgeeks.org/user/$clean/"
+    }
+}
 
 /**
  * SettingsScreen — Clean, Unified, Cohesive Settings & Developer Showcase.
@@ -159,48 +173,56 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // ── 2. COMPACT PROFILE HERO CARD ───────────────────────────────────────
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 20.dp,
-                    accentColor = BrandPrimaryOrange
+                // ── 2. PREMIUM WHITE PROFILE HERO CARD ──────────────────────────────────
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(6.dp, RoundedCornerShape(22.dp), spotColor = Color(0x14000000), ambientColor = Color(0x0A000000))
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(
+                            Brush.linearGradient(
+                                listOf(Color(0xFFFFFFFF), Color(0xFFFFFBF7))
+                            )
+                        )
+                        .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(22.dp))
+                        .padding(18.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
-                            // Glowing Avatar Container
+                            // Avatar with vibrant ring & verified check
                             Box(
                                 modifier = Modifier
-                                    .size(50.dp)
+                                    .size(54.dp)
                                     .clip(CircleShape)
                                     .background(
                                         Brush.linearGradient(
-                                            listOf(BrandPrimaryOrange, Color(0xFFFF3D00))
+                                            listOf(BrandPrimaryOrange, Color(0xFFFF9100))
                                         )
                                     )
-                                    .padding(2.dp)
+                                    .padding(2.5.dp)
                             ) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .clip(CircleShape)
-                                        .background(if (isDark) Color(0xFF0F172A) else Color(0xFFFFF7ED)),
+                                        .background(Color(0xFFFFF3E0)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (!authUsername.isNullOrBlank() && authUsername != "Guest Developer") {
                                         Text(
                                             text = authUsername.take(1).uppercase(),
-                                            style = Typography.titleMedium.copy(fontWeight = FontWeight.Black),
+                                            style = Typography.titleLarge.copy(fontWeight = FontWeight.Black),
                                             color = BrandPrimaryOrange
                                         )
                                     } else {
                                         Icon(
                                             Icons.Rounded.Person,
                                             contentDescription = null,
-                                            modifier = Modifier.size(24.dp),
+                                            modifier = Modifier.size(26.dp),
                                             tint = BrandPrimaryOrange
                                         )
                                     }
@@ -211,28 +233,27 @@ fun SettingsScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Text(
                                         text = authUsername ?: "Guest Developer",
-                                        style = Typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp),
-                                        color = MaterialTheme.colorScheme.onSurface,
+                                        style = Typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontSize = 17.sp),
+                                        color = Color(0xFF0F172A),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
-                                    if (authMethod != "Guest" && !authMethod.isNullOrBlank()) {
-                                        Icon(
-                                            Icons.Rounded.Verified,
-                                            contentDescription = "Verified",
-                                            modifier = Modifier.size(15.dp),
-                                            tint = Color(0xFF38BDF8)
-                                        )
-                                    }
+                                    Icon(
+                                        Icons.Rounded.Verified,
+                                        contentDescription = "Verified",
+                                        modifier = Modifier.size(16.dp),
+                                        tint = Color(0xFF0284C7)
+                                    )
                                 }
+                                Spacer(Modifier.height(2.dp))
                                 Text(
-                                    text = if (!authEmail.isNullOrBlank()) authEmail else (if (authMethod == "Guest") "Local guest mode" else "Google account sync"),
-                                    style = Typography.bodySmall.copy(fontSize = 11.5.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                                    text = if (!authEmail.isNullOrBlank()) authEmail else (if (authMethod == "Guest") "Local guest developer" else "Google account sync"),
+                                    style = Typography.bodySmall.copy(fontSize = 12.sp),
+                                    color = Color(0xFF64748B),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -242,56 +263,57 @@ fun SettingsScreen(
                             IconButton(
                                 onClick = onReplayOnboardingClick,
                                 modifier = Modifier
-                                    .size(34.dp)
+                                    .size(36.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                                    .background(Color(0xFFF1F5F9))
                             ) {
                                 Icon(
                                     Icons.Rounded.AutoAwesome,
                                     contentDescription = "Tour",
-                                    modifier = Modifier.size(16.dp),
+                                    modifier = Modifier.size(18.dp),
                                     tint = Color(0xFF6366F1)
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
-                        // Compact 3-stat pill row
+                        // 3-stat metric pill row
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (isDark) Color(0xFF0F172A).copy(alpha = 0.55f) else Color(0xFFF1F5F9))
-                                .padding(vertical = 9.dp, horizontal = 12.dp),
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color(0xFFF8FAFC))
+                                .border(0.8.dp, Color(0xFFE2E8F0), RoundedCornerShape(14.dp))
+                                .padding(vertical = 10.dp, horizontal = 12.dp),
                             horizontalArrangement = Arrangement.SpaceAround,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             // Streak
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
-                                Icon(Icons.Rounded.LocalFireDepartment, null, modifier = Modifier.size(15.dp), tint = BrandPrimaryOrange)
-                                Text("$currentStreak d Streak", style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp))
+                                Icon(Icons.Rounded.LocalFireDepartment, null, modifier = Modifier.size(16.dp), tint = BrandPrimaryOrange)
+                                Text("$currentStreak d Streak", style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.5.sp), color = Color(0xFF0F172A))
                             }
-                            Box(modifier = Modifier.height(16.dp).width(1.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)))
+                            Box(modifier = Modifier.height(18.dp).width(1.dp).background(Color(0xFFCBD5E1)))
                             // Platforms
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
-                                Icon(Icons.Rounded.Code, null, modifier = Modifier.size(15.dp), tint = Color(0xFF6366F1))
-                                Text("${connectedAccounts.size} Linked", style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp))
+                                Icon(Icons.Rounded.Code, null, modifier = Modifier.size(16.dp), tint = Color(0xFF6366F1))
+                                Text("${connectedAccounts.size} Linked", style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.5.sp), color = Color(0xFF0F172A))
                             }
-                            Box(modifier = Modifier.height(16.dp).width(1.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)))
+                            Box(modifier = Modifier.height(18.dp).width(1.dp).background(Color(0xFFCBD5E1)))
                             // Sync
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
-                                Icon(if (authMethod != "Guest") Icons.Rounded.CloudDone else Icons.Rounded.CloudOff, null, modifier = Modifier.size(15.dp), tint = if (authMethod != "Guest") Color(0xFF22C55E) else Color(0xFF94A3B8))
-                                Text(if (authMethod != "Guest") "Cloud" else "Local", style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp))
+                                Icon(Icons.Rounded.CloudDone, null, modifier = Modifier.size(16.dp), tint = Color(0xFF16A34A))
+                                Text(if (authMethod != "Guest") "Synced" else "Local", style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.5.sp), color = Color(0xFF0F172A))
                             }
                         }
                     }
@@ -302,27 +324,24 @@ fun SettingsScreen(
                 // ── 3. GROUP: PREFERENCES ──────────────────────────────────────────────
                 MinimalSectionLabel("PREFERENCES")
                 MinimalCardGroup {
-                    // Theme Row
+                    // Theme Row: locked to Daylight Pure White with clean pill
                     MinimalSettingRow(
-                        icon = if (isDark) Icons.Rounded.DarkMode else Icons.Rounded.LightMode,
-                        iconTint = MaterialTheme.colorScheme.primary,
-                        title = "Appearance",
-                        subtitle = when (currentTheme) {
-                            AppTheme.DARK -> "Dark (Obsidian)"
-                            AppTheme.LIGHT -> "Light (Daylight)"
-                            AppTheme.SYSTEM -> "Follow System"
-                        },
+                        icon = Icons.Rounded.WbSunny,
+                        iconTint = BrandPrimaryOrange,
+                        title = "App Theme",
+                        subtitle = "Daylight Pure White (Active)",
                         trailing = {
                             Row(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                                    .padding(2.dp),
-                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                    .background(Color(0xFFFFF7ED))
+                                    .border(1.dp, BrandPrimaryOrange.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+                                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                ThemeSegmentOption(Icons.Rounded.DarkMode, "Dark", currentTheme == AppTheme.DARK) { onThemeChange(AppTheme.DARK) }
-                                ThemeSegmentOption(Icons.Rounded.LightMode, "Light", currentTheme == AppTheme.LIGHT) { onThemeChange(AppTheme.LIGHT) }
-                                ThemeSegmentOption(Icons.Rounded.PhoneAndroid, "System", currentTheme == AppTheme.SYSTEM) { onThemeChange(AppTheme.SYSTEM) }
+                                Icon(Icons.Rounded.LightMode, null, tint = BrandPrimaryOrange, modifier = Modifier.size(13.dp))
+                                Text("Pure White", style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = BrandPrimaryOrange)
                             }
                         }
                     )
@@ -389,12 +408,22 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     MinimalSectionLabel("CONNECTED PLATFORMS")
-                    Text(
-                        text = "+ Connect",
-                        style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = BrandPrimaryOrange,
-                        modifier = Modifier.clickable(onClick = onAddPlatformClick)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(BrandPrimaryOrange.copy(alpha = 0.08f))
+                            .clickable(onClick = onAddPlatformClick)
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(Icons.Rounded.Add, null, modifier = Modifier.size(14.dp), tint = BrandPrimaryOrange)
+                        Text(
+                            text = "Connect",
+                            style = Typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = BrandPrimaryOrange
+                        )
+                    }
                 }
                 MinimalCardGroup {
                     if (connectedAccounts.isEmpty()) {
@@ -402,63 +431,119 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable(onClick = onAddPlatformClick)
-                                .padding(16.dp),
+                                .padding(18.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column {
                                 Text(
-                                    text = "No platforms connected",
-                                    style = Typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                                    text = "No platforms connected yet",
+                                    style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
+                                Spacer(Modifier.height(2.dp))
                                 Text(
-                                    text = "Link LeetCode, Codeforces, CodeChef & GitHub",
-                                    style = Typography.bodySmall.copy(fontSize = 11.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    text = "Tap to link LeetCode, Codeforces, CodeChef & GitHub",
+                                    style = Typography.bodySmall.copy(fontSize = 11.5.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                 )
                             }
                             Icon(
-                                Icons.Rounded.AddCircleOutline,
+                                Icons.Rounded.AddCircle,
                                 contentDescription = null,
                                 tint = BrandPrimaryOrange,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     } else {
                         connectedAccounts.forEachIndexed { idx, acc ->
+                            val pColor = acc.platform.getBrandColor()
+                            val profileUrl = getPlatformProfileUrl(acc.platform, acc.username)
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { onManageAccountClick(acc) }
-                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    .clickable { onOpenUrl(profileUrl) }
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.weight(1f)
                                 ) {
-                                    PlatformBadge(platform = acc.platform)
-                                    Column {
+                                    // Brand Logo Container
+                                    Box(
+                                        modifier = Modifier
+                                            .size(42.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(pColor.copy(alpha = 0.12f))
+                                            .border(1.dp, pColor.copy(alpha = 0.25f), RoundedCornerShape(12.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
                                         Text(
-                                            text = "@${acc.username}",
-                                            style = Typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                            color = MaterialTheme.colorScheme.onSurface
+                                            text = when (acc.platform) {
+                                                com.mycodecalendar.domain.model.Platform.LEETCODE -> "LC"
+                                                com.mycodecalendar.domain.model.Platform.CODEFORCES -> "CF"
+                                                com.mycodecalendar.domain.model.Platform.CODECHEF -> "CC"
+                                                com.mycodecalendar.domain.model.Platform.ATCODER -> "AC"
+                                                com.mycodecalendar.domain.model.Platform.GITHUB -> "GH"
+                                                com.mycodecalendar.domain.model.Platform.GEEKSFORGEEKS -> "GFG"
+                                            },
+                                            style = Typography.labelLarge.copy(fontWeight = FontWeight.Black, fontSize = 13.sp),
+                                            color = pColor
                                         )
+                                    }
+                                    Column {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                        ) {
+                                            Text(
+                                                text = "@${acc.username}",
+                                                style = Typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(6.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color(0xFF16A34A))
+                                            )
+                                        }
                                         Text(
-                                            text = acc.platform.name,
+                                            text = "${acc.platform.getDisplayName()} · Tap to open profile",
                                             style = Typography.bodySmall.copy(fontSize = 11.sp),
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
                                         )
                                     }
                                 }
-                                Icon(
-                                    Icons.Rounded.ChevronRight,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
-                                )
+
+                                // Right-side "Open ↗" pill
+                                Row(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFFF1F5F9))
+                                        .border(0.8.dp, Color(0xFFE2E8F0), RoundedCornerShape(8.dp))
+                                        .clickable { onOpenUrl(profileUrl) }
+                                        .padding(horizontal = 9.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        "Open",
+                                        style = Typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                                        color = Color(0xFF334155)
+                                    )
+                                    Icon(
+                                        Icons.AutoMirrored.Rounded.OpenInNew,
+                                        contentDescription = "Open in browser",
+                                        modifier = Modifier.size(13.dp),
+                                        tint = BrandPrimaryOrange
+                                    )
+                                }
                             }
                             if (idx < connectedAccounts.lastIndex) MinimalDivider()
                         }
@@ -1569,16 +1654,16 @@ private fun FeedbackReportModal(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(26.dp))
-                    .background(
-                        if (isDark) Color(0xFF111726) else Color(0xFFFAFAFC)
-                    )
+                    .heightIn(max = 680.dp)
+                    .shadow(12.dp, RoundedCornerShape(24.dp), spotColor = Color(0x18000000))
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color.White)
                     .border(
                         1.dp,
-                        accentColor.copy(alpha = 0.35f),
-                        RoundedCornerShape(26.dp)
+                        Color(0xFFE2E8F0),
+                        RoundedCornerShape(24.dp)
                     )
-                    .padding(22.dp)
+                    .padding(20.dp)
             ) {
                 if (isSubmitted) {
                     // Success View
@@ -1605,16 +1690,16 @@ private fun FeedbackReportModal(
                         }
 
                         Text(
-                            text = "Report Sent Successfully!",
+                            text = if (selectedType == "BUG_REPORT") "Bug Report Received!" else "Feedback Received!",
                             style = Typography.titleLarge.copy(fontWeight = FontWeight.Black),
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = Color(0xFF0F172A),
                             textAlign = TextAlign.Center
                         )
 
                         Text(
-                            text = "Thank you! Your feedback has been recorded and an email was prepared for developer Vishal Bhutekar. We appreciate you making CodeCalendar better!",
+                            text = "Thank you! Your submission has been saved and prepared for developer Vishal Bhutekar. We appreciate you making CodeCalendar better!",
                             style = Typography.bodySmall.copy(lineHeight = 18.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f),
+                            color = Color(0xFF64748B),
                             textAlign = TextAlign.Center
                         )
 
@@ -1657,7 +1742,7 @@ private fun FeedbackReportModal(
                                     modifier = Modifier
                                         .size(38.dp)
                                         .clip(RoundedCornerShape(11.dp))
-                                        .background(accentColor.copy(alpha = 0.15f)),
+                                        .background(accentColor.copy(alpha = 0.12f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -1673,14 +1758,22 @@ private fun FeedbackReportModal(
                                 }
                                 Column {
                                     Text(
-                                        text = "Send Feedback & Ideas",
+                                        text = when (selectedType) {
+                                            "BUG_REPORT" -> "Report a Bug / Issue"
+                                            "FEATURE_REQUEST" -> "Suggest a Feature"
+                                            else -> "Send Feedback"
+                                        },
                                         style = Typography.titleMedium.copy(fontWeight = FontWeight.Black),
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = Color(0xFF0F172A)
                                     )
                                     Text(
-                                        text = "Direct to Vishal Bhutekar",
+                                        text = when (selectedType) {
+                                            "BUG_REPORT" -> "Help us fix crashes & timer issues"
+                                            "FEATURE_REQUEST" -> "Suggest platforms or contest tools"
+                                            else -> "Direct to Vishal Bhutekar"
+                                        },
                                         style = Typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f)
+                                        color = Color(0xFF64748B)
                                     )
                                 }
                             }
@@ -1692,7 +1785,7 @@ private fun FeedbackReportModal(
                                 Icon(
                                     Icons.Rounded.Close,
                                     contentDescription = "Close",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f),
+                                    tint = Color(0xFF64748B),
                                     modifier = Modifier.size(18.dp)
                                 )
                             }

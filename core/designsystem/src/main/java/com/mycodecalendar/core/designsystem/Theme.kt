@@ -96,21 +96,15 @@ enum class AppTheme { LIGHT, DARK, SYSTEM }
  */
 val isAppInDarkTheme: Boolean
     @Composable
-    get() = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    get() = false
 
 @Composable
 fun MyCodeCalendarTheme(
-    appTheme: AppTheme = AppTheme.SYSTEM,
+    appTheme: AppTheme = AppTheme.LIGHT,
     content: @Composable () -> Unit
 ) {
-    val dark = when (appTheme) {
-        AppTheme.DARK   -> true
-        AppTheme.LIGHT  -> false
-        AppTheme.SYSTEM -> isSystemInDarkTheme()
-    }
-
     MaterialTheme(
-        colorScheme = if (dark) DarkColorScheme else LightColorScheme,
+        colorScheme = LightColorScheme,
         typography  = Typography,
         content     = content
     )
@@ -122,21 +116,17 @@ fun MyCodeCalendarTheme(
 
 /**
  * GlassmorphismBackground — full-screen background container with ambient mesh nodes.
- *
- * Dark Mode: Deep obsidian base (#080A0F) with soft ambient electric orange and indigo glows.
- * Light Mode: Clean off-white (#F9FAFB) with soft warm ambient glows.
+ * Exclusively designed for crisp, clean White / Daylight theme.
  */
 @Composable
 fun GlassmorphismBackground(
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit
 ) {
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-
-    val node1 = if (isDark) Color(0x22FF6B00) else Color(0x14FF6B00)  // soft electric orange glow
-    val node2 = if (isDark) Color(0x1C818CF8) else Color(0x126C5CE7)  // soft indigo glow
-    val node3 = if (isDark) Color(0x1438BDF8) else Color(0x0C38BDF8)  // soft cyan glow
-    val baseBg = if (isDark) Color(0xFF080A0F) else Color(0xFFF9FAFB)
+    val node1 = Color(0x14FF6B00)  // soft electric orange glow
+    val node2 = Color(0x106366F1)  // soft indigo glow
+    val node3 = Color(0x0C0284C7)  // soft cyan glow
+    val baseBg = Color(0xFFF8FAFC) // clean crisp off-white
 
     Box(
         modifier = modifier
