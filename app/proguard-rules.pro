@@ -70,3 +70,38 @@
 -keep public class * extends android.app.Application
 -keep public class * extends android.app.Service
 -keep public class * extends android.content.BroadcastReceiver
+
+# -----------------------------------------------------------------------------
+# 7. Advanced R8 Full-Mode Optimizations
+# -----------------------------------------------------------------------------
+-optimizationpasses 5
+-allowaccessmodification
+-repackageclasses ''
+
+# Strip debug and verbose logs from release binary
+-assumenosideeffects class android.util.Log {
+    public static boolean isLoggable(java.lang.String, int);
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+}
+
+# -----------------------------------------------------------------------------
+# 8. Firebase & Cloud Firestore
+# -----------------------------------------------------------------------------
+-dontwarn com.google.firebase.**
+-keepclassmembers class * {
+    @com.google.firebase.firestore.PropertyName <fields>;
+    @com.google.firebase.firestore.PropertyName <methods>;
+    @com.google.firebase.firestore.Exclude <fields>;
+    @com.google.firebase.firestore.Exclude <methods>;
+    @com.google.firebase.firestore.ServerTimestamp <fields>;
+}
+
+# -----------------------------------------------------------------------------
+# 9. Coil Image Loader
+# -----------------------------------------------------------------------------
+-dontwarn coil.**
+-dontwarn okhttp3.**
+-dontwarn okio.**
+
