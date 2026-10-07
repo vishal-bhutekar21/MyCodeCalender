@@ -8,10 +8,16 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -77,7 +83,24 @@ fun GlassCard(
         )
     )
 
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "glassCardPressScale"
+    )
+
     val containerModifier = modifier
+        .graphicsLayer {
+            if (onClick != null) {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
+        }
         .shadow(
             elevation = elevation,
             shape = cardShape,
@@ -110,7 +133,7 @@ fun GlassCard(
         .then(
             if (onClick != null) {
                 Modifier.clickable(
-                    interactionSource = remember { MutableInteractionSource() },
+                    interactionSource = interactionSource,
                     indication = rememberRipple(
                         bounded = true,
                         color = accentColor ?: MaterialTheme.colorScheme.primary
@@ -150,13 +173,28 @@ fun GlassChip(
     val textColor = if (selected) accentColor
     else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
 
+    val chipInteractionSource = remember { MutableInteractionSource() }
+    val isChipPressed by chipInteractionSource.collectIsPressedAsState()
+    val chipScale by animateFloatAsState(
+        targetValue = if (isChipPressed) 0.94f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "glassChipPressScale"
+    )
+
     Box(
         modifier = modifier
+            .graphicsLayer {
+                scaleX = chipScale
+                scaleY = chipScale
+            }
             .clip(CircleShape)
             .background(bgColor)
             .border(1.dp, borderColor, CircleShape)
             .clickable(
-                interactionSource = remember { MutableInteractionSource() },
+                interactionSource = chipInteractionSource,
                 indication = rememberRipple(bounded = true, color = accentColor),
                 onClick = onClick
             )

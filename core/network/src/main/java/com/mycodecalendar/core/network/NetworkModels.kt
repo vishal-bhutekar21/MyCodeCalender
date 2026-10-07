@@ -498,3 +498,31 @@ data class ApiError(
     val code: String,
     val message: String
 )
+
+// ── CLOUDFLARE WORKER GATEWAY DTOS ──────────────────────────────────────────
+
+@Serializable
+data class GatewayContestDto(
+    val id: String = "",
+    val providerContestId: String = "",
+    val platform: String = "",
+    val name: String = "",
+    val officialUrl: String = "",
+    val registrationUrl: String? = null,
+    val startTimeUtc: String = "",
+    val endTimeUtc: String = "",
+    val durationSeconds: Long = 0L,
+    val contestType: String? = null,
+    val ratingType: String? = null,
+    val status: String = "UPCOMING",
+    val lastFetchedAt: String = ""
+)
+
+@Serializable
+data class GatewayContestsResponseDto(
+    val status: String = "",
+    val count: Int = 0,
+    val cached: Boolean = false,
+    val data: List<GatewayContestDto> = emptyList()
+)
+

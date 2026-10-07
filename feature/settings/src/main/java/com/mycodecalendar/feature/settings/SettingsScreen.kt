@@ -51,6 +51,7 @@ import com.mycodecalendar.core.designsystem.components.PlatformBadge
 import com.mycodecalendar.core.designsystem.components.getBrandColor
 import com.mycodecalendar.core.designsystem.components.getDisplayName
 import com.mycodecalendar.core.designsystem.components.SectionHeader
+import com.mycodecalendar.core.designsystem.components.SettingsScreenSkeleton
 import com.mycodecalendar.core.designsystem.isAppInDarkTheme
 import com.mycodecalendar.domain.model.PlatformAccount
 
@@ -87,7 +88,8 @@ fun SettingsScreen(
     onShareApp: () -> Unit = {},
     onShareProfileText: (String) -> Unit = {},
     onOpenUrl: (String) -> Unit = {},
-    onSubmitFeedback: (type: String, title: String, description: String, email: String) -> Unit = { _, _, _, _ -> }
+    onSubmitFeedback: (type: String, title: String, description: String, email: String) -> Unit = { _, _, _, _ -> },
+    isLoading: Boolean = false
 ) {
     var notificationsEnabled by remember { mutableStateOf(true) }
     var calendarSyncEnabled by remember { mutableStateOf(true) }
@@ -127,13 +129,16 @@ fun SettingsScreen(
     val emailLink = "mailto:vishal.bhutekar1@gmail.com"
 
     GlassmorphismBackground {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-        ) {
+        if (isLoading) {
+            SettingsScreenSkeleton()
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp)
+            ) {
                 // ── 1. HEADER ──────────────────────────────────────────────────────────
                 Spacer(modifier = Modifier.height(20.dp))
                 Row(
@@ -736,6 +741,7 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(100.dp))
             }
+        }
 
         // ── NOTIFICATION PERMISSION RATIONALE DIALOG ──────────────────────────
         if (showNotificationPermDialog) {

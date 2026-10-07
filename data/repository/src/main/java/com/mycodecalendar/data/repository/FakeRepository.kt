@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import com.mycodecalendar.core.database.MyCodeCalendarDatabase
 import com.mycodecalendar.core.database.entity.GitHubStatsEntity
 import com.mycodecalendar.core.database.entity.SyncStateEntity
+import com.mycodecalendar.core.network.GatewayContestDto
 import com.mycodecalendar.core.network.LeetCodeStatsSummary
 import com.mycodecalendar.core.network.RemoteDataSource
 import com.mycodecalendar.domain.model.*
@@ -41,17 +42,19 @@ import java.time.temporal.TemporalAdjusters
  * - Returns an empty list if no platform accounts are connected, triggering the UI guidance card.
  */
 class FakeRepository(
-    private val context: Context? = null,
+    context: Context? = null,
     private val db: MyCodeCalendarDatabase? = null
 ) {
 
-    // ── PERSISTENCE ────────────────────────────────────────────────────────────
+    // ── PERSISTENCE (APPLICATION CONTEXT SCOPED) ──────────────────────────────
 
-    private val prefs: SharedPreferences? = context?.getSharedPreferences(
+    private val appContext: Context? = context?.applicationContext ?: context
+
+    private val prefs: SharedPreferences? = appContext?.getSharedPreferences(
         "platform_accounts", Context.MODE_PRIVATE
     )
 
-    private val streakPrefs: SharedPreferences? = context?.getSharedPreferences(
+    private val streakPrefs: SharedPreferences? = appContext?.getSharedPreferences(
         "app_streak_prefs", Context.MODE_PRIVATE
     )
 
@@ -87,7 +90,7 @@ class FakeRepository(
 
     private val contestsFlow = MutableStateFlow<List<Contest>>(emptyList())
 
-    private val watchlistPrefs: SharedPreferences? = context?.getSharedPreferences(
+    private val watchlistPrefs: SharedPreferences? = appContext?.getSharedPreferences(
         "contest_watchlist_prefs", Context.MODE_PRIVATE
     )
 
@@ -121,7 +124,7 @@ class FakeRepository(
      * Prevents unauthenticated/guest sessions from loading or displaying previous user caches.
      */
     private fun isUserLoggedIn(): Boolean {
-        val ctx = context ?: return false
+        val ctx = appContext ?: return false
         val authPrefs = ctx.getSharedPreferences("app_auth_prefs", Context.MODE_PRIVATE)
         val isLoggedIn = authPrefs.getBoolean("is_logged_in", false)
         return isLoggedIn
@@ -390,16 +393,56 @@ class FakeRepository(
 
     // ── LIVE FETCH IMPLEMENTATIONS ────────────────────────────────────────────
 
+    private fun GatewayContestDto.toDomain(): Contest? {
+        val parsedPlatform = parsePlatform(this.platform) ?: return null
+        val start = parseIsoInstant(this.startTimeUtc) ?: return null
+        val duration = if (this.durationSeconds > 0) this.durationSeconds else 7200L
+        val end = parseIsoInstant(this.endTimeUtc) ?: start.plusSeconds(duration)
+        val computedStatus = computeStatus(start, end)
+        if (computedStatus == ContestStatus.ENDED) return null
+
+        return Contest(
+            id = this.id.ifBlank { "${parsedPlatform.name.lowercase()}-${this.providerContestId}" },
+            providerContestId = this.providerContestId.ifBlank { this.id },
+            platform = parsedPlatform,
+            name = this.name,
+            officialUrl = this.officialUrl,
+            registrationUrl = this.registrationUrl ?: this.officialUrl,
+            startTimeUtc = start,
+            endTimeUtc = end,
+            durationSeconds = duration,
+            contestType = this.contestType ?: "${parsedPlatform.name} Contest",
+            ratingType = this.ratingType ?: "Rated",
+            status = computedStatus,
+            lastFetchedAt = parseIsoInstant(this.lastFetchedAt) ?: Instant.now()
+        )
+    }
+
     private suspend fun fetchLiveContests() {
         val liveContests = mutableListOf<Contest>()
         val nowEpoch = Instant.now().epochSecond
 
-        // 1. Fetch Real LeetCode Contests via Official GraphQL
+        // 0. Primary Fast-Path: Cloudflare Edge Gateway
+        // Pre-aggregates LeetCode, Codeforces, AtCoder, and CodeChef at edge with global KV caching (<150ms).
         try {
-            val lcResult = remoteDataSource.fetchLeetCodeContests()
-            if (lcResult.isSuccess) {
-                val lcList = lcResult.getOrDefault(emptyList())
-                lcList.filter { !it.isVirtual && (it.startTime + it.duration >= nowEpoch - 7200) }
+            val gatewayResult = remoteDataSource.fetchGatewayContests()
+            if (gatewayResult.isSuccess) {
+                val gatewayList = gatewayResult.getOrDefault(emptyList())
+                val mapped = gatewayList.mapNotNull { it.toDomain() }
+                if (mapped.isNotEmpty()) {
+                    liveContests.addAll(mapped)
+                }
+            }
+        } catch (_: Exception) {}
+
+        // Fallback: If edge gateway returned no contests or failed, fetch directly from upstream APIs
+        if (liveContests.isEmpty()) {
+            // 1. Fetch Real LeetCode Contests via Official GraphQL
+            try {
+                val lcResult = remoteDataSource.fetchLeetCodeContests()
+                if (lcResult.isSuccess) {
+                    val lcList = lcResult.getOrDefault(emptyList())
+                    lcList.filter { !it.isVirtual && (it.startTime + it.duration >= nowEpoch - 7200) }
                     .take(10)
                     .forEach { lc ->
                         val start = Instant.ofEpochSecond(lc.startTime)
@@ -553,6 +596,7 @@ class FakeRepository(
                 }
             }
         } catch (_: Exception) {}
+        }
 
 
         if (liveContests.isNotEmpty()) {
@@ -627,7 +671,7 @@ class FakeRepository(
                 if (cachedDomain != null && cachedDomain.dailyContributions.isNotEmpty()) {
                     cachedDomain.dailyContributions
                 } else {
-                    generateFallbackDailyContributions(username)
+                    emptyList()
                 }
             }
 
@@ -1157,23 +1201,19 @@ class FakeRepository(
             gitHubStatsFlow.value = cachedGh.toDomain(jsonSerializer)
             return
         }
-        val fallbackContribs = generateFallbackDailyContributions(username)
-        val totalContribs = fallbackContribs.sumOf { it.count }
-        val streak = computeStreak(fallbackContribs)
-        val longest = computeLongestStreak(fallbackContribs)
         gitHubStatsFlow.value = GitHubStats(
             username = username,
             name = username,
             avatarUrl = "https://github.com/$username.png",
-            publicRepos = 14,
-            totalStars = 6,
-            totalContributionsThisYear = totalContribs,
-            currentContributionStreak = streak,
-            longestContributionStreak = longest,
-            topLanguages = listOf("Kotlin", "Python", "TypeScript", "Java"),
-            followers = 12,
-            following = 8,
-            dailyContributions = fallbackContribs,
+            publicRepos = 0,
+            totalStars = 0,
+            totalContributionsThisYear = 0,
+            currentContributionStreak = 0,
+            longestContributionStreak = 0,
+            topLanguages = emptyList(),
+            followers = 0,
+            following = 0,
+            dailyContributions = emptyList(),
             repos = emptyList(),
             lastUpdated = Instant.now()
         )
@@ -1250,28 +1290,6 @@ class FakeRepository(
         return challenges[dayIndex]
     }
 
-    private fun generateFallbackDailyContributions(username: String): List<DailyContribution> {
-        val today = LocalDate.now()
-        val seed = username.hashCode().toLong().let { if (it < 0) -it else it }
-        return (364 downTo 0).map { daysAgo ->
-            val date = today.minusDays(daysAgo.toLong())
-            val count = ((seed + daysAgo) % 12).toInt()
-            val level = when {
-                count >= 8 -> 4
-                count >= 5 -> 3
-                count >= 2 -> 2
-                count >= 1 -> 1
-                else -> 0
-            }
-            DailyContribution(
-                date = date.format(DateTimeFormatter.ISO_LOCAL_DATE),
-                count = count,
-                level = level,
-                dayOfWeek = date.dayOfWeek.name.take(3).lowercase()
-                    .replaceFirstChar { it.uppercase() }
-            )
-        }
-    }
 
     private fun ratingToRank(platform: Platform, rating: Int): String = when (platform) {
         Platform.CODEFORCES -> when {

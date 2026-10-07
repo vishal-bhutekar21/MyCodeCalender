@@ -124,23 +124,30 @@ Designed with **Jetpack Compose**, **Material 3 OLED Glassmorphism**, and a modu
 CodeCalendar/
 ├── app/                        # Application entry point, MainActivity, Themes, ProGuard
 │
+├── workers/
+│   └── codecalendar-gateway/   # Cloudflare Edge Worker (Cron Aggregator, KV Cache, Stats Proxy)
+│
 ├── core/
 │   ├── designsystem/           # Color tokens, Typography, GlassCard, ShimmerEffect, FloatingBottomNav
-│   ├── database/               # Room DB, DAOs (PlatformStatsDao, RatingHistoryDao, SyncStateDao)
-│   ├── network/                # Ktor client, RemoteDataSource, Contest API models
-│   ├── common/                 # NetworkMonitor, DateFormatters, DispatcherProviders
-│   ├── notifications/          # ReminderScheduler, AlarmManager integration
-│   ├── model/                  # Domain-shared cross-module models
-│   └── analytics/              # Analytics tracker abstraction
+│   ├── database/               # Room DB (ReminderDao, PlatformStatsDao, RatingHistoryDao, SyncStateDao)
+│   ├── network/                # Ktor client, RemoteDataSource, Cloudflare Gateway client
+│   ├── common/                 # NetworkMonitor, AppLogger, DispatcherProviders
+│   ├── notifications/          # ReminderScheduler, BootCompletedReceiver, AlarmManager integration
+│   ├── calendar/               # CalendarContractManager system calendar integration
+│   ├── navigation/             # Type-safe navigation routes
+│   └── model/                  # Domain-shared cross-module models
 │
 ├── domain/
-│   └── model/                  # Pure Kotlin entities (Contest, PlatformStats, StreakInfo, Resource)
+│   ├── model/                  # Pure Kotlin entities (Contest, PlatformStats, StreakInfo, Resource)
+│   ├── repository/             # Domain repository interfaces
+│   └── usecase/                # Domain business logic use cases
 │
 ├── data/
-│   ├── repository/             # FakeRepository, Offline Cache, DomainEntityMappers
-│   ├── local/                  # Local Room data source delegates
-│   ├── remote/                 # Network data source delegates
-│   └── mapper/                 # Entity ↔ Domain model mappers
+│   └── repository/             # FakeRepository, Offline Cache, SharedPreferences persistence
+│
+├── sync/                       # Android WorkManager periodic background sync
+│
+├── codecalendar-admin/         # React Admin CMS Dashboard (Vite, TypeScript, Tailwind)
 │
 └── feature/
     ├── home/                   # Dashboard, Hero next contest card, StreakScreen, HomeViewModel

@@ -43,6 +43,7 @@ import com.mycodecalendar.core.designsystem.components.GlassBackButton
 import com.mycodecalendar.core.designsystem.components.GlassCard
 import com.mycodecalendar.core.designsystem.components.PlatformBadge
 import com.mycodecalendar.core.designsystem.components.PlatformDetailSkeleton
+import com.mycodecalendar.core.designsystem.components.GitHubDetailSkeleton
 import com.mycodecalendar.core.designsystem.components.SectionHeader
 import com.mycodecalendar.core.designsystem.components.getBrandColor
 import com.mycodecalendar.domain.model.GitHubRepo
@@ -59,6 +60,7 @@ fun PlatformDetailScreen(
     stats: PlatformStats?,
     ratingHistory: List<RatingPoint>,
     gitHubStats: GitHubStats? = null,
+    isLoading: Boolean = false,
     onOpenUrl: (String) -> Unit = {},
     onBackClick: () -> Unit
 ) {
@@ -93,7 +95,9 @@ fun PlatformDetailScreen(
                 }
             }
 
-            if (stats == null) {
+            if (stats == null && isLoading) {
+                PlatformDetailSkeleton()
+            } else if (stats == null) {
                 EmptyState(
                     title = "Account Not Connected",
                     message = "No platform account statistics found. Connect your profile handle to track your ratings and contest progress.",
@@ -103,18 +107,26 @@ fun PlatformDetailScreen(
                 )
             } else if (stats.platform == Platform.GITHUB) {
                 // ── Dedicated GitHub Detail View ────────────────────────────
-                GitHubDetailContent(
-                    stats = stats,
-                    gitHubStats = gitHubStats,
-                    onOpenUrl = onOpenUrl
-                )
+                if (gitHubStats == null && isLoading) {
+                    GitHubDetailSkeleton()
+                } else {
+                    GitHubDetailContent(
+                        stats = stats,
+                        gitHubStats = gitHubStats,
+                        onOpenUrl = onOpenUrl
+                    )
+                }
             } else {
                 // ── Competitive Programming Platform Detail View ────────────
-                CpDetailContent(
-                    stats = stats,
-                    ratingHistory = ratingHistory,
-                    brandColor = brandColor
-                )
+                if (stats.rank == "Connecting..." && stats.rating == null && stats.solved == null) {
+                    PlatformDetailSkeleton()
+                } else {
+                    CpDetailContent(
+                        stats = stats,
+                        ratingHistory = ratingHistory,
+                        brandColor = brandColor
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(100.dp))

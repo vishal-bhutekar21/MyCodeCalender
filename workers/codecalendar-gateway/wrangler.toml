@@ -1,0 +1,26 @@
+name = "codecalendar-gateway"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# 10-minute cron trigger to warm global cache and aggregate upstream platforms
+[triggers]
+crons = ["*/10 * * * *"]
+
+# Global KV namespace for caching contests and proxied user stats
+[[kv_namespaces]]
+binding = "CONTEST_CACHE"
+id = "codecalendar_contest_cache"
+preview_id = "preview_contest_cache"
+
+# Environment variables
+[vars]
+ENVIRONMENT = "production"
+APP_NAME = "CodeCalendar Gateway"
+API_VERSION = "v1"
+
+# Production deployment route on custom domain
+# routes = [
+#   { pattern = "api.mycodecalendar.com/*", zone_name = "mycodecalendar.com" },
+#   { pattern = "codecalendar-gateway.vishalbhutekar.me/*", zone_name = "vishalbhutekar.me" }
+# ]

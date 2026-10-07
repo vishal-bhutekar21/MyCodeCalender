@@ -10,7 +10,9 @@ import {
   orderBy,
   onSnapshot,
   serverTimestamp,
-  writeBatch
+  writeBatch,
+  getCountFromServer,
+  limit
 } from 'firebase/firestore';
 import { firestore } from './firebase';
 import type {
@@ -178,9 +180,10 @@ export const deleteCustomContest = async (id: string): Promise<void> => {
 // ── USERS DIRECTORY ──────────────────────────────────────────────────────────
 
 export const subscribeToUsers = (
-  callback: (users: UserAccount[]) => void
+  callback: (users: UserAccount[]) => void,
+  maxUsers: number = 100
 ) => {
-  const q = collection(firestore, 'users');
+  const q = query(collection(firestore, 'users'), limit(maxUsers));
   return onSnapshot(q, (snapshot) => {
     const users: UserAccount[] = snapshot.docs.map((docSnap) => ({
       uid: docSnap.id,
@@ -193,9 +196,10 @@ export const subscribeToUsers = (
 // ── DELETION REQUESTS & GDPR SAFETY ──────────────────────────────────────────
 
 export const subscribeToDeletionRequests = (
-  callback: (requests: DeletionRequest[]) => void
+  callback: (requests: DeletionRequest[]) => void,
+  maxRequests: number = 100
 ) => {
-  const q = collection(firestore, 'deletion_requests');
+  const q = query(collection(firestore, 'deletion_requests'), limit(maxRequests));
   return onSnapshot(q, (snapshot) => {
     const requests: DeletionRequest[] = snapshot.docs.map((docSnap) => ({
       id: docSnap.id,
@@ -236,23 +240,23 @@ export const rejectDeletionRequest = async (requestId: string): Promise<void> =>
 
 export const fetchDashboardMetrics = async (): Promise<DashboardMetrics> => {
   try {
-    const [usersSnap, broadcastsSnap, materialsSnap, deletionsSnap, contestsSnap] = await Promise.all([
-      getDocs(collection(firestore, 'users')),
-      getDocs(query(collection(firestore, 'broadcasts'), where('isActive', '==', true))),
-      getDocs(collection(firestore, 'featured_materials')),
-      getDocs(query(collection(firestore, 'deletion_requests'), where('status', '==', 'PENDING'))),
-      getDocs(collection(firestore, 'custom_contests'))
+    const [usersCount, broadcastsCount, materialsCount, deletionsCount, contestsCount] = await Promise.all([
+      getCountFromServer(collection(firestore, 'users')),
+      getCountFromServer(query(collection(firestore, 'broadcasts'), where('isActive', '==', true))),
+      getCountFromServer(collection(firestore, 'featured_materials')),
+      getCountFromServer(query(collection(firestore, 'deletion_requests'), where('status', '==', 'PENDING'))),
+      getCountFromServer(collection(firestore, 'custom_contests'))
     ]);
 
     return {
-      totalUsers: usersSnap.size,
-      activeBroadcasts: broadcastsSnap.size,
-      publishedMaterials: materialsSnap.size,
-      pendingDeletions: deletionsSnap.size,
-      totalCustomContests: contestsSnap.size
+      totalUsers: usersCount.data().count,
+      activeBroadcasts: broadcastsCount.data().count,
+      publishedMaterials: materialsCount.data().count,
+      pendingDeletions: deletionsCount.data().count,
+      totalCustomContests: contestsCount.data().count
     };
   } catch (err) {
-    console.error('Error fetching dashboard metrics:', err);
+    console.error('Error fetching dashboard metrics with getCountFromServer:', err);
     return {
       totalUsers: 0,
       activeBroadcasts: 0,

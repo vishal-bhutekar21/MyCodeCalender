@@ -41,6 +41,7 @@ import com.mycodecalendar.core.designsystem.BrandPrimaryOrange
 import com.mycodecalendar.core.designsystem.GlassmorphismBackground
 import com.mycodecalendar.core.designsystem.Typography
 import com.mycodecalendar.core.designsystem.components.ContestCardSkeleton
+import com.mycodecalendar.core.designsystem.components.HackathonCardSkeleton
 import com.mycodecalendar.core.designsystem.components.EmptyState
 import com.mycodecalendar.core.designsystem.components.GlassCard
 import com.mycodecalendar.core.designsystem.components.GlassChip
@@ -573,7 +574,11 @@ fun ContestsScreen(
                                 )
                             }
 
-                            if (filteredContests.isEmpty()) {
+                            if (contests.isEmpty()) {
+                                items(4) {
+                                    ContestCardSkeleton()
+                                }
+                            } else if (filteredContests.isEmpty()) {
                                 item {
                                     EmptyState(
                                         title = if (selectedCalendarDate != null) "No Contests On Date" else "No Contests Found",
@@ -666,7 +671,18 @@ fun ContestsScreen(
                 }
                 1 -> {
                     // HACKATHONS FEED
-                    if (filteredHackathons.isEmpty()) {
+                    if (allHackathons.isEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            repeat(3) {
+                                HackathonCardSkeleton()
+                            }
+                        }
+                    } else if (filteredHackathons.isEmpty()) {
                         EmptyState(
                             title = "No Hackathons Found",
                             message = "No upcoming hackathons match your search criteria.",

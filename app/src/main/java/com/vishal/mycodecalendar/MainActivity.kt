@@ -39,9 +39,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.room.Room
 import com.mycodecalendar.core.common.NetworkMonitor
 import com.mycodecalendar.core.database.MyCodeCalendarDatabase
+import com.mycodecalendar.core.notifications.ReminderScheduler
 import com.mycodecalendar.core.designsystem.AppTheme
+import com.mycodecalendar.core.designsystem.GlassmorphismBackground
 import com.mycodecalendar.core.designsystem.MyCodeCalendarTheme
 import com.mycodecalendar.core.designsystem.components.AuthRequiredModal
+import com.mycodecalendar.core.designsystem.components.ContestDetailSkeleton
 import com.mycodecalendar.core.designsystem.components.FloatingBottomNavigation
 import com.mycodecalendar.core.designsystem.components.GlassCard
 import com.mycodecalendar.data.repository.FakeRepository
@@ -64,6 +67,7 @@ import com.mycodecalendar.feature.platformdetail.PlatformDetailScreen
 import com.mycodecalendar.feature.platforms.AddPlatformScreen
 import com.mycodecalendar.feature.resources.ResourcesScreen
 import com.mycodecalendar.feature.settings.SettingsScreen
+import com.mycodecalendar.sync.SyncManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -80,6 +84,19 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         intent.data?.let { pendingDeepLink.value = it }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun signOutGoogleClient() {
+        try {
+            com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+            val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
+                com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
+            ).build()
+            com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(this, gso).signOut()
+        } catch (_: Exception) {
+            // Ignore if already signed out
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -100,6 +117,13 @@ class MainActivity : ComponentActivity() {
             networkMonitor?.isOnline?.collect { isOnline ->
                 repository.onConnectivityChanged(isOnline)
             }
+        }
+
+        // Schedule periodic background contest synchronization
+        try {
+            SyncManager(applicationContext).schedulePeriodicSync()
+        } catch (e: Exception) {
+            // WorkManager fallback
         }
 
         setContent {
@@ -437,8 +461,6 @@ class MainActivity : ComponentActivity() {
                             composable("auth") {
                                 AuthScreen(
                                     onAuthSuccess = { user, method, email, photoUrl ->
-                                        repository.clearAllUserData()
-
                                         authPrefs.edit()
                                             .putBoolean("onboarding_completed", true)
                                             .putBoolean("terms_accepted", true)
@@ -455,12 +477,36 @@ class MainActivity : ComponentActivity() {
                                         authEmail = email
                                         authAvatar = photoUrl
 
-                                        // Sync profile and restore streak/accounts to Firestore
+                                        // Restore accounts and streak from cloud, then sync profile
                                         try {
                                             val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
                                                 ?: email?.replace(".", "_")
                                                 ?: user.replace(" ", "_")
                                             if (!currentUid.isNullOrBlank()) {
+                                                // 1. Fetch connected accounts linked to this user from cloud
+                                                CloudAdminSyncService.fetchConnectedAccountsFromCloud(
+                                                    uid = currentUid,
+                                                    onSuccess = { cloudAccounts: Map<String, String> ->
+                                                        for ((pName, handle) in cloudAccounts) {
+                                                            val platform = runCatching { Platform.valueOf(pName.uppercase(java.util.Locale.ROOT)) }.getOrNull()
+                                                            if (platform != null && handle.isNotBlank()) {
+                                                                repository.addPlatformAccount(platform, handle)
+                                                            }
+                                                        }
+                                                    }
+                                                )
+
+                                                // 2. Fetch and merge user streak from cloud
+                                                CloudAdminSyncService.fetchUserStreakFromCloud(
+                                                    uid = currentUid,
+                                                    onSuccess = { cloudStreak, cloudDates ->
+                                                        if (cloudStreak > 0 || cloudDates.isNotEmpty()) {
+                                                            repository.mergeCloudStreak(cloudStreak, cloudDates)
+                                                        }
+                                                    }
+                                                )
+
+                                                // 3. Sync profile metadata to cloud (non-destructive)
                                                 val connMap = connectedAccounts.associate { it.platform.name.lowercase() to it.username }
                                                 val currentStreak = streakInfo?.currentStreak ?: 0
                                                 CloudAdminSyncService.syncUserProfileToCloud(
@@ -472,27 +518,6 @@ class MainActivity : ComponentActivity() {
                                                     connectedPlatforms = connectedAccounts.map { it.platform.name },
                                                     connectedAccountsMap = connMap,
                                                     currentStreak = currentStreak
-                                                )
-                                                // Fetch and merge user streak from cloud
-                                                CloudAdminSyncService.fetchUserStreakFromCloud(
-                                                    uid = currentUid,
-                                                    onSuccess = { cloudStreak, cloudDates ->
-                                                        if (cloudStreak > 0 || cloudDates.isNotEmpty()) {
-                                                            repository.mergeCloudStreak(cloudStreak, cloudDates)
-                                                        }
-                                                    }
-                                                )
-                                                // Fetch connected accounts linked to this user
-                                                CloudAdminSyncService.fetchConnectedAccountsFromCloud(
-                                                    uid = currentUid,
-                                                    onSuccess = { cloudAccounts: Map<String, String> ->
-                                                        for ((pName, handle) in cloudAccounts) {
-                                                            val platform = runCatching { Platform.valueOf(pName.uppercase(java.util.Locale.ROOT)) }.getOrNull()
-                                                            if (platform != null && handle.isNotBlank()) {
-                                                                repository.addPlatformAccount(platform, handle)
-                                                            }
-                                                        }
-                                                    }
                                                 )
                                             }
                                         } catch (e: Exception) {
@@ -623,11 +648,13 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onShareContest = { contest -> shareContest(contest) },
                                     onSetReminderClick = { contest ->
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            "✓ Reminder set 15 min before ${contest.name}",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                        val scheduled = ReminderScheduler(this@MainActivity).scheduleExactReminder(contest)
+                                        val msg = if (scheduled) {
+                                            "✓ Reminder set 15 min before ${contest.name}"
+                                        } else {
+                                            "✓ Reminder scheduled for ${contest.name}"
+                                        }
+                                        Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show()
                                     },
                                     onAddPlatformClick = onProtectedAddPlatform,
                                     onPastContestClick = { url -> openUrl(url) },
@@ -648,13 +675,19 @@ class MainActivity : ComponentActivity() {
                                             addToSystemCalendar(contestItem)
                                         },
                                         onSetReminderClick = { contestItem ->
-                                            Toast.makeText(
-                                                this@MainActivity,
-                                                "✓ Reminder set 15 min before ${contestItem.name}",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+                                            val scheduled = ReminderScheduler(this@MainActivity).scheduleExactReminder(contestItem)
+                                            val msg = if (scheduled) {
+                                                "✓ Reminder set 15 min before ${contestItem.name}"
+                                            } else {
+                                                "✓ Reminder scheduled for ${contestItem.name}"
+                                            }
+                                            Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show()
                                         }
                                     )
+                                } else {
+                                    GlassmorphismBackground {
+                                        ContestDetailSkeleton()
+                                    }
                                 }
                             }
 
@@ -708,6 +741,7 @@ class MainActivity : ComponentActivity() {
                                     stats = stats,
                                     ratingHistory = ratingHistory,
                                     gitHubStats = homeUiState.gitHubStats,
+                                    isLoading = homeUiState.isLoading,
                                     onOpenUrl = { url -> openUrl(url) },
                                     onBackClick = { navController.popBackStack() }
                                 )
@@ -765,6 +799,7 @@ class MainActivity : ComponentActivity() {
                                 SettingsScreen(
                                     connectedAccounts = connectedAccounts,
                                     currentTheme = appTheme,
+                                    isLoading = homeUiState.isLoading,
                                     onThemeChange = { newTheme ->
                                         appTheme = newTheme
                                         authPrefs.edit().putString("app_theme", newTheme.name).apply()
@@ -779,15 +814,7 @@ class MainActivity : ComponentActivity() {
                                     authAvatar = authAvatar,
                                     currentStreak = homeUiState.streakInfo?.currentStreak ?: 1,
                                     onSignOutClick = {
-                                        try {
-                                            com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
-                                            val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
-                                                com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
-                                            ).build()
-                                            com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(this@MainActivity, gso).signOut()
-                                        } catch (e: Exception) {
-                                            // Ignore if already signed out
-                                        }
+                                        signOutGoogleClient()
 
                                         repository.clearAllUserData()
 
@@ -821,15 +848,7 @@ class MainActivity : ComponentActivity() {
                                             email = currentEmail,
                                             displayName = currentName
                                         ) { success ->
-                                            try {
-                                                com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
-                                                val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
-                                                    com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
-                                                ).build()
-                                                com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(this@MainActivity, gso).signOut()
-                                            } catch (e: Exception) {
-                                                // Ignore
-                                            }
+                                            signOutGoogleClient()
 
                                             repository.clearAllUserData()
 

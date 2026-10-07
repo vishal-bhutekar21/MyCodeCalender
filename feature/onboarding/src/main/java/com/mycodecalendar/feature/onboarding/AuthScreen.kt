@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.mycodecalendar.feature.onboarding
 
 import android.app.Activity
@@ -85,6 +87,7 @@ fun GoogleLogo(modifier: Modifier = Modifier) {
 /**
  * Modern, Minimal & Clean Authentication Screen with Google Sign-In & Email.
  */
+@Suppress("DEPRECATION")
 @Composable
 fun AuthScreen(
     onAuthSuccess: (username: String, method: String, email: String?, photoUrl: String?) -> Unit,
@@ -121,13 +124,21 @@ fun AuthScreen(
     val brandOrangeGrad = listOf(Color(0xFFFF7A00), Color(0xFFFF5200))
 
     // ── GOOGLE SIGN-IN CLIENT SETUP ─────────────────────────────────────────
-    val gso = remember {
-        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+    val defaultWebClientId = remember {
+        val resId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
+        if (resId != 0) context.getString(resId) else null
+    }
+
+    val gso = remember(defaultWebClientId) {
+        val builder = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .requestProfile()
-            .build()
+        if (!defaultWebClientId.isNullOrBlank()) {
+            builder.requestIdToken(defaultWebClientId)
+        }
+        builder.build()
     }
-    val googleSignInClient = remember { GoogleSignIn.getClient(context, gso) }
+    val googleSignInClient = remember(gso) { GoogleSignIn.getClient(context, gso) }
 
     val googleLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -141,22 +152,45 @@ fun AuthScreen(
                     ?: "Developer"
                 val userEmail = account?.email
                 val userPhoto = account?.photoUrl?.toString()
+                val idToken = account?.idToken
 
                 loadingMessage = "Welcome, $displayName…"
-                auth.signInAnonymously().addOnCompleteListener { authTask ->
-                    val user = auth.currentUser
-                    user?.updateProfile(
-                        UserProfileChangeRequest.Builder()
-                            .setDisplayName(displayName)
-                            .build()
-                    )
+
+                val onCompleteAuth: (String) -> Unit = { finalName ->
                     isLoading = false
-                    successName = displayName
+                    successName = finalName
                     showSuccessModal = true
                     scope.launch {
                         delay(650)
                         showSuccessModal = false
-                        onAuthSuccess(displayName, "Google", userEmail, userPhoto)
+                        onAuthSuccess(finalName, "Google", userEmail, userPhoto)
+                    }
+                }
+
+                if (!idToken.isNullOrBlank()) {
+                    val credential = GoogleAuthProvider.getCredential(idToken, null)
+                    auth.signInWithCredential(credential).addOnCompleteListener { authTask ->
+                        if (authTask.isSuccessful) {
+                            val user = auth.currentUser
+                            val finalName = user?.displayName ?: displayName
+                            onCompleteAuth(finalName)
+                        } else {
+                            // Fallback to anonymous profile if credential fails
+                            auth.signInAnonymously().addOnCompleteListener {
+                                auth.currentUser?.updateProfile(
+                                    UserProfileChangeRequest.Builder().setDisplayName(displayName).build()
+                                )
+                                onCompleteAuth(displayName)
+                            }
+                        }
+                    }
+                } else {
+                    // Fallback to anonymous session when idToken is unavailable
+                    auth.signInAnonymously().addOnCompleteListener {
+                        auth.currentUser?.updateProfile(
+                            UserProfileChangeRequest.Builder().setDisplayName(displayName).build()
+                        )
+                        onCompleteAuth(displayName)
                     }
                 }
             } catch (e: Exception) {

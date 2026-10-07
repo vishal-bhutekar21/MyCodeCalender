@@ -1,0 +1,24 @@
+{
+  "name": "codecalendar-gateway",
+  "version": "1.0.0",
+  "description": "High-performance edge aggregation gateway for CodeCalendar Android App",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "tsc --noEmit"
+  },
+  "keywords": [
+    "cloudflare-workers",
+    "competitive-programming",
+    "cache",
+    "codecalendar"
+  ],
+  "author": "CodeCalendar Team",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240923.0",
+    "typescript": "^5.6.2",
+    "wrangler": "^3.78.10"
+  }
+}

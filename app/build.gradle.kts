@@ -22,9 +22,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("release.jks")
-            storePassword = "8261830043"
-            keyAlias = "key0"
-            keyPassword = "8261830043"
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: System.getProperty("KEYSTORE_PASSWORD", "8261830043")
+            keyAlias = System.getenv("KEY_ALIAS") ?: System.getProperty("KEY_ALIAS", "key0")
+            keyPassword = System.getenv("KEY_PASSWORD") ?: System.getProperty("KEY_PASSWORD", "8261830043")
             enableV1Signing = true
             enableV2Signing = true
         }

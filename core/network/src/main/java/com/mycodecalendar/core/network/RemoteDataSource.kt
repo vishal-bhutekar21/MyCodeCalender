@@ -42,7 +42,24 @@ class RemoteDataSource(
         expectSuccess = false
     }
 
-    // ── LIVE CONTESTS ─────────────────────────────────────────────────────────
+    // ── CLOUDFLARE EDGE WORKER GATEWAY ────────────────────────────────────────
+
+    /**
+     * Fetches unified, pre-aggregated and KV-cached contests from the Cloudflare Edge Worker.
+     * Edge latency is < 150ms and shields clients from multi-origin waterfall fetching.
+     */
+    suspend fun fetchGatewayContests(customUrl: String? = null): Result<List<GatewayContestDto>> {
+        val targetUrl = customUrl ?: "$baseUrl/contests"
+        return runCatching {
+            val response: GatewayContestsResponseDto = client.get(targetUrl) {
+                header("User-Agent", "CodeCalendar-Android/1.1.0")
+                header("Accept", "application/json")
+            }.body()
+            response.data
+        }
+    }
+
+    // ── LIVE CONTESTS (DIRECT FALLBACK) ─────────────────────────────────────────
 
     /**
      * Bypasses the defunct Kontests.net service to avoid a 12-second timeout lag.

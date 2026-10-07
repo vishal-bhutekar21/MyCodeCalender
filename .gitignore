@@ -16,4 +16,10 @@ google-services.json
 **/google-services.json
 *.keystore
 *.jks
-
+# Dependencies
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.wrangler/
+**/.wrangler/

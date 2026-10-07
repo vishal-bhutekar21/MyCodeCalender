@@ -4,13 +4,17 @@ import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAj1PnhtZM1hq5zhnS8ujwGBZ3MT_6QFPg",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "shetkari-mitra-7721.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "shetkari-mitra-7721",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "shetkari-mitra-7721.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "333822226193",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:333822226193:web:3e6104ced5d469ac4aa6b0"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "mycodecalendar.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "mycodecalendar",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "mycodecalendar.appspot.com",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || ""
 };
+
+if (!import.meta.env.VITE_FIREBASE_PROJECT_ID) {
+  console.warn('[Firebase] Running with default configuration. Set VITE_FIREBASE_* in .env for production.');
+}
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 

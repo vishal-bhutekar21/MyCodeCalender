@@ -22,7 +22,12 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.clickable
+import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 
 /**
@@ -596,5 +601,285 @@ fun DailyProblemCardSkeleton(modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * HackathonCardSkeleton — Shimmer placeholder matching HackathonCard layout.
+ */
+@Composable
+fun HackathonCardSkeleton() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f), RoundedCornerShape(20.dp))
+            .padding(16.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ShimmerBox(modifier = Modifier.size(width = 110.dp, height = 22.dp), cornerRadius = 6.dp)
+                ShimmerBox(modifier = Modifier.size(width = 80.dp, height = 20.dp), cornerRadius = 6.dp)
+            }
+            ShimmerBox(modifier = Modifier.fillMaxWidth(0.9f).height(20.dp), cornerRadius = 6.dp)
+            ShimmerBox(modifier = Modifier.fillMaxWidth(0.6f).height(14.dp), cornerRadius = 4.dp)
 
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ShimmerBox(modifier = Modifier.size(width = 75.dp, height = 24.dp), cornerRadius = 8.dp)
+                ShimmerBox(modifier = Modifier.size(width = 90.dp, height = 24.dp), cornerRadius = 8.dp)
+                ShimmerBox(modifier = Modifier.size(width = 65.dp, height = 24.dp), cornerRadius = 8.dp)
+            }
 
+            Spacer(modifier = Modifier.height(2.dp))
+            ShimmerBox(modifier = Modifier.fillMaxWidth().height(42.dp), cornerRadius = 12.dp)
+        }
+    }
+}
+
+/**
+ * GitHubDetailSkeleton — Loading skeleton for GitHub repositories, activity heatmap, and stats.
+ */
+@Composable
+fun GitHubDetailSkeleton() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f), RoundedCornerShape(24.dp))
+                .padding(20.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    ShimmerBox(modifier = Modifier.size(64.dp), cornerRadius = 32.dp)
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ShimmerBox(modifier = Modifier.size(width = 140.dp, height = 20.dp), cornerRadius = 6.dp)
+                        ShimmerBox(modifier = Modifier.size(width = 90.dp, height = 14.dp), cornerRadius = 4.dp)
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    repeat(4) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            ShimmerBox(modifier = Modifier.size(width = 40.dp, height = 18.dp), cornerRadius = 4.dp)
+                            ShimmerBox(modifier = Modifier.size(width = 55.dp, height = 12.dp), cornerRadius = 4.dp)
+                        }
+                    }
+                }
+            }
+        }
+
+        ShimmerBox(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(140.dp),
+            cornerRadius = 18.dp
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            repeat(3) {
+                ShimmerBox(modifier = Modifier.size(width = 70.dp, height = 28.dp), cornerRadius = 10.dp)
+            }
+        }
+
+        repeat(3) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.45f))
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
+                    .padding(16.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        ShimmerBox(modifier = Modifier.size(width = 140.dp, height = 16.dp), cornerRadius = 4.dp)
+                        ShimmerBox(modifier = Modifier.size(width = 45.dp, height = 16.dp), cornerRadius = 4.dp)
+                    }
+                    ShimmerBox(modifier = Modifier.fillMaxWidth(0.85f).height(12.dp), cornerRadius = 3.dp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        ShimmerBox(modifier = Modifier.size(width = 60.dp, height = 12.dp), cornerRadius = 3.dp)
+                        ShimmerBox(modifier = Modifier.size(width = 40.dp, height = 12.dp), cornerRadius = 3.dp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * ContestDetailSkeleton — Full-screen shimmer skeleton matching ContestDetailScreen layout.
+ */
+@Composable
+fun ContestDetailSkeleton() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Spacer(Modifier.height(10.dp))
+        // Back button placeholder
+        ShimmerBox(modifier = Modifier.size(42.dp), cornerRadius = 14.dp)
+
+        // Platform & Status Badges
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ShimmerBox(modifier = Modifier.size(width = 85.dp, height = 26.dp), cornerRadius = 8.dp)
+            ShimmerBox(modifier = Modifier.size(width = 70.dp, height = 26.dp), cornerRadius = 8.dp)
+        }
+
+        // Contest Title
+        ShimmerBox(modifier = Modifier.fillMaxWidth(0.9f).height(28.dp), cornerRadius = 6.dp)
+        ShimmerBox(modifier = Modifier.fillMaxWidth(0.6f).height(20.dp), cornerRadius = 6.dp)
+
+        // Date and Time info
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ShimmerBox(modifier = Modifier.size(width = 130.dp, height = 16.dp), cornerRadius = 4.dp)
+            ShimmerBox(modifier = Modifier.size(width = 90.dp, height = 16.dp), cornerRadius = 4.dp)
+        }
+
+        Spacer(Modifier.height(4.dp))
+
+        // Countdown Timer Glass Card
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f), RoundedCornerShape(22.dp))
+                .padding(20.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                ShimmerBox(modifier = Modifier.size(width = 110.dp, height = 14.dp), cornerRadius = 4.dp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    repeat(3) {
+                        ShimmerBox(modifier = Modifier.size(width = 64.dp, height = 64.dp), cornerRadius = 14.dp)
+                    }
+                }
+            }
+        }
+
+        // Action Buttons Row (Calendar & Reminder)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ShimmerBox(modifier = Modifier.weight(1f).height(48.dp), cornerRadius = 14.dp)
+            ShimmerBox(modifier = Modifier.weight(1f).height(48.dp), cornerRadius = 14.dp)
+        }
+
+        // Contest Rules & Format Info Card
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.45f))
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), RoundedCornerShape(20.dp))
+                .padding(18.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                ShimmerBox(modifier = Modifier.size(width = 120.dp, height = 18.dp), cornerRadius = 4.dp)
+                repeat(3) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        ShimmerBox(modifier = Modifier.size(width = 90.dp, height = 14.dp), cornerRadius = 4.dp)
+                        ShimmerBox(modifier = Modifier.size(width = 120.dp, height = 14.dp), cornerRadius = 4.dp)
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        // Join Contest Primary Button
+        ShimmerBox(modifier = Modifier.fillMaxWidth().height(52.dp), cornerRadius = 16.dp)
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+/**
+ * Modifier extension to apply diagonal sweeping shimmer effect to any shape.
+ */
+@Composable
+fun Modifier.shimmerEffect(
+    cornerRadius: Dp = 10.dp,
+    accentGlow: Color? = null
+): Modifier {
+    val brush = rememberShimmerBrush()
+    return this
+        .clip(RoundedCornerShape(cornerRadius))
+        .background(brush)
+        .then(
+            if (accentGlow != null) {
+                Modifier.border(
+                    1.dp,
+                    accentGlow.copy(alpha = 0.20f),
+                    RoundedCornerShape(cornerRadius)
+                )
+            } else Modifier
+        )
+}
+
+/**
+ * Modifier extension adding tactile spring micro-bounce on press/tap.
+ */
+@Composable
+fun Modifier.bounceClick(
+    scaleDown: Float = 0.965f,
+    onClick: (() -> Unit)? = null
+): Modifier {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) scaleDown else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "bounceClickScale"
+    )
+
+    return this
+        .graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        }
+        .then(
+            if (onClick != null) {
+                Modifier.clickable(
+                    interactionSource = interactionSource,
+                    indication = rememberRipple(bounded = true),
+                    onClick = onClick
+                )
+            } else Modifier
+        )
+}

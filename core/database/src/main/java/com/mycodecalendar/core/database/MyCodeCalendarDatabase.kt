@@ -8,6 +8,7 @@ import com.mycodecalendar.core.database.dao.GitHubStatsDao
 import com.mycodecalendar.core.database.dao.PlatformAccountDao
 import com.mycodecalendar.core.database.dao.PlatformStatsDao
 import com.mycodecalendar.core.database.dao.RatingHistoryDao
+import com.mycodecalendar.core.database.dao.ReminderDao
 import com.mycodecalendar.core.database.dao.SyncStateDao
 import com.mycodecalendar.core.database.entity.ContestEntity
 import com.mycodecalendar.core.database.entity.GitHubStatsEntity
@@ -38,6 +39,7 @@ import com.mycodecalendar.core.database.entity.SyncStateEntity
 abstract class MyCodeCalendarDatabase : RoomDatabase() {
     abstract fun platformAccountDao(): PlatformAccountDao
     abstract fun contestDao(): ContestDao
+    abstract fun reminderDao(): ReminderDao
     abstract fun platformStatsDao(): PlatformStatsDao
     abstract fun ratingHistoryDao(): RatingHistoryDao
     abstract fun syncStateDao(): SyncStateDao

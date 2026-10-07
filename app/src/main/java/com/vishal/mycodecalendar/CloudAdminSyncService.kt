@@ -115,12 +115,18 @@ object CloudAdminSyncService {
             "authProvider" to method,
             "email" to (email ?: ""),
             "photoUrl" to (photoUrl ?: ""),
-            "connectedPlatforms" to connectedPlatforms,
-            "connectedAccountsMap" to connectedAccountsMap,
             "lastLoginAt" to FieldValue.serverTimestamp(),
             "updatedAt" to FieldValue.serverTimestamp(),
             "appVersion" to "1.0.0"
         )
+
+        // Only include platforms and accounts if non-empty, preventing wiping cloud state on fresh login
+        if (connectedPlatforms.isNotEmpty()) {
+            userData["connectedPlatforms"] = connectedPlatforms
+        }
+        if (connectedAccountsMap.isNotEmpty()) {
+            userData["connectedAccountsMap"] = connectedAccountsMap
+        }
 
         // Only include streak if positive so we never overwrite cloud-boosted admin streak on login
         if (currentStreak > 0) {
