@@ -1,37 +1,43 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { Code2, Shield, AlertCircle, Loader2 } from 'lucide-react';
+import { Code2, Shield, AlertCircle, Loader2, Mail, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { GlassCard } from '../components/ui/GlassCard';
 
 export const LoginPage: React.FC = () => {
-  const { user, isAdmin, loading, error, loginWithGoogle, loginAsDevAdmin } = useAuth();
+  const { user, isAdmin, loading, error, loginWithCredentials } = useAuth();
   const navigate = useNavigate();
+
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   if (!loading && user && isAdmin) {
     return <Navigate to="/" replace />;
   }
 
-  const handleLogin = async () => {
-    const success = await loginWithGoogle();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password) return;
+
+    setIsSubmitting(true);
+    const success = await loginWithCredentials(email, password);
+    setIsSubmitting(false);
+
     if (success) {
       navigate('/');
     }
   };
 
-  const handleDevLogin = () => {
-    loginAsDevAdmin();
-    navigate('/');
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#07090E] relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#07090E] relative overflow-hidden select-none">
       {/* Ambient background glows */}
       <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-brand-orange/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      <GlassCard className="w-full max-w-md p-8 sm:p-10 space-y-8 relative z-10 border-white/15 shadow-2xl">
-        {/* Brand Icon */}
+      <GlassCard className="w-full max-w-md p-8 sm:p-10 space-y-7 relative z-10 border-white/15 shadow-2xl">
+        {/* Brand Header */}
         <div className="flex flex-col items-center text-center">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#FF6B00] to-[#FFA048] p-0.5 shadow-xl shadow-orange-500/30 flex items-center justify-center mb-4">
             <div className="w-full h-full bg-[#0E121E] rounded-[14px] flex items-center justify-center">
@@ -51,69 +57,96 @@ export const LoginPage: React.FC = () => {
 
         {/* Security Warning / Error Box */}
         {error && (
-          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-start gap-3">
+          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-start gap-3 animate-shake">
             <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <p className="leading-relaxed font-medium">{error}</p>
           </div>
         )}
 
-        {/* Action Button */}
-        <div className="space-y-4">
+        {/* Exclusive Verified Credentials Form */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Email Input */}
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-slate-300">
+              Super Admin Email
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <Mail className="w-4 h-4" />
+              </div>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="vishal.bhutekar1@gmail.com"
+                autoComplete="email"
+                className="w-full pl-10 pr-4 py-3 bg-[#0B0F19] border border-white/10 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-brand-orange/50 focus:ring-1 focus:ring-brand-orange/50 transition-all font-mono"
+              />
+            </div>
+          </div>
+
+          {/* Password Input */}
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-slate-300">
+              Admin Password
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <Lock className="w-4 h-4" />
+              </div>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••••••"
+                autoComplete="current-password"
+                className="w-full pl-10 pr-11 py-3 bg-[#0B0F19] border border-white/10 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-brand-orange/50 focus:ring-1 focus:ring-brand-orange/50 transition-all font-mono"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200 transition-colors"
+                tabIndex={-1}
+              >
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Submit Button */}
           <button
-            type="button"
-            onClick={handleLogin}
-            disabled={loading}
-            className="w-full py-3.5 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm shadow-xl flex items-center justify-center gap-3 transition-all hover:scale-[1.01] active:scale-[0.99]"
+            type="submit"
+            disabled={isSubmitting || loading}
+            className="w-full mt-2 py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#FF6B00] to-[#FF8800] hover:from-[#FF781A] hover:to-[#FF941A] text-white font-bold text-sm shadow-xl shadow-orange-500/20 flex items-center justify-center gap-2.5 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin text-slate-900" />
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <span>Verifying Credentials...</span>
+              </>
             ) : (
               <>
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                  />
-                </svg>
-                <span>Continue with Google</span>
+                <ShieldCheck className="w-4 h-4 text-white" />
+                <span>Sign In to Super Admin</span>
               </>
             )}
           </button>
-
-          <div className="relative flex py-1 items-center">
-            <div className="flex-grow border-t border-white/10"></div>
-            <span className="flex-shrink mx-3 text-slate-500 text-[11px] uppercase tracking-wider font-mono">or</span>
-            <div className="flex-grow border-t border-white/10"></div>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleDevLogin}
-            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-orange-500/15 to-amber-500/15 hover:from-orange-500/25 hover:to-amber-500/25 border border-brand-orange/30 text-brand-orange font-semibold text-xs transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 shadow-lg"
-          >
-            <Shield className="w-4 h-4 text-brand-orange" />
-            <span>Instant Admin Access (Super Admin: Vishal)</span>
-          </button>
-        </div>
+        </form>
 
         {/* Security Footer Notice */}
-        <div className="pt-6 border-t border-white/5 flex items-center justify-center gap-2 text-slate-400 text-xs">
-          <Shield className="w-4 h-4 text-brand-orange" />
-          <span>Restricted to Authorized Admins Only</span>
+        <div className="pt-4 border-t border-white/5 flex items-center justify-center gap-2 text-slate-400 text-[11px]">
+          <Shield className="w-3.5 h-3.5 text-brand-orange" />
+          <span>Restricted to Verified Super Admin • Cloudflare Protected</span>
         </div>
       </GlassCard>
     </div>
   );
 };
+
+export default LoginPage;
