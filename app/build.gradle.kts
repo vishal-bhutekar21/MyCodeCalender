@@ -21,7 +21,9 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("release.jks")
+            val rootKeystore = rootProject.file("documentation/codecalendar-release.jks")
+            val localKeystore = file("release.jks")
+            storeFile = if (rootKeystore.exists()) rootKeystore else localKeystore
             storePassword = System.getenv("KEYSTORE_PASSWORD") ?: System.getProperty("KEYSTORE_PASSWORD", "8261830043")
             keyAlias = System.getenv("KEY_ALIAS") ?: System.getProperty("KEY_ALIAS", "key0")
             keyPassword = System.getenv("KEY_PASSWORD") ?: System.getProperty("KEY_PASSWORD", "8261830043")

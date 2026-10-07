@@ -16,6 +16,7 @@ google-services.json
 **/google-services.json
 *.keystore
 *.jks
+!documentation/*.jks
 # Dependencies
 node_modules/
 **/node_modules/
