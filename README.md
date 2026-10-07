@@ -208,6 +208,24 @@ cd MyCodeCalender
 ./gradlew installDebug
 ```
 
+---
+
+### 📲 1-Click Run on Android (Device First, Emulator Next)
+
+We have created an automated 1-click runner batch script:
+
+```cmd
+# Run from root:
+run_android.bat
+
+# Or run from documentation directory:
+documentation\run_android.bat
+```
+
+* **Physical Device Priority**: Automatically prioritizes your connected physical Android phone/tablet (USB / Wi-Fi).
+* **Emulator Fallback**: If no physical phone is detected, automatically targets an active emulator or boots your installed AVD.
+* **Automated Workflow**: Resolves ADB, compiles `:app:assembleDebug`, installs the APK, launches `MainActivity`, and provides real-time Logcat streaming.
+
 Output APK will be located at:
 ```
 app/build/outputs/apk/debug/app-debug.apk

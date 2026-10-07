@@ -41,6 +41,7 @@ Every finding, risk, and architectural bottleneck documented here has been disco
 | **Execution Plans** | [prioritized-fix-plan.md](file:///d:/Projects2026/dsaapp/documentation/plans/prioritized-fix-plan.md) | Step-by-step phased engineering roadmap for remediation |
 | | [production-hardening-plan.md](file:///d:/Projects2026/dsaapp/documentation/plans/production-hardening-plan.md) | Security, build reliability, and data safety stabilization |
 | | [performance-optimization-plan.md](file:///d:/Projects2026/dsaapp/documentation/plans/performance-optimization-plan.md) | Network caching, Worker aggregation, and query tuning roadmap |
+| **Android Runner** | [run_android.bat](file:///d:/Projects2026/dsaapp/documentation/run_android.bat) | 1-Click script: auto-detects physical Android device first, emulator next, builds, installs & runs |
 
 ---
 
