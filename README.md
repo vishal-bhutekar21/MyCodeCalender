@@ -15,6 +15,7 @@
 [![Min SDK](https://img.shields.io/badge/Min%20SDK-26%20(Oreo)-orange?style=for-the-badge)](https://developer.android.com/about/versions/oreo)
 [![Target SDK](https://img.shields.io/badge/Target%20SDK-34%20(Android%2014)-blue?style=for-the-badge)](https://developer.android.com/about/versions/14)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+[![Web Admin CMS](https://img.shields.io/badge/Web%20Admin-codecalendar.vishalbhutekar.me-FF6B00?style=for-the-badge&logo=cloudflare&logoColor=white)](https://codecalendar.vishalbhutekar.me)
 
 </div>
 
@@ -98,6 +99,14 @@ Designed with **Jetpack Compose**, **Material 3 OLED Glassmorphism**, and a modu
 ### ⏰ 9. Smart Alarms & Calendar Auto-Sync
 - **1-Tap Android Calendar Sync**: Export registered contests directly to the device calendar via Android `CalendarContract`.
 - **Pre-Contest Alarms**: Configurable 15-minute reminders before tracked contests start.
+
+---
+
+### 🌐 10. Web Admin CMS & Cloudflare Edge Infrastructure
+- **Live Portal Subdomain**: **[https://codecalendar.vishalbhutekar.me](https://codecalendar.vishalbhutekar.me)** (Alias: **[https://admin.vishalbhutekar.me](https://admin.vishalbhutekar.me)**)
+- **Central CMS**: Full control panel for managing featured DSA sheets, roadmaps, masterclasses, and custom contests.
+- **In-App Global Broadcasts**: Push urgent contest reminders and system notifications to all connected mobile clients.
+- **Cloudflare Global Edge**: Instant edge caching, DDoS protection, and SSL via Cloudflare Pages.
 
 ---
 

@@ -1,32 +1,73 @@
-# React + TypeScript + Vite
+# ⚡ CodeCalendar Super Admin CMS & CRM
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+> **Live Production Subdomain**: [https://codecalendar.vishalbhutekar.me](https://codecalendar.vishalbhutekar.me)  
+> **Production Alias**: [https://admin.vishalbhutekar.me](https://admin.vishalbhutekar.me)  
+> **Direct Cloudflare Pages URL**: [https://codecalendar-admin.pages.dev](https://codecalendar-admin.pages.dev)
 
-Currently, two official plugins are available:
+A modern, high-performance Super Administrator CMS & CRM dashboard engineered with **React 18**, **TypeScript**, **Tailwind CSS**, and **Vite**, hosted on **Cloudflare Pages** and connected directly to the custom domain `vishalbhutekar.me`.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## 🌟 Live Deployment & Access
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Environment | URL | Status | Network |
+|---|---|:---:|---|
+| **Production Primary** | [https://codecalendar.vishalbhutekar.me](https://codecalendar.vishalbhutekar.me) | 🟢 Live | Cloudflare Global Edge |
+| **Production Alias** | [https://admin.vishalbhutekar.me](https://admin.vishalbhutekar.me) | 🟢 Live | Cloudflare Global Edge |
+| **Cloudflare Pages** | [https://codecalendar-admin.pages.dev](https://codecalendar-admin.pages.dev) | 🟢 Live | Cloudflare CDN |
+| **Local Development** | `http://localhost:5173/` | 🟢 Active | Localhost / LAN |
 
-## Expanding the Oxlint configuration
+---
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+## 🚀 Key Modules & Capabilities
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+1. **Dashboard Overview (`/`)**:
+   - Real-time ecosystem statistics (Active Users, Curated Resources, Active In-App Broadcasts, Custom Contests).
+   - Quick navigation action cards and live platform status indicator.
+
+2. **Featured Materials & Resources CMS (`/featured-materials`)**:
+   - Manage articles, cheat sheets, curated GitHub repos, and video masterclasses delivered to mobile clients.
+   - Filter by category (`DSA Sheets`, `AI / ML`, `Roadmaps`, `Interviews`).
+
+3. **In-App Broadcasts & Alerts (`/broadcasts`)**:
+   - Publish real-time global notifications, server notices, or major contest countdowns directly to the Android app.
+   - Severity tags: `INFO`, `IMPORTANT`, `URGENT`.
+
+4. **Custom Contests & Hackathons (`/custom-contests`)**:
+   - Add college, company, or community hackathons and contests.
+   - Automatically synchronizes with Android client radar feeds.
+
+5. **User Accounts Directory (`/users`)**:
+   - Inspect registered user accounts, connected handles (LeetCode, Codeforces, GitHub), and active streaks.
+
+6. **Account Deletion Compliance (`/deletions`)**:
+   - Google Play Data Safety compliant deletion request processing and audit trails.
+
+---
+
+## 🔐 Authentication & Access Control
+
+- **Google OAuth 2.0**: Integrated with Firebase Authentication.
+- **Whitelist Enforcement**: Access restricted strictly to Super Admin emails:
+  - `vishalbhutekar33772@gmail.com`
+  - `vishal.bhutekar1@gmail.com`
+  - `admin@mycodecalendar.app`
+- **Instant Admin Access (Dev/Local)**: Dedicated 1-click admin authentication for seamless local testing and preview access.
+
+---
+
+## 🛠️ Local Development & Build
+
+```bash
+# Install dependencies
+npm install
+
+# Start local development server (port 5173)
+npm run dev
+
+# Compile production bundle
+npm run build
+
+# Deploy directly to Cloudflare Pages
+npx wrangler pages deploy dist --project-name codecalendar-admin --branch main
 ```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
