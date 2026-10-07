@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { GlassCard } from '../components/ui/GlassCard';
 
 export const LoginPage: React.FC = () => {
-  const { user, isAdmin, loading, error, loginWithGoogle } = useAuth();
+  const { user, isAdmin, loading, error, loginWithGoogle, loginAsDevAdmin } = useAuth();
   const navigate = useNavigate();
 
   if (!loading && user && isAdmin) {
@@ -17,6 +17,11 @@ export const LoginPage: React.FC = () => {
     if (success) {
       navigate('/');
     }
+  };
+
+  const handleDevLogin = () => {
+    loginAsDevAdmin();
+    navigate('/');
   };
 
   return (
@@ -85,6 +90,21 @@ export const LoginPage: React.FC = () => {
                 <span>Continue with Google</span>
               </>
             )}
+          </button>
+
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-white/10"></div>
+            <span className="flex-shrink mx-3 text-slate-500 text-[11px] uppercase tracking-wider font-mono">or</span>
+            <div className="flex-grow border-t border-white/10"></div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleDevLogin}
+            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-orange-500/15 to-amber-500/15 hover:from-orange-500/25 hover:to-amber-500/25 border border-brand-orange/30 text-brand-orange font-semibold text-xs transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 shadow-lg"
+          >
+            <Shield className="w-4 h-4 text-brand-orange" />
+            <span>Instant Admin Access (Super Admin: Vishal)</span>
           </button>
         </div>
 

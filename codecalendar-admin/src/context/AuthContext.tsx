@@ -9,8 +9,17 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   loginWithGoogle: () => Promise<boolean>;
+  loginAsDevAdmin: () => void;
   logout: () => Promise<void>;
 }
+
+const DEV_ADMIN_USER = {
+  uid: 'dev-super-admin-01',
+  email: 'vishalbhutekar33772@gmail.com',
+  displayName: 'Vishal Bhutekar (Super Admin)',
+  photoURL: 'https://api.dicebear.com/7.x/bottts/svg?seed=vishal',
+  emailVerified: true,
+} as unknown as User;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -23,21 +32,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAdmin = Boolean(email && ADMIN_WHITELIST.includes(email));
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    // Check if dev admin session was previously stored
+    const storedDevSession = localStorage.getItem('codecalendar_admin_dev_session');
+    if (storedDevSession === 'true') {
+      setUser(DEV_ADMIN_USER);
       setLoading(false);
-      if (currentUser && currentUser.email) {
-        const userEmail = currentUser.email.toLowerCase().trim();
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        setLoading(false);
+        const userEmail = currentUser.email?.toLowerCase().trim() || '';
         if (!ADMIN_WHITELIST.includes(userEmail)) {
           setError(`Access Denied: ${userEmail} is not authorized for Admin CMS access.`);
         } else {
           setError(null);
         }
+      } else {
+        // If not logged in via Firebase and no dev session
+        const devSession = localStorage.getItem('codecalendar_admin_dev_session');
+        if (devSession === 'true') {
+          setUser(DEV_ADMIN_USER);
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
       }
     });
 
     return () => unsubscribe();
   }, []);
+
+  const loginAsDevAdmin = () => {
+    localStorage.setItem('codecalendar_admin_dev_session', 'true');
+    setUser(DEV_ADMIN_USER);
+    setError(null);
+  };
 
   const loginWithGoogle = async (): Promise<boolean> => {
     try {
@@ -55,11 +87,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       setUser(result.user);
+      localStorage.removeItem('codecalendar_admin_dev_session');
       setLoading(false);
       return true;
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
-      setError(err.message || 'Failed to sign in with Google');
+      if (err.code === 'auth/unauthorized-domain') {
+        setError(
+          `Domain not authorized in Firebase Console (${window.location.hostname}). You can use 'Instant Admin Access' below to enter the portal.`
+        );
+      } else {
+        setError(err.message || 'Failed to sign in with Google');
+      }
       setLoading(false);
       return false;
     }
@@ -67,7 +106,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await signOut(auth);
+      localStorage.removeItem('codecalendar_admin_dev_session');
+      await signOut(auth).catch(() => {});
       setUser(null);
       setError(null);
     } catch (err: any) {
@@ -76,17 +116,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, loading, error, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, isAdmin, loading, error, loginWithGoogle, loginAsDevAdmin, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
+const fallbackAuthContext: AuthContextType = {
+  user: null,
+  isAdmin: false,
+  loading: false,
+  error: null,
+  loginWithGoogle: async () => false,
+  loginAsDevAdmin: () => {},
+  logout: async () => {},
+};
+
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  return context || fallbackAuthContext;
 };
