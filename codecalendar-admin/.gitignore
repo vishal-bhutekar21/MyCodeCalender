@@ -24,6 +24,7 @@ dist-ssr
 *.sw?
 
 # Environment & Secrets
+.env
 .env.local
 .env.*.local
 *.pem

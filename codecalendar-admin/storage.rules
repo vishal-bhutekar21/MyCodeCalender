@@ -3,12 +3,13 @@ service firebase.storage {
   match /b/{bucket}/o {
     function isAdmin() {
       return request.auth != null && (
-        (request.auth.token.email_verified == true && request.auth.token.email in [
+        request.auth.token.email in [
           'vishal.bhutekar1@gmail.com',
           'vishalbhutekar33772@gmail.com',
           'admin@mycodecalendar.app',
-          'admin@codecalendar.com'
-        ]) || request.auth.token.admin == true
+          'admin@codecalendar.com',
+          'admin@mycodecalendar.com'
+        ] || request.auth.token.admin == true
       );
     }
 

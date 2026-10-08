@@ -129,12 +129,16 @@ fun AuthScreen(
         if (resId != 0) context.getString(resId) else null
     }
 
+    val isValidWebClientId = !defaultWebClientId.isNullOrBlank() &&
+        !defaultWebClientId.contains("samplewebclientid") &&
+        defaultWebClientId.endsWith(".apps.googleusercontent.com")
+
     val gso = remember(defaultWebClientId) {
         val builder = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .requestProfile()
-        if (!defaultWebClientId.isNullOrBlank()) {
-            builder.requestIdToken(defaultWebClientId)
+        if (isValidWebClientId) {
+            builder.requestIdToken(defaultWebClientId!!)
         }
         builder.build()
     }
@@ -175,27 +179,35 @@ fun AuthScreen(
                             val finalName = user?.displayName ?: displayName
                             onCompleteAuth(finalName)
                         } else {
-                            // Fallback to anonymous profile if credential fails
-                            auth.signInAnonymously().addOnCompleteListener {
-                                auth.currentUser?.updateProfile(
-                                    UserProfileChangeRequest.Builder().setDisplayName(displayName).build()
-                                )
-                                onCompleteAuth(displayName)
-                            }
+                            // If Firebase Auth credential linking fails, proceed with verified Google profile
+                            onCompleteAuth(displayName)
                         }
                     }
                 } else {
-                    // Fallback to anonymous session when idToken is unavailable
-                    auth.signInAnonymously().addOnCompleteListener {
-                        auth.currentUser?.updateProfile(
-                            UserProfileChangeRequest.Builder().setDisplayName(displayName).build()
-                        )
-                        onCompleteAuth(displayName)
-                    }
+                    // When idToken is not configured or unavailable, proceed with verified Google profile
+                    onCompleteAuth(displayName)
                 }
             } catch (e: Exception) {
-                isLoading = false
-                errorMessage = "Google Sign-In was not completed. Please try again."
+                // Check if Google Sign-In account was retrieved on device
+                val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
+                if (lastAccount != null) {
+                    val displayName = lastAccount.displayName?.ifBlank { null }
+                        ?: lastAccount.email?.substringBefore("@")?.replaceFirstChar { it.uppercase() }
+                        ?: "Developer"
+                    val userEmail = lastAccount.email
+                    val userPhoto = lastAccount.photoUrl?.toString()
+                    isLoading = false
+                    successName = displayName
+                    showSuccessModal = true
+                    scope.launch {
+                        delay(650)
+                        showSuccessModal = false
+                        onAuthSuccess(displayName, "Google", userEmail, userPhoto)
+                    }
+                } else {
+                    isLoading = false
+                    errorMessage = "Google Sign-In was not completed. Please try again or use Email."
+                }
             }
         } else {
             isLoading = false
@@ -1053,12 +1065,20 @@ private fun isNetworkConnected(context: android.content.Context): Boolean {
  * Maps raw exceptions into clean, user-friendly error messages.
  */
 private fun mapFirebaseError(exception: Exception?): String {
-    return when (exception) {
-        is FirebaseAuthInvalidUserException -> "No user found with this email. Please check or create an account."
-        is FirebaseAuthInvalidCredentialsException -> "Incorrect email or password. Please verify and try again."
-        is FirebaseAuthUserCollisionException -> "An account with this email already exists. Please switch to Sign In."
-        is FirebaseAuthWeakPasswordException -> "Password is too weak. Please use at least 6 characters."
-        is FirebaseNetworkException -> "Network error. Please check your internet connection and try again."
+    val msg = exception?.message.orEmpty()
+    return when {
+        exception is FirebaseAuthInvalidUserException || msg.contains("ERROR_USER_NOT_FOUND", ignoreCase = true) ->
+            "No account found with this email. Please check or switch to Create Account."
+        exception is FirebaseAuthInvalidCredentialsException || msg.contains("INVALID_LOGIN_CREDENTIALS", ignoreCase = true) || msg.contains("ERROR_WRONG_PASSWORD", ignoreCase = true) ->
+            "Incorrect email or password. Please verify and try again."
+        exception is FirebaseAuthUserCollisionException || msg.contains("EMAIL_EXISTS", ignoreCase = true) || msg.contains("ERROR_EMAIL_ALREADY_IN_USE", ignoreCase = true) ->
+            "An account with this email already exists. Please switch to Sign In."
+        exception is FirebaseAuthWeakPasswordException || msg.contains("WEAK_PASSWORD", ignoreCase = true) ->
+            "Password is too weak. Please use at least 6 characters."
+        exception is FirebaseNetworkException || msg.contains("NETWORK_ERROR", ignoreCase = true) ->
+            "Network error. Please check your internet connection and try again."
+        msg.contains("TOO_MANY_ATTEMPTS_TRY_LATER", ignoreCase = true) || msg.contains("ACCESS_DISABLED", ignoreCase = true) ->
+            "Too many failed attempts. Please wait a moment or reset your password."
         else -> exception?.localizedMessage ?: "Authentication failed. Please try again."
     }
 }

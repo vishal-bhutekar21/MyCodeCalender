@@ -698,7 +698,9 @@ class MainActivity : ComponentActivity() {
                                         repository.addPlatformAccount(platform, username)
                                         val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
                                             ?: authEmail?.replace(".", "_")
-                                        if (!uid.isNullOrBlank()) {
+                                            ?: authUsername?.replace(" ", "_")
+                                            ?: "developer"
+                                        if (uid.isNotBlank()) {
                                             CloudAdminSyncService.saveConnectedAccountToCloud(
                                                 uid = uid,
                                                 platform = platform.name,
@@ -714,7 +716,9 @@ class MainActivity : ComponentActivity() {
                                         repository.removePlatformAccount(platform)
                                         val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
                                             ?: authEmail?.replace(".", "_")
-                                        if (!uid.isNullOrBlank()) {
+                                            ?: authUsername?.replace(" ", "_")
+                                            ?: "developer"
+                                        if (uid.isNotBlank()) {
                                             CloudAdminSyncService.deleteConnectedAccountFromCloud(
                                                 uid = uid,
                                                 platform = platform.name

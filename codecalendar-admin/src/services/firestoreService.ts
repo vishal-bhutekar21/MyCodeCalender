@@ -184,13 +184,31 @@ export const subscribeToUsers = (
   maxUsers: number = 100
 ) => {
   const q = query(collection(firestore, 'users'), limit(maxUsers));
-  return onSnapshot(q, (snapshot) => {
-    const users: UserAccount[] = snapshot.docs.map((docSnap) => ({
-      uid: docSnap.id,
-      ...(docSnap.data() as Omit<UserAccount, 'uid'>)
-    }));
-    callback(users);
-  }, () => callback([]));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const users: UserAccount[] = snapshot.docs.map((docSnap) => ({
+        uid: docSnap.id,
+        ...(docSnap.data() as Omit<UserAccount, 'uid'>)
+      }));
+      callback(users);
+    },
+    (err) => {
+      console.warn('subscribeToUsers snapshot warning, falling back to direct fetch:', err);
+      getDocs(collection(firestore, 'users'))
+        .then((snap) => {
+          const users: UserAccount[] = snap.docs.map((d) => ({
+            uid: d.id,
+            ...(d.data() as Omit<UserAccount, 'uid'>)
+          }));
+          callback(users);
+        })
+        .catch((e) => {
+          console.error('Failed to fetch users from firestore:', e);
+          callback([]);
+        });
+    }
+  );
 };
 
 // ── DELETION REQUESTS & GDPR SAFETY ──────────────────────────────────────────
