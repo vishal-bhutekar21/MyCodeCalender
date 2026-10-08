@@ -129,7 +129,8 @@ fun AuthScreen(
         if (resId != 0) {
             context.getString(resId)
         } else {
-            "333822226193-1ohsipnpvr5c3p367oq9idlhbe6nqnqa.apps.googleusercontent.com"
+            // Web client ID from Firebase project shetkari-mitra-7721 (fallback)
+            "333822226193-1c25jvpalq2edjsrorsghs2tmnvn0crc.apps.googleusercontent.com"
         }
     }
 

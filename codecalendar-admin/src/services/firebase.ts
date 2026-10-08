@@ -9,7 +9,7 @@ import {
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAj1PnhtZM1hq5zhnS8ujwGBZ3MT_6QFPg",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAcEPwRGYV_4HBqNdDzy__pz5vM5UNDFQg",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "shetkari-mitra-7721.firebaseapp.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "shetkari-mitra-7721",
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "shetkari-mitra-7721.appspot.com",
