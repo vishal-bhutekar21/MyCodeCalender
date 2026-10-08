@@ -126,7 +126,11 @@ fun AuthScreen(
     // ── GOOGLE SIGN-IN CLIENT SETUP ─────────────────────────────────────────
     val defaultWebClientId = remember {
         val resId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
-        if (resId != 0) context.getString(resId) else null
+        if (resId != 0) {
+            context.getString(resId)
+        } else {
+            "333822226193-1ohsipnpvr5c3p367oq9idlhbe6nqnqa.apps.googleusercontent.com"
+        }
     }
 
     val isValidWebClientId = !defaultWebClientId.isNullOrBlank() &&
@@ -147,16 +151,19 @@ fun AuthScreen(
     val googleLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            try {
-                val account = task.getResult(ApiException::class.java)
-                val displayName = account?.displayName?.ifBlank { null }
-                    ?: account?.email?.substringBefore("@")?.replaceFirstChar { it.uppercase() }
+        val intentData = result.data
+        val task = if (intentData != null) GoogleSignIn.getSignedInAccountFromIntent(intentData) else null
+        try {
+            val account = task?.getResult(ApiException::class.java)
+                ?: if (result.resultCode == Activity.RESULT_OK) GoogleSignIn.getLastSignedInAccount(context) else null
+
+            if (account != null) {
+                val displayName = account.displayName?.ifBlank { null }
+                    ?: account.email?.substringBefore("@")?.replaceFirstChar { it.uppercase() }
                     ?: "Developer"
-                val userEmail = account?.email
-                val userPhoto = account?.photoUrl?.toString()
-                val idToken = account?.idToken
+                val userEmail = account.email
+                val userPhoto = account.photoUrl?.toString()
+                val idToken = account.idToken
 
                 loadingMessage = "Welcome, $displayName…"
 
@@ -187,31 +194,51 @@ fun AuthScreen(
                     // When idToken is not configured or unavailable, proceed with verified Google profile
                     onCompleteAuth(displayName)
                 }
-            } catch (e: Exception) {
-                // Check if Google Sign-In account was retrieved on device
-                val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
-                if (lastAccount != null) {
-                    val displayName = lastAccount.displayName?.ifBlank { null }
-                        ?: lastAccount.email?.substringBefore("@")?.replaceFirstChar { it.uppercase() }
-                        ?: "Developer"
-                    val userEmail = lastAccount.email
-                    val userPhoto = lastAccount.photoUrl?.toString()
-                    isLoading = false
-                    successName = displayName
-                    showSuccessModal = true
-                    scope.launch {
-                        delay(650)
-                        showSuccessModal = false
-                        onAuthSuccess(displayName, "Google", userEmail, userPhoto)
-                    }
-                } else {
-                    isLoading = false
-                    errorMessage = "Google Sign-In was not completed. Please try again or use Email."
+            } else {
+                isLoading = false
+                if (result.resultCode != Activity.RESULT_OK) {
+                    // Dialog cancelled by user
                 }
             }
-        } else {
+        } catch (e: ApiException) {
             isLoading = false
-            // User dismissed or closed account chooser cleanly
+            when (e.statusCode) {
+                16, 12501 -> {
+                    // User dismissed the account picker
+                }
+                10 -> {
+                    errorMessage = "Google Sign-In configuration error (Developer Error 10). Make sure the debug SHA-1 fingerprint is added in Firebase Console."
+                }
+                7 -> {
+                    errorMessage = "Network error during Google Sign-In. Please check your internet connection."
+                }
+                12500 -> {
+                    errorMessage = "Google Sign-In failed (Code 12500). Please check your Google Play Services or use Email login."
+                }
+                else -> {
+                    errorMessage = "Google Sign-In error (${e.statusCode}): ${e.localizedMessage ?: "Unknown error"}"
+                }
+            }
+        } catch (e: Exception) {
+            val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
+            if (lastAccount != null) {
+                val displayName = lastAccount.displayName?.ifBlank { null }
+                    ?: lastAccount.email?.substringBefore("@")?.replaceFirstChar { it.uppercase() }
+                    ?: "Developer"
+                val userEmail = lastAccount.email
+                val userPhoto = lastAccount.photoUrl?.toString()
+                isLoading = false
+                successName = displayName
+                showSuccessModal = true
+                scope.launch {
+                    delay(650)
+                    showSuccessModal = false
+                    onAuthSuccess(displayName, "Google", userEmail, userPhoto)
+                }
+            } else {
+                isLoading = false
+                errorMessage = e.localizedMessage ?: "Google Sign-In was not completed. Please try again or use Email."
+            }
         }
     }
 
