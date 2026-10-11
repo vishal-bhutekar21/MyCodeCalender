@@ -6,16 +6,23 @@ import {
   Smartphone,
   ShieldCheck,
   Loader2,
-  Flame
+  Flame,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import { GlassCard } from '../components/ui/GlassCard';
 import type { UserAccount } from '../types';
-import { subscribeToUsers } from '../services/firestoreService';
+import { subscribeToUsers, deleteUserAccount, deleteAllUserAccounts } from '../services/firestoreService';
+import { useAuth } from '../context/AuthContext';
 
 export const UsersDirectory: React.FC = () => {
+  const { user: currentAdmin } = useAuth();
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [deletingUid, setDeletingUid] = useState<string | null>(null);
+  const [isDeletingAll, setIsDeletingAll] = useState<boolean>(false);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = subscribeToUsers((items) => {
@@ -24,6 +31,48 @@ export const UsersDirectory: React.FC = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  const handleDeleteUser = async (u: UserAccount) => {
+    const confirmName = u.displayName || u.email || u.uid;
+    if (!window.confirm(`Are you sure you want to delete user "${confirmName}"? This action is permanent.`)) {
+      return;
+    }
+
+    try {
+      setDeletingUid(u.uid);
+      await deleteUserAccount(u.uid);
+      setActionMessage(`User "${confirmName}" was deleted successfully.`);
+      setTimeout(() => setActionMessage(null), 4000);
+    } catch (err: any) {
+      console.error('Failed to delete user:', err);
+      alert(`Error deleting user: ${err.message || 'Permission denied or network issue'}`);
+    } finally {
+      setDeletingUid(null);
+    }
+  };
+
+  const handleDeleteAllUsers = async () => {
+    if (users.length === 0) return;
+    const confirmPrompt = window.prompt(
+      `⚠️ DANGER: You are about to delete ALL ${users.length} registered users.\nType "DELETE ALL" to confirm:`
+    );
+
+    if (confirmPrompt !== 'DELETE ALL') {
+      return;
+    }
+
+    try {
+      setIsDeletingAll(true);
+      await deleteAllUserAccounts();
+      setActionMessage(`All ${users.length} user records have been removed.`);
+      setTimeout(() => setActionMessage(null), 4000);
+    } catch (err: any) {
+      console.error('Failed to delete all users:', err);
+      alert(`Error deleting users: ${err.message || 'Permission denied or network issue'}`);
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
 
   const filteredUsers = users.filter((u) => {
     const term = searchQuery.toLowerCase();
@@ -51,10 +100,41 @@ export const UsersDirectory: React.FC = () => {
           </p>
         </div>
 
-        <div className="px-3.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold text-slate-300">
-          Total Users: <span className="text-brand-orange font-bold font-mono">{users.length}</span>
+        <div className="flex items-center gap-3">
+          <div className="px-3.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold text-slate-300">
+            Total Users: <span className="text-brand-orange font-bold font-mono">{users.length}</span>
+          </div>
+
+          {users.length > 0 && (
+            <button
+              onClick={handleDeleteAllUsers}
+              disabled={isDeletingAll}
+              className="px-3.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-xs font-bold text-rose-400 flex items-center gap-1.5 transition-all disabled:opacity-50"
+              title="Delete all user records from Firestore"
+            >
+              {isDeletingAll ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Deleting All...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete All Users</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Action Notification */}
+      {actionMessage && (
+        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <span>{actionMessage}</span>
+        </div>
+      )}
 
       {/* Search Filter */}
       <GlassCard className="p-4">
@@ -98,88 +178,112 @@ export const UsersDirectory: React.FC = () => {
                   <th className="py-3.5 px-5">Connected Handles</th>
                   <th className="py-3.5 px-5">App Version</th>
                   <th className="py-3.5 px-5">User ID</th>
+                  <th className="py-3.5 px-5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filteredUsers.map((u) => (
-                  <tr key={u.uid} className="hover:bg-white/[0.02] transition-colors">
-                    {/* Name & Avatar */}
-                    <td className="py-4 px-5">
-                      <div className="flex items-center gap-3">
-                        {u.photoUrl ? (
-                          <img
-                            src={u.photoUrl}
-                            alt="Avatar"
-                            className="w-9 h-9 rounded-full border border-white/20 object-cover"
-                          />
-                        ) : (
-                          <div className="w-9 h-9 rounded-full bg-brand-orange/20 border border-brand-orange/30 text-brand-orange flex items-center justify-center font-bold">
-                            <UserIcon className="w-4 h-4" />
+                {filteredUsers.map((u) => {
+                  const isCurrentAdmin =
+                    u.email === 'admin.vishal@gmail.com' ||
+                    u.email === 'vishal.bhutekar1@gmail.com' ||
+                    u.uid === currentAdmin?.uid;
+
+                  return (
+                    <tr key={u.uid} className="hover:bg-white/[0.02] transition-colors">
+                      {/* Name & Avatar */}
+                      <td className="py-4 px-5">
+                        <div className="flex items-center gap-3">
+                          {u.photoUrl ? (
+                            <img
+                              src={u.photoUrl}
+                              alt="Avatar"
+                              className="w-9 h-9 rounded-full border border-white/20 object-cover"
+                            />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-brand-orange/20 border border-brand-orange/30 text-brand-orange flex items-center justify-center font-bold">
+                              <UserIcon className="w-4 h-4" />
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-bold text-white text-sm flex items-center gap-1.5">
+                              <span>{u.displayName || 'Developer'}</span>
+                              {isCurrentAdmin && (
+                                <span title="Super Admin">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-brand-orange" />
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-[11px] text-slate-400 font-mono">{u.email || 'No email attached'}</p>
                           </div>
-                        )}
-                        <div>
-                          <p className="font-bold text-white text-sm flex items-center gap-1.5">
-                            <span>{u.displayName || 'Developer'}</span>
-                            {u.email === 'vishal.bhutekar1@gmail.com' && (
-                              <span title="Super Admin">
-                                <ShieldCheck className="w-3.5 h-3.5 text-brand-orange" />
+                        </div>
+                      </td>
+
+                      {/* Coding Streak */}
+                      <td className="py-4 px-5">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-orange/15 border border-brand-orange/30 text-brand-orange font-bold font-mono">
+                          <Flame className="w-3.5 h-3.5 fill-brand-orange" />
+                          <span>{u.currentStreak ?? u.streakCount ?? 0} Days</span>
+                        </div>
+                      </td>
+
+                      {/* Auth Provider */}
+                      <td className="py-4 px-5">
+                        <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-white/5 border border-white/10 text-slate-300">
+                          {u.authProvider || 'Google'}
+                        </span>
+                      </td>
+
+                      {/* Connected Handles */}
+                      <td className="py-4 px-5">
+                        {u.connectedAccountsMap && Object.keys(u.connectedAccountsMap).length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5 max-w-xs">
+                            {Object.entries(u.connectedAccountsMap).map(([p, handle]) => (
+                              <span
+                                key={p}
+                                className="px-2 py-0.5 rounded text-[10px] font-semibold bg-brand-orange/15 text-brand-orange border border-brand-orange/30 font-mono"
+                              >
+                                {p}: {handle}
                               </span>
-                            )}
-                          </p>
-                          <p className="text-[11px] text-slate-400 font-mono">{u.email || 'No email attached'}</p>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-slate-500 text-[11px] italic">None linked</span>
+                        )}
+                      </td>
+
+                      {/* App Version */}
+                      <td className="py-4 px-5">
+                        <div className="flex items-center gap-1.5 text-slate-300">
+                          <Smartphone className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="font-mono text-xs">{u.appVersion || '1.0.0'}</span>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Coding Streak */}
-                    <td className="py-4 px-5">
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-orange/15 border border-brand-orange/30 text-brand-orange font-bold font-mono">
-                        <Flame className="w-3.5 h-3.5 fill-brand-orange" />
-                        <span>{u.currentStreak ?? u.streakCount ?? 0} Days</span>
-                      </div>
-                    </td>
+                      {/* User UID */}
+                      <td className="py-4 px-5">
+                        <span className="font-mono text-[10px] text-slate-400 select-all">
+                          {u.uid}
+                        </span>
+                      </td>
 
-                    {/* Auth Provider */}
-                    <td className="py-4 px-5">
-                      <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-white/5 border border-white/10 text-slate-300">
-                        {u.authProvider || 'Google'}
-                      </span>
-                    </td>
-
-                    {/* Connected Handles */}
-                    <td className="py-4 px-5">
-                      {u.connectedAccountsMap && Object.keys(u.connectedAccountsMap).length > 0 ? (
-                        <div className="flex flex-wrap gap-1.5 max-w-xs">
-                          {Object.entries(u.connectedAccountsMap).map(([p, handle]) => (
-                            <span
-                              key={p}
-                              className="px-2 py-0.5 rounded text-[10px] font-semibold bg-brand-orange/15 text-brand-orange border border-brand-orange/30 font-mono"
-                            >
-                              {p}: {handle}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-slate-500 text-[11px] italic">None linked</span>
-                      )}
-                    </td>
-
-                    {/* App Version */}
-                    <td className="py-4 px-5">
-                      <div className="flex items-center gap-1.5 text-slate-300">
-                        <Smartphone className="w-3.5 h-3.5 text-slate-400" />
-                        <span className="font-mono text-xs">{u.appVersion || '1.0.0'}</span>
-                      </div>
-                    </td>
-
-                    {/* User UID */}
-                    <td className="py-4 px-5">
-                      <span className="font-mono text-[10px] text-slate-400 select-all">
-                        {u.uid}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                      {/* Actions */}
+                      <td className="py-4 px-5 text-right">
+                        <button
+                          onClick={() => handleDeleteUser(u)}
+                          disabled={deletingUid === u.uid}
+                          className="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                          title="Delete user"
+                        >
+                          {deletingUid === u.uid ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -188,3 +292,5 @@ export const UsersDirectory: React.FC = () => {
     </div>
   );
 };
+
+export default UsersDirectory;

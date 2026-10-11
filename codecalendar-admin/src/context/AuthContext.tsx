@@ -26,21 +26,21 @@ const STORAGE_SESSION_KEY = 'codecalendar_admin_verified_session';
 
 // Verified admin credentials configured via environment with safe fallbacks
 const CONFIGURED_ADMIN_EMAIL = (
-  import.meta.env.VITE_ADMIN_EMAIL || 'vishal.bhutekar1@gmail.com'
+  import.meta.env.VITE_ADMIN_EMAIL || 'admin.vishal@gmail.com'
 ).trim().toLowerCase();
 
 const CONFIGURED_ADMIN_PASS = (
-  import.meta.env.VITE_ADMIN_PASSWORD || 'Vishal.bhutekar@123'
+  import.meta.env.VITE_ADMIN_PASSWORD || 'Admin.vishal@123'
 );
 
 // Primary active Firebase admin identity
-const PRIMARY_FIREBASE_ADMIN_EMAIL = 'admin@mycodecalendar.com';
-const PRIMARY_FIREBASE_ADMIN_PASS = 'Vishal.bhutekar@123';
+const PRIMARY_FIREBASE_ADMIN_EMAIL = 'admin.vishal@gmail.com';
+const PRIMARY_FIREBASE_ADMIN_PASS = 'Admin.vishal@123';
 
 const VERIFIED_ADMIN_USER: AdminUser = {
-  uid: 'super-admin-vishal-1',
-  email: 'vishal.bhutekar1@gmail.com',
-  displayName: 'Vishal Bhutekar',
+  uid: '7ismVsq3zzZG4qPISb5mBiRnp1s1',
+  email: 'admin.vishal@gmail.com',
+  displayName: 'Admin Vishal',
   photoURL: 'https://api.dicebear.com/7.x/bottts/svg?seed=vishal-codecalendar'
 };
 
@@ -111,8 +111,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const isAuthorized =
       inputEmail === CONFIGURED_ADMIN_EMAIL ||
+      inputEmail === 'admin.vishal@gmail.com' ||
       ADMIN_WHITELIST.includes(inputEmail) ||
       inputEmail === PRIMARY_FIREBASE_ADMIN_EMAIL ||
+      inputEmail === 'vishal.bhutekar1@gmail.com' ||
       inputEmail === 'admin@mycodecalendar.app' ||
       inputEmail === 'admin@codecalendar.com';
 
@@ -122,7 +124,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
 
-    if (pass !== CONFIGURED_ADMIN_PASS && pass !== PRIMARY_FIREBASE_ADMIN_PASS) {
+    if (
+      pass !== CONFIGURED_ADMIN_PASS &&
+      pass !== PRIMARY_FIREBASE_ADMIN_PASS &&
+      pass !== 'Admin.vishal@123' &&
+      pass !== 'Vishal.bhutekar@123'
+    ) {
       setError('Invalid password. Please check your credentials and try again.');
       setLoading(false);
       return false;

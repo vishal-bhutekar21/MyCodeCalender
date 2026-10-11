@@ -42,7 +42,7 @@ export const firestore = (() => {
 export const storage = getStorage(app);
 
 export const ADMIN_WHITELIST: string[] = (
-  import.meta.env.VITE_ADMIN_WHITELIST || "vishal.bhutekar1@gmail.com,vishalbhutekar33772@gmail.com,admin@mycodecalendar.app,admin@codecalendar.com"
+  import.meta.env.VITE_ADMIN_WHITELIST || "admin.vishal@gmail.com,vishal.bhutekar1@gmail.com,vishalbhutekar33772@gmail.com,admin@mycodecalendar.app,admin@codecalendar.com"
 )
   .split(',')
   .map((e: string) => e.trim().toLowerCase());

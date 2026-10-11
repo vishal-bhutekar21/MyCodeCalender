@@ -211,6 +211,19 @@ export const subscribeToUsers = (
   );
 };
 
+export const deleteUserAccount = async (userUid: string): Promise<void> => {
+  await deleteDoc(doc(firestore, 'users', userUid));
+};
+
+export const deleteAllUserAccounts = async (): Promise<void> => {
+  const snap = await getDocs(collection(firestore, 'users'));
+  const batch = writeBatch(firestore);
+  snap.docs.forEach((docSnap) => {
+    batch.delete(docSnap.ref);
+  });
+  await batch.commit();
+};
+
 // ── DELETION REQUESTS & GDPR SAFETY ──────────────────────────────────────────
 
 export const subscribeToDeletionRequests = (
